@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+.DS_Store
+.env
+.env.local
+*.pem
+
+# Large binary assets (served from R2/CDN in production)
+/public/models/
+/public/videos/
+/public/images/egg.gif

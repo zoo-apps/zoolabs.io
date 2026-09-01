@@ -36,11 +36,7 @@ const INITIAL_ORGS = [
 
 export default function ZooAppChrome({ minimal = false }: { minimal?: boolean }) {
   const router = useRouter()
-  const [user, setUser] = useState<{ name: string; email: string; plan: string } | null>({
-    name: 'Alex Rivera',
-    email: 'alex@zoolabs.id',
-    plan: 'Plus Plan',
-  })
+  const [user, setUser] = useState<{ name: string; email: string; plan: string } | null>(null)
 
   const [orgs, setOrgs] = useState(INITIAL_ORGS)
   const [activeOrg, setActiveOrg] = useState(INITIAL_ORGS[0])

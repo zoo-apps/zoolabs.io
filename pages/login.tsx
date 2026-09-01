@@ -2,157 +2,314 @@ import { useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import {
-  Shield,
-  KeyRound,
-  ArrowRight,
-  Sparkles,
-  Lock,
-  Mail,
-  CheckCircle2,
-} from 'lucide-react'
-import ZooAppChrome from '../components/ZooAppChrome'
+import { Eye, EyeOff, Wallet, Phone, Sparkles } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [authMethod, setAuthMethod] = useState<'id' | 'passkey'>('id')
+  const [useOtpCode, setUseOtpCode] = useState(false)
+  const [walletConnecting, setWalletConnecting] = useState(false)
+  const [phoneMode, setPhoneMode] = useState(false)
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    if (!identifier.trim()) return
 
-    const backendUrl = process.env.NEXT_PUBLIC_HANZO_API_URL || 'http://localhost:8000'
+    setIsLoading(true)
+    const backendUrl = process.env.NEXT_PUBLIC_HANZO_API_URL || 'https://api.hanzo.ai'
 
     try {
-      // Direct call to Hanzo ID / Zoo ID backend
       await fetch(`${backendUrl}/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, org: 'zoo' }),
+        body: JSON.stringify({ identifier, password, org: 'zoo' }),
       })
     } catch {
-      // graceful fallback
+      // Graceful fallback for demo
     }
 
     setTimeout(() => {
       setIsLoading(false)
       const user = {
-        name: email.split('@')[0] || 'Alex Rivera',
-        email: email || 'alex@zoolabs.id',
-        plan: 'Zoo Pro',
+        name: identifier.includes('@') ? identifier.split('@')[0] : identifier,
+        email: identifier.includes('@') ? identifier : `${identifier}@zoolabs.id`,
+        plan: 'Plus Plan',
       }
       localStorage.setItem('zoo_user', JSON.stringify(user))
       router.push('/vibe')
-    }, 1000)
+    }, 600)
+  }
+
+  const handleSocialAuth = (provider: 'google' | 'github') => {
+    setIsLoading(true)
+    setTimeout(() => {
+      const user = {
+        name: provider === 'google' ? 'Google User' : 'GitHub Dev',
+        email: `user@${provider}.com`,
+        plan: 'Plus Plan',
+      }
+      localStorage.setItem('zoo_user', JSON.stringify(user))
+      router.push('/vibe')
+    }, 600)
+  }
+
+  const handleWalletAuth = async () => {
+    setWalletConnecting(true)
+    setTimeout(() => {
+      setWalletConnecting(false)
+      const user = {
+        name: '0x71C...49b2',
+        email: 'wallet@zoolabs.id',
+        plan: 'DAO Sovereign',
+      }
+      localStorage.setItem('zoo_user', JSON.stringify(user))
+      router.push('/vibe')
+    }, 800)
   }
 
   return (
     <>
       <Head>
-        <title>Zoo Labs — Log in with Zoo ID (zoolabs.id)</title>
+        <title>Zoo Labs ID — Login or Signup (zoolabs.id)</title>
         <meta
           name="description"
-          content="Log in to Zoo Labs with your sovereign Zoo ID (zoolabs.id). Powered by identity.hanzo.ai."
+          content="Sovereign authentication for Zoo Labs and the Hanzo AI ecosystem. Powered by zoolabs.id and identity.hanzo.ai."
         />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+        <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="min-h-screen bg-[#0A0A0C] text-white flex flex-col font-sans select-none">
-        <ZooAppChrome />
+      <div
+        className="min-h-screen w-full flex flex-col justify-between text-white font-sans select-none"
+        style={{
+          backgroundColor: '#000000',
+          backgroundImage: 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 119, 198, 0.15), rgba(255, 255, 255, 0))',
+        }}
+      >
+        {/* Top Header */}
+        <header className="w-full px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 text-white/90 hover:text-white transition-opacity">
+            <span className="font-semibold text-sm tracking-tight text-white">Zoo Labs ID</span>
+          </Link>
 
-        <main className="flex-1 flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#121214] p-8 shadow-2xl space-y-6">
-            {/* Header */}
-            <div className="text-center space-y-2">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-black font-black text-xl shadow-lg mx-auto">
-                Z
-              </div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-white">Log in to Zoo Labs</h1>
-              <p className="text-xs text-zinc-400">
-                Sovereign authentication powered by <span className="text-blue-400 font-semibold">zoolabs.id</span> & <span className="text-zinc-300">identity.hanzo.ai</span>
-              </p>
-            </div>
+          <Link
+            href="https://identity.hanzo.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-white/40 hover:text-white/80 transition-colors"
+          >
+            identity.hanzo.ai
+          </Link>
+        </header>
 
-            {/* Auth Mode Tabs */}
-            <div className="grid grid-cols-2 gap-1 bg-[#18181B] p-1 rounded-xl border border-white/10 text-xs font-semibold">
+        {/* Main Center Auth Container */}
+        <main className="flex-1 flex items-center justify-center px-4 py-8">
+          <div
+            className="flex flex-col space-y-3.5"
+            style={{ width: '100%', maxWidth: '380px', margin: '0 auto' }}
+          >
+            {/* Title */}
+            <h1 className="text-xl font-semibold text-white text-center pb-1">
+              Login or Signup
+            </h1>
+
+            {/* Social Auth Buttons */}
+            <div className="flex flex-col gap-2.5">
               <button
                 type="button"
-                onClick={() => setAuthMethod('id')}
-                className={`py-1.5 rounded-lg transition-all cursor-pointer ${
-                  authMethod === 'id' ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
-                }`}
+                onClick={() => handleSocialAuth('google')}
+                className="w-full h-11 px-4 rounded-full flex items-center justify-center gap-3 text-sm font-medium text-white transition-all cursor-pointer active:scale-[0.98]"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.14)',
+                }}
               >
-                Zoo ID
+                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+                <span>Continue with Google</span>
               </button>
+
               <button
                 type="button"
-                onClick={() => setAuthMethod('passkey')}
-                className={`py-1.5 rounded-lg transition-all cursor-pointer ${
-                  authMethod === 'passkey' ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
-                }`}
+                onClick={() => handleSocialAuth('github')}
+                className="w-full h-11 px-4 rounded-full flex items-center justify-center gap-3 text-sm font-medium text-white transition-all cursor-pointer active:scale-[0.98]"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.14)',
+                }}
               >
-                Passkey / Biometric
+                <svg className="h-4 w-4 fill-white shrink-0" viewBox="0 0 24 24">
+                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                </svg>
+                <span>Continue with GitHub</span>
               </button>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-zinc-400">Email or Zoo Handle</label>
-                <div className="flex items-center gap-2 rounded-xl bg-black/60 border border-white/10 px-3 py-2.5 focus-within:border-blue-500">
-                  <Mail className="h-4 w-4 text-zinc-500" />
-                  <input
-                    type="text"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="alex@zoolabs.id or @alex"
-                    className="flex-1 bg-transparent text-xs text-white outline-none placeholder:text-zinc-600"
-                  />
-                </div>
+            {/* Divider */}
+            <div className="flex items-center gap-3 py-1.5">
+              <div className="flex-1 h-[1px] bg-white/[0.12]" />
+              <span className="text-xs text-white/40 font-normal">or</span>
+              <div className="flex-1 h-[1px] bg-white/[0.12]" />
+            </div>
+
+            {/* Credentials Form */}
+            <form onSubmit={handleContinue} className="flex flex-col space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs text-white/80 font-medium pl-3">
+                  {phoneMode ? 'Phone number' : 'Email or username'}
+                </label>
+                <input
+                  type={phoneMode ? 'tel' : 'text'}
+                  required
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder={phoneMode ? '+1 (555) 000-0000' : ''}
+                  className="w-full h-11 px-4 rounded-full text-sm text-white placeholder:text-white/30 outline-none transition-all"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.14)',
+                  }}
+                />
               </div>
 
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-[11px]">
-                  <label className="font-semibold text-zinc-400">Password</label>
-                  <a href="https://identity.hanzo.ai/forgot" target="_blank" className="text-blue-400 hover:underline">
-                    Forgot?
-                  </a>
+              {!useOtpCode && (
+                <div className="space-y-1">
+                  <label className="text-xs text-white/80 font-medium pl-3">Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder=""
+                      className="w-full h-11 px-4 pr-11 rounded-full text-sm text-white placeholder:text-white/30 outline-none transition-all"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.14)',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/90 p-1 cursor-pointer"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 rounded-xl bg-black/60 border border-white/10 px-3 py-2.5 focus-within:border-blue-500">
-                  <Lock className="h-4 w-4 text-zinc-500" />
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="flex-1 bg-transparent text-xs text-white outline-none placeholder:text-zinc-600"
-                  />
-                </div>
-              </div>
+              )}
 
+              {/* Main Submit: Solid Bright White Pill Button */}
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 active:scale-95 transition-all cursor-pointer"
+                disabled={isLoading || !identifier.trim()}
+                className="w-full h-11 rounded-full bg-white text-black font-semibold text-sm transition-all hover:bg-zinc-200 active:scale-[0.98] disabled:opacity-50 cursor-pointer shadow-lg mt-1"
               >
-                <span>{isLoading ? 'Authenticating with zoolabs.id...' : 'Sign in with Zoo ID'}</span>
-                <ArrowRight className="h-4 w-4" />
+                {isLoading ? 'Authenticating...' : 'Continue'}
               </button>
             </form>
 
-            {/* Footer switch */}
-            <div className="pt-4 border-t border-white/10 text-center text-xs text-zinc-400">
-              Don't have a Zoo ID?{' '}
-              <Link href="/signup" className="text-white font-bold hover:underline">
+            {/* Send me a code instead */}
+            <div className="text-center pt-0.5">
+              <button
+                type="button"
+                onClick={() => setUseOtpCode(!useOtpCode)}
+                className="text-xs text-white/60 hover:text-white underline cursor-pointer transition-colors"
+              >
+                {useOtpCode ? 'Use password instead' : 'Send me a code instead'}
+              </button>
+            </div>
+
+            {/* Additional Pill Options */}
+            <div className="flex flex-col gap-2 pt-2">
+              <Link
+                href="/signup"
+                className="w-full h-10 px-4 rounded-full flex items-center justify-center text-xs font-medium text-white transition-all cursor-pointer active:scale-[0.98] hover:bg-white/[0.08]"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                }}
+              >
                 Create account
+              </Link>
+
+              <button
+                type="button"
+                onClick={handleWalletAuth}
+                className="w-full h-10 px-4 rounded-full flex items-center justify-center gap-2 text-xs font-medium text-white transition-all cursor-pointer active:scale-[0.98] hover:bg-white/[0.08]"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                }}
+              >
+                <Wallet className="h-3.5 w-3.5 text-white/70" />
+                <span>{walletConnecting ? 'Connecting Web3...' : 'Continue with Wallet'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPhoneMode(!phoneMode)}
+                className="w-full h-10 px-4 rounded-full flex items-center justify-center gap-2 text-xs font-medium text-white transition-all cursor-pointer active:scale-[0.98] hover:bg-white/[0.08]"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                }}
+              >
+                <Phone className="h-3.5 w-3.5 text-white/70" />
+                <span>{phoneMode ? 'Continue with Email' : 'Continue with Phone'}</span>
+              </button>
+            </div>
+
+            {/* Forgot password */}
+            <div className="text-center pt-1">
+              <Link
+                href="https://identity.hanzo.ai/forgot"
+                target="_blank"
+                className="text-xs text-white/45 hover:text-white/80 transition-colors"
+              >
+                Forgot password?
               </Link>
             </div>
           </div>
         </main>
+
+        {/* Footer */}
+        <footer className="w-full px-6 py-6 flex flex-col items-center gap-3 text-xs text-white/40">
+          <div className="flex items-center gap-3">
+            <span>Zoo Labs Foundation Inc, 2026</span>
+            <span>•</span>
+            <Link href="https://docs.zoolabs.io/terms" target="_blank" className="hover:text-white/80 transition-colors">
+              Terms
+            </Link>
+          </div>
+
+          {/* Chromatic Ring Logo Mark */}
+          <div className="h-5 w-5 rounded-full p-[2px] transition-transform hover:scale-110" style={{ background: 'conic-gradient(from 180deg at 50% 50%, #FF2E93 0deg, #FF8A00 72deg, #FFD600 144deg, #00E5FF 216deg, #7928CA 288deg, #FF2E93 360deg)' }}>
+            <div className="h-full w-full rounded-full bg-black flex items-center justify-center text-[8px] font-bold text-white">
+              Z
+            </div>
+          </div>
+        </footer>
       </div>
     </>
   )

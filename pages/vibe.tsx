@@ -14,6 +14,7 @@ import {
   MessageCircle,
   Settings,
   PanelRight,
+  PanelLeft,
   Plus,
   ArrowUp,
   RotateCw,
@@ -135,6 +136,9 @@ export default function VibeRoomPage() {
   const [previewKey, setPreviewKey] = useState(0)
   const [previewUpdated, setPreviewUpdated] = useState(false)
   const [mobileTab, setMobileTab] = useState<'stream' | 'stage' | 'chat'>('stage')
+
+  const [showLeftSidebar, setShowLeftSidebar] = useState(true)
+  const [showRightSidebar, setShowRightSidebar] = useState(true)
 
   // 3D Metaverse Controls
   const [mesh3DRotation, setMesh3DRotation] = useState(1)
@@ -354,8 +358,8 @@ export default function VibeRoomPage() {
 
         {/* ─── 1. SUB-HEADER: ROOM BAR & METAVERSE VIEW TOGGLES ─────────────── */}
         <header className="h-11 border-b border-white/[0.08] bg-[#121214]/90 backdrop-blur-xl px-3.5 flex items-center justify-between z-40 shrink-0 text-xs">
-          {/* Left: Room Selector */}
-          <div className="flex items-center gap-3">
+          {/* Left: Sidebar Toggle + Room Selector */}
+          <div className="flex items-center gap-2.5">
             <Link
               href="/"
               className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
@@ -363,6 +367,19 @@ export default function VibeRoomPage() {
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>
+
+            {/* Left Sidebar Collapse / Expand Toggle */}
+            <button
+              onClick={() => setShowLeftSidebar(!showLeftSidebar)}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                showLeftSidebar
+                  ? 'bg-white/10 border-white/20 text-white'
+                  : 'bg-transparent border-white/10 text-zinc-400 hover:text-white'
+              }`}
+              title={showLeftSidebar ? 'Collapse Agent Panel (Cmd+[)' : 'Expand Agent Panel (Cmd+[)'}
+            >
+              <PanelLeft className="h-4 w-4" />
+            </button>
 
             <div className="relative">
               <button
@@ -434,7 +451,7 @@ export default function VibeRoomPage() {
             </div>
           </div>
 
-          {/* Right: Mobile Tab Switcher, 2D/3D Toggle & Invite */}
+          {/* Right: Mobile Tab Switcher, 2D/3D Toggle, Invite & Right Sidebar Toggle */}
           <div className="flex items-center gap-2">
             {/* Mobile Column View Switcher (Visible on small screens) */}
             <div className="flex md:hidden items-center bg-black/60 border border-white/10 p-0.5 rounded-xl text-[11px] font-semibold">
@@ -506,17 +523,37 @@ export default function VibeRoomPage() {
               <Users className="h-3.5 w-3.5" />
               <span>Invite</span>
             </button>
+
+            {/* Right Sidebar Collapse / Expand Toggle */}
+            <button
+              onClick={() => setShowRightSidebar(!showRightSidebar)}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer hidden md:flex ${
+                showRightSidebar
+                  ? 'bg-white/10 border-white/20 text-white'
+                  : 'bg-transparent border-white/10 text-zinc-400 hover:text-white'
+              }`}
+              title={showRightSidebar ? 'Collapse Chat Panel (Cmd+])' : 'Expand Chat Panel (Cmd+])'}
+            >
+              <PanelRight className="h-4 w-4" />
+            </button>
           </div>
         </header>
 
         {/* ─── Main Workspace: CSS Grid Multi-Modal Layout ────────────────── */}
-        <div className="zoo-vibe-grid flex-1">
+        <div
+          className="zoo-vibe-grid flex-1"
+          style={{
+            gridTemplateColumns: `${showLeftSidebar ? 'minmax(320px, 380px)' : '0px'} 1fr ${showRightSidebar ? 'minmax(280px, 340px)' : '0px'}`,
+            transition: 'grid-template-columns 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        >
           {/* COLUMN 1: AGENT COLLABORATION STREAM (Left Pane) */}
-          <div
-            className={`flex flex-col justify-between border-r border-white/[0.08] bg-[#121214] overflow-hidden ${
-              mobileTab === 'stream' ? 'flex' : 'hidden md:flex'
-            }`}
-          >
+          {showLeftSidebar && (
+            <div
+              className={`flex flex-col justify-between border-r border-white/[0.08] bg-[#121214] overflow-hidden ${
+                mobileTab === 'stream' ? 'flex' : 'hidden md:flex'
+              }`}
+            >
             <div className="h-9 border-b border-white/[0.08] px-3.5 flex items-center justify-between text-xs text-zinc-400 bg-white/[0.02]">
               <span className="font-semibold text-white flex items-center gap-1.5">
                 <ZooLogo size={14} />
@@ -626,6 +663,7 @@ export default function VibeRoomPage() {
               </div>
             </form>
           </div>
+        )}
 
           {/* COLUMN 2: CENTER STAGE (2D Video or 3D Gaussian Splat Metaverse) */}
           <div
@@ -778,118 +816,120 @@ export default function VibeRoomPage() {
           </div>
 
           {/* COLUMN 3: GROUP CHAT (Right Pane - Side-channel for humans) */}
-          <div
-            className={`flex flex-col justify-between bg-[#121214] border-l border-white/[0.08] overflow-hidden ${
-              mobileTab === 'chat' ? 'flex' : 'hidden lg:flex'
-            }`}
-          >
-            <div className="h-10 border-b border-white/[0.08] px-4 flex items-center justify-between text-xs text-zinc-400 bg-white/[0.02]">
-              <span className="font-semibold text-white">Teammates Group Chat</span>
-              <span className="text-[10px] text-zinc-500">Private pod</span>
-            </div>
-
-            {/* Chat Stream */}
-            <div ref={groupScrollerRef} className="flex-1 p-3.5 space-y-4 overflow-y-auto no-scrollbar">
-              {groupMessages.map((msg) => (
-                <div key={msg.id} className="space-y-2">
-                  <div className="flex items-baseline justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
-                        {msg.avatar}
-                      </div>
-                      <span className="font-semibold text-xs text-white">{msg.sender}</span>
-                    </div>
-                    <span className="text-[10px] text-zinc-500">{msg.time}</span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-xs text-zinc-200 bg-white/[0.04] p-3 rounded-2xl border border-white/[0.06] leading-relaxed">
-                      {msg.content}
-                    </p>
-
-                    {/* Interactive Poll Component */}
-                    {msg.poll && (
-                      <div className="p-3 rounded-2xl bg-black/40 border border-white/10 space-y-2 text-xs">
-                        <p className="font-semibold text-white flex items-center gap-1.5">
-                          <Activity className="h-3.5 w-3.5 text-blue-400" />
-                          <span>{msg.poll.question}</span>
-                        </p>
-                        <div className="space-y-1.5">
-                          {msg.poll.options.map((opt, idx) => {
-                            const isVoted = msg.poll?.voted === idx
-                            return (
-                              <button
-                                key={idx}
-                                onClick={() => handleVotePoll(msg.id, idx)}
-                                className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all text-xs cursor-pointer ${
-                                  isVoted
-                                    ? 'bg-blue-600/30 border border-blue-500/50 text-white font-medium'
-                                    : 'bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-300'
-                                }`}
-                              >
-                                <span>{opt.text}</span>
-                                <span className="font-mono text-[10px] bg-black/40 px-2 py-0.5 rounded-md text-zinc-300">
-                                  {opt.votes} votes
-                                </span>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Emoji Reaction Badges */}
-                    <div className="flex items-center gap-1.5 pt-0.5">
-                      {msg.reactions?.map((r, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleToggleReaction(msg.id, r.emoji)}
-                          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] hover:bg-white/15 border border-white/10 text-[11px] transition-all cursor-pointer active:scale-90"
-                        >
-                          <span>{r.emoji}</span>
-                          <span className="font-mono text-[10px] text-zinc-400">{r.count}</span>
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => handleToggleReaction(msg.id, '❤️')}
-                        className="p-1 rounded-full text-zinc-500 hover:text-white hover:bg-white/10 transition-colors text-xs cursor-pointer"
-                        title="React with Heart"
-                      >
-                        ❤️
-                      </button>
-                      <button
-                        onClick={() => handleToggleReaction(msg.id, '🔥')}
-                        className="p-1 rounded-full text-zinc-500 hover:text-white hover:bg-white/10 transition-colors text-xs cursor-pointer"
-                        title="React with Fire"
-                      >
-                        🔥
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Chat Input */}
-            <form onSubmit={handleSendGroupMessage} className="p-3 border-t border-white/[0.08] bg-[#18181B]/80">
-              <div className="flex items-center gap-2 rounded-2xl bg-black/60 border border-white/10 px-3 py-2">
-                <input
-                  type="text"
-                  value={groupInput}
-                  onChange={(e) => setGroupInput(e.target.value)}
-                  placeholder="Message teammates..."
-                  className="flex-1 bg-transparent text-xs text-white outline-none placeholder:text-zinc-600"
-                />
-                <button
-                  type="submit"
-                  disabled={!groupInput.trim()}
-                  className="text-blue-400 font-bold text-xs disabled:opacity-40 cursor-pointer"
-                >
-                  Send
-                </button>
+          {showRightSidebar && (
+            <div
+              className={`flex flex-col justify-between bg-[#121214] border-l border-white/[0.08] overflow-hidden ${
+                mobileTab === 'chat' ? 'flex' : 'hidden lg:flex'
+              }`}
+            >
+              <div className="h-10 border-b border-white/[0.08] px-4 flex items-center justify-between text-xs text-zinc-400 bg-white/[0.02]">
+                <span className="font-semibold text-white">Teammates Group Chat</span>
+                <span className="text-[10px] text-zinc-500">Private pod</span>
               </div>
-            </form>
-          </div>
+
+              {/* Chat Stream */}
+              <div ref={groupScrollerRef} className="flex-1 p-3.5 space-y-4 overflow-y-auto no-scrollbar">
+                {groupMessages.map((msg) => (
+                  <div key={msg.id} className="space-y-2">
+                    <div className="flex items-baseline justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+                          {msg.avatar}
+                        </div>
+                        <span className="font-semibold text-xs text-white">{msg.sender}</span>
+                      </div>
+                      <span className="text-[10px] text-zinc-500">{msg.time}</span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-xs text-zinc-200 bg-white/[0.04] p-3 rounded-2xl border border-white/[0.06] leading-relaxed">
+                        {msg.content}
+                      </p>
+
+                      {/* Interactive Poll Component */}
+                      {msg.poll && (
+                        <div className="p-3 rounded-2xl bg-black/40 border border-white/10 space-y-2 text-xs">
+                          <p className="font-semibold text-white flex items-center gap-1.5">
+                            <Activity className="h-3.5 w-3.5 text-blue-400" />
+                            <span>{msg.poll.question}</span>
+                          </p>
+                          <div className="space-y-1.5">
+                            {msg.poll.options.map((opt, idx) => {
+                              const isVoted = msg.poll?.voted === idx
+                              return (
+                                <button
+                                  key={idx}
+                                  onClick={() => handleVotePoll(msg.id, idx)}
+                                  className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all text-xs cursor-pointer ${
+                                    isVoted
+                                      ? 'bg-blue-600/30 border border-blue-500/50 text-white font-medium'
+                                      : 'bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-300'
+                                  }`}
+                                >
+                                  <span>{opt.text}</span>
+                                  <span className="font-mono text-[10px] bg-black/40 px-2 py-0.5 rounded-md text-zinc-300">
+                                    {opt.votes} votes
+                                  </span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Emoji Reaction Badges */}
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        {msg.reactions?.map((r, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleToggleReaction(msg.id, r.emoji)}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] hover:bg-white/15 border border-white/10 text-[11px] transition-all cursor-pointer active:scale-90"
+                          >
+                            <span>{r.emoji}</span>
+                            <span className="font-mono text-[10px] text-zinc-400">{r.count}</span>
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => handleToggleReaction(msg.id, '❤️')}
+                          className="p-1 rounded-full text-zinc-500 hover:text-white hover:bg-white/10 transition-colors text-xs cursor-pointer"
+                          title="React with Heart"
+                        >
+                          ❤️
+                        </button>
+                        <button
+                          onClick={() => handleToggleReaction(msg.id, '🔥')}
+                          className="p-1 rounded-full text-zinc-500 hover:text-white hover:bg-white/10 transition-colors text-xs cursor-pointer"
+                          title="React with Fire"
+                        >
+                          🔥
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Chat Input */}
+              <form onSubmit={handleSendGroupMessage} className="p-3 border-t border-white/[0.08] bg-[#18181B]/80">
+                <div className="flex items-center gap-2 rounded-2xl bg-black/60 border border-white/10 px-3 py-2">
+                  <input
+                    type="text"
+                    value={groupInput}
+                    onChange={(e) => setGroupInput(e.target.value)}
+                    placeholder="Message teammates..."
+                    className="flex-1 bg-transparent text-xs text-white outline-none placeholder:text-zinc-600"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!groupInput.trim()}
+                    className="text-blue-400 font-bold text-xs disabled:opacity-40 cursor-pointer"
+                  >
+                    Send
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
         </div>
 
         {/* ─── Invite Friends Modal ────────────────────────────────────────── */}

@@ -243,6 +243,26 @@ export const ANIMAL_FLEET: AnimalAgent[] = [
     cloudMicroVm: 'microvm-fox-01 (debug.hanzo.cloud)',
     metrics: { runsCount: 2950, tokensUsed: '142.0M', latencyMs: 20, costUsd: '$5.10', uptime: '99.99%' },
   },
+  {
+    id: 'giraffe',
+    name: 'Twiga the Giraffe',
+    species: 'Giraffa camelopardalis',
+    emoji: '🦒',
+    role: 'Big-Picture Strategist & Synthesizer',
+    naturalRole: 'Strategy, planning, multi-horizon synthesis, long-range context',
+    description: 'Sees far beyond immediate tasks—synthesizes macro trends, designs multi-quarter roadmaps, and aligns multi-agent goals.',
+    avatar: 'https://images.unsplash.com/photo-1547721064-da6cfb341d50?w=400&auto=format&fit=crop&q=80',
+    brain: 'ZenLM 70B Long-Context · Strategic Planner',
+    status: 'active',
+    currentJob: 'Evaluating multi-horizon Arctic habitat conservation roadmap',
+    currentProgress: 85,
+    knows: ['Strategic Roadmapping', 'Long-Range Forecasting', 'Multi-Agent Alignment', 'Macro Ecological Trends'],
+    tools: ['Scenario Simulator', 'Roadmap Planner', 'Goal Synthesizer', 'Impact Projector'],
+    canTalk: true,
+    canDelegateTo: ['blue', 'raven', 'elephant', 'beaver'],
+    cloudMicroVm: 'microvm-strategy-01 (horizon.hanzo.cloud)',
+    metrics: { runsCount: 1840, tokensUsed: '105.0M', latencyMs: 22, costUsd: '$4.20', uptime: '100%' },
+  },
 ]
 
 export const INITIAL_MISSIONS: ZooMission[] = [
@@ -459,6 +479,8 @@ interface ZooMissionsContextType {
   setActiveCanvas: (canvas: ZooMission['activeCanvas']) => void
   addAnimalAgent: (agent: Omit<AnimalAgent, 'id' | 'metrics'>) => void
   addMissionDecision: (decision: Omit<MissionDecision, 'id' | 'timestamp'>) => void
+  updateAgentMemory: (agentId: string, memoryItem: string) => void
+  trainAgentSkill: (agentId: string, skill: string) => void
 }
 
 const ZooMissionsContext = createContext<ZooMissionsContextType | null>(null)
@@ -540,6 +562,18 @@ export function ZooMissionsProvider({ children }: { children: React.ReactNode })
     )
   }
 
+  const updateAgentMemory = (agentId: string, memoryItem: string) => {
+    setAgents((prev) =>
+      prev.map((a) => (a.id === agentId ? { ...a, knows: [...a.knows, memoryItem] } : a))
+    )
+  }
+
+  const trainAgentSkill = (agentId: string, skill: string) => {
+    setAgents((prev) =>
+      prev.map((a) => (a.id === agentId ? { ...a, tools: [...a.tools, skill] } : a))
+    )
+  }
+
   return (
     <ZooMissionsContext.Provider
       value={{
@@ -553,6 +587,8 @@ export function ZooMissionsProvider({ children }: { children: React.ReactNode })
         setActiveCanvas,
         addAnimalAgent,
         addMissionDecision,
+        updateAgentMemory,
+        trainAgentSkill,
       }}
     >
       {children}

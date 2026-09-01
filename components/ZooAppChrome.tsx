@@ -128,7 +128,7 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
         }}
       >
         {/* Left: Bigger ZOO Wordmark & Organization Switcher */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
           <Link href="/" className="flex items-center cursor-pointer">
             <span className="font-black text-xl tracking-tight text-white hover:opacity-80 transition-opacity">
               ZOO
@@ -141,12 +141,12 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
           <div className="relative">
             <button
               onClick={() => setShowOrgDropdown(!showOrgDropdown)}
-              className="action px-3 py-1 text-xs"
+              className="action px-2 sm:px-3 py-1 text-xs"
               style={{ minHeight: '32px' }}
             >
               <span>{activeOrg.icon}</span>
-              <span className="truncate sm:max-w-[140px]">{activeOrg.name}</span>
-              <ChevronDown className="h-3 w-3 text-zinc-400" />
+              <span className="truncate max-w-[85px] sm:max-w-[140px]">{activeOrg.name}</span>
+              <ChevronDown className="h-3 w-3 text-zinc-400 shrink-0" />
             </button>
 
             {showOrgDropdown && (
@@ -294,7 +294,7 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
           </div>
 
           {/* Plans */}
-          <Link href="/pricing" className="action px-3 py-1 text-xs" style={{ minHeight: '32px' }}>
+          <Link href="/pricing" className="action px-3 py-1 text-xs hidden sm:inline-flex" style={{ minHeight: '32px' }}>
             <Sparkles className="h-3.5 w-3.5 text-blue-400" />
             <span>Plans</span>
           </Link>
@@ -310,8 +310,8 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
                 <div className="h-5 w-5 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
-                <span className="font-semibold text-white truncate sm:max-w-[100px]">{user.name}</span>
-                <span className="badge badge-accent py-0 px-1.5">{user.plan}</span>
+                <span className="font-semibold text-white truncate max-w-[70px] sm:max-w-[100px]">{user.name}</span>
+                <span className="badge badge-accent py-0 px-1.5 hidden sm:inline-flex">{user.plan}</span>
                 <ChevronDown className="h-3 w-3 text-zinc-400" />
               </button>
 
@@ -372,8 +372,8 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/login" className="action px-3 py-1 text-xs" style={{ minHeight: '32px' }}>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Link href="/login" className="action px-2.5 sm:px-3 py-1 text-xs hidden sm:inline-flex" style={{ minHeight: '32px' }}>
                 Log in
               </Link>
               <Link href="/signup" className="action px-3 py-1 text-xs" data-fill style={{ minHeight: '32px' }}>
@@ -386,6 +386,7 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="xl:hidden p-1.5 rounded-lg text-zinc-400 hover:text-white"
+            aria-label="Toggle Navigation Menu"
           >
             {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </button>
@@ -394,28 +395,58 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div
-          className="xl:hidden fixed top-12 left-0 right-0 p-4 border-b z-50 space-y-2 text-xs"
-          style={{
-            backgroundColor: 'rgba(10, 10, 12, 0.95)',
-            backdropFilter: 'blur(24px)',
-            borderColor: 'var(--border)',
-          }}
-        >
-          <div className="grid grid-cols-2 gap-2">
-            {NAV_LINKS.map((link) => (
+        <>
+          <div
+            className="xl:hidden fixed inset-0 bg-black/80 backdrop-blur-md"
+            style={{ top: 48, zIndex: 998 }}
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div
+            className="xl:hidden fixed left-0 right-0 p-4 border-b space-y-3 text-xs"
+            style={{
+              top: 48,
+              zIndex: 999,
+              backgroundColor: '#0a0a0c',
+              borderColor: 'rgba(255, 255, 255, 0.12)',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.95)',
+            }}
+          >
+            <div className="grid grid-cols-2 gap-2">
+              {NAV_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 p-2.5 rounded-xl border border-white/5 bg-white/[0.03] text-white"
+                >
+                  <span>{link.icon}</span>
+                  <span className="font-semibold">{link.label}</span>
+                </Link>
+              ))}
+            </div>
+
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between">
               <Link
-                key={link.href}
-                href={link.href}
+                href="/pricing"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 p-2.5 rounded-xl border border-white/5 bg-white/[0.03] text-white"
+                className="flex items-center gap-1.5 text-blue-400 font-semibold"
               >
-                <span>{link.icon}</span>
-                <span className="font-semibold">{link.label}</span>
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Pro Plans ($0 & $20/mo)</span>
               </Link>
-            ))}
+
+              <a
+                href="https://zoo.ngo"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-zinc-400 hover:text-white"
+              >
+                <span>501(c)(3) Foundation</span>
+                <span>↗</span>
+              </a>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Create Org Modal */}

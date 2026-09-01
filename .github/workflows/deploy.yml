@@ -1,66 +1,45 @@
-name: Deploy to GitHub Pages
+name: Deploy
 
+# zoolabs.io is served by Cloudflare Pages, not GitHub Pages. Publishing to
+# Pages was publishing into the void — the deploys went green and the live site
+# never changed, because nothing points at it.
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # pnpm, not bun: the gui runtime is ~60 packages pinned by the overrides
+      # pnpm, not npm: the gui runtime is ~60 packages pinned by the overrides
       # block in pnpm-workspace.yaml, and only pnpm reads it. Installed by any
-      # other client the versions drift apart and the build fails on a type it
-      # cannot reconcile.
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      # other client the versions drift and the build fails on a type it cannot
+      # reconcile.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm build
 
-      - name: Test
-        run: pnpm test
-
-      - name: Build
-        run: pnpm build
-        env:
-          NODE_ENV: production
-
-      - name: Ensure CNAME exists in output
-        run: |
-          echo "zoolabs.io" > out/CNAME
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - uses: cloudflare/wrangler-action@v3
         with:
-          path: ./out
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy out
+            --project-name=${{ vars.CF_PAGES_PROJECT || 'zoolabs-io' }}
+            --branch=main

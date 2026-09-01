@@ -3,7 +3,10 @@
 
 export type Message = { role: 'system' | 'user' | 'assistant'; content: string }
 
-const API = process.env.NEXT_PUBLIC_ZOO_API ?? 'https://api.hanzo.ai'
+// api.zoo.cloud, not api.hanzo.ai: the gateway sends no CORS headers and
+// refuses anonymous callers, so a browser cannot reach it from a static site.
+// The proxy holds the tenant credential and allows this origin.
+const API = process.env.NEXT_PUBLIC_ZOO_API ?? 'https://api.zoo.cloud'
 const MODEL = process.env.NEXT_PUBLIC_ZOO_MODEL ?? 'zen'
 
 /** Whatever the endpoint said went wrong, in its own words. */

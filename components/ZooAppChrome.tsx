@@ -2,57 +2,69 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import {
+  Search,
+  Bell,
   Sparkles,
   ChevronDown,
-  Bot,
-  Plus,
   Check,
-  CreditCard,
-  Users,
-  Copy,
   Settings,
-  Egg,
   LogOut,
-  Menu,
+  Users,
+  Layers,
+  ArrowRight,
+  Activity,
+  Bot,
+  Command,
+  FileText,
+  Database,
+  Calendar,
   X,
 } from 'lucide-react'
+import { useZooMissions } from '../lib/zoo-missions-context'
+import { zooAudio } from '../lib/audio-engine'
 
-const NAV_LINKS = [
-  { href: '/', label: 'Chat', icon: '💬', key: '1' },
-  { href: '/vibe', label: 'Vibe', icon: '🤝', key: '2' },
-  { href: '/work', label: 'Work', icon: '💼', key: '3' },
-  { href: '/animals', label: 'Animals', icon: '🐾', key: '4' },
-  { href: '/graph', label: 'Graph', icon: '🕸️', key: '5' },
-  { href: '/video', label: 'Video', icon: '🎬', key: '6' },
-  { href: '/music', label: 'Music', icon: '🎵', key: '7' },
-  { href: '/design', label: 'Design', icon: '🎨', key: '8' },
-  { href: '/3d', label: '3D', icon: '🧊', key: '9' },
-]
-
-const INITIAL_ORGS = [
-  { id: 'org_personal', name: 'Zoo Labs (Personal)', icon: '🐬', role: 'Owner', members: 1 },
-  { id: 'org_arctic', name: 'Arctic Sanctuary Pod', icon: '🐅', role: 'Admin', members: 12 },
-  { id: 'org_sumatra', name: 'Sumatran Research Lab', icon: '🐘', role: 'Member', members: 48 },
+const NAV_ITEMS = [
+  { href: '/', label: 'Chat', icon: '💬', id: 'chat' },
+  { href: '/vibe', label: 'Vibe', icon: '💜', id: 'vibe' },
+  { href: '/work', label: 'Work', icon: '💼', id: 'work' },
+  { href: '/animals', label: 'Animals', icon: '🐾', id: 'animals' },
 ]
 
 export default function ZooAppChrome({ minimal = false }: { minimal?: boolean }) {
   const router = useRouter()
+  const { activeMission, missions, setActiveMissionId, agents } = useZooMissions()
+
   const [user, setUser] = useState<{ name: string; email: string; plan: string } | null>(null)
-
-  const [orgs, setOrgs] = useState(INITIAL_ORGS)
-  const [activeOrg, setActiveOrg] = useState(INITIAL_ORGS[0])
-  const [showOrgDropdown, setShowOrgDropdown] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [showSearchModal, setShowSearchModal] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showNotifications, setShowNotifications] = useState(false)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
-  const [showBotsDropdown, setShowBotsDropdown] = useState(false)
+  const [unreadNotifications, setUnreadNotifications] = useState(2)
 
-  // Create Org & Invite Modal
-  const [showCreateOrgModal, setShowCreateOrgModal] = useState(false)
-  const [newOrgName, setNewOrgName] = useState('')
-  const [newOrgIcon, setNewOrgIcon] = useState('🐅')
-  const [inviteEmails, setInviteEmails] = useState('')
-  const [createdInviteLink, setCreatedInviteLink] = useState<string | null>(null)
-  const [copiedLink, setCopiedLink] = useState(false)
+  // Notification items
+  const NOTIFICATIONS = [
+    {
+      id: 'n1',
+      title: 'Raven completed literature synthesis',
+      desc: 'Extracted 32 papers on Arctic ship noise impact (p < 0.001 correlation).',
+      time: '4m ago',
+      emoji: '🐦',
+    },
+    {
+      id: 'n2',
+      title: 'Elephant finished hydrophone cleaning',
+      desc: '1.4 TB NOAA dataset indexed into ClickHouse datastore.',
+      time: '12m ago',
+      emoji: '🐘',
+    },
+    {
+      id: 'n3',
+      title: 'Beaver updated interactive canvas',
+      desc: 'Spectrogram + population chart ready in /vibe.',
+      time: '25m ago',
+      emoji: '🦫',
+    },
+  ]
 
   useEffect(() => {
     const savedUser = localStorage.getItem('zoo_user')
@@ -60,510 +72,351 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
       try {
         setUser(JSON.parse(savedUser))
       } catch (e) {
-        // default session
+        // default
       }
     }
   }, [])
 
-  // Keyboard shortcut listener for Cmd+1..8
+  // Cmd+K shortcut for Search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
-        const num = parseInt(e.key, 10)
-        if (num >= 1 && num <= 8) {
-          e.preventDefault()
-          const target = NAV_LINKS[num - 1]
-          if (target) router.push(target.href)
-        }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setShowSearchModal((prev) => !prev)
+      }
+      if (e.key === 'Escape') {
+        setShowSearchModal(false)
+        setShowNotifications(false)
+        setShowUserDropdown(false)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [router])
+  }, [])
 
-  const handleSignOut = () => {
-    localStorage.removeItem('zoo_user')
-    setUser(null)
-    setShowUserDropdown(false)
-    router.push('/login')
-  }
+  // Determine current active mode
+  const currentMode =
+    router.pathname === '/'
+      ? 'chat'
+      : router.pathname === '/vibe'
+      ? 'vibe'
+      : router.pathname === '/work'
+      ? 'work'
+      : router.pathname === '/animals'
+      ? 'animals'
+      : ''
 
-  const handleCreateOrg = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user) {
-      router.push('/signup')
-      return
-    }
-    if (!newOrgName.trim()) return
-
-    const orgId = `org_${Date.now()}`
-    const newOrg = {
-      id: orgId,
-      name: newOrgName.trim(),
-      icon: newOrgIcon,
-      role: 'Owner',
-      members: 1,
-    }
-
-    setOrgs((prev) => [...prev, newOrg])
-    setActiveOrg(newOrg)
-    setCreatedInviteLink(`https://zoolabs.io/join/${orgId}`)
-  }
-
-  const handleCopyInviteLink = () => {
-    if (!createdInviteLink) return
-    navigator.clipboard.writeText(createdInviteLink)
-    setCopiedLink(true)
-    setTimeout(() => setCopiedLink(false), 2000)
-  }
+  // Search Results
+  const searchResults = searchQuery.trim()
+    ? [
+        ...missions
+          .filter((m) => m.title.toLowerCase().includes(searchQuery.toLowerCase()))
+          .map((m) => ({ type: 'Mission', title: m.title, url: '/work', emoji: m.emoji || '🎯' })),
+        ...agents
+          .filter(
+            (a) =>
+              a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              a.role.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+          .map((a) => ({ type: 'Animal Agent', title: `${a.name} (${a.role})`, url: '/animals', emoji: a.emoji })),
+        ...activeMission.tasks
+          .filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+          .map((t) => ({ type: 'Task', title: t.title, url: '/work', emoji: '📋' })),
+        ...activeMission.evidence.datasets
+          .filter((d) => d.name.toLowerCase().includes(searchQuery.toLowerCase()))
+          .map((d) => ({ type: 'Dataset', title: d.name, url: '/work', emoji: '📊' })),
+      ]
+    : []
 
   return (
     <>
-      <nav
-        className="h-12 w-full border-b flex items-center justify-between px-4 z-50 shrink-0 text-xs select-none font-sans"
-        style={{
-          backgroundColor: 'rgba(10, 10, 12, 0.88)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          borderColor: 'var(--border)',
-        }}
+      {/* ─── 1. TOP GLOBAL NAVIGATION ─── */}
+      <header
+        className="h-12 w-full border-b border-white/[0.08] bg-[#07090e]/90 backdrop-blur-2xl flex items-center justify-between px-4 sm:px-6 z-50 shrink-0 text-xs select-none font-sans"
       >
-        {/* Left: Bigger ZOO Wordmark & Organization Switcher */}
-        <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
-          <Link href="/" className="flex items-center cursor-pointer">
-            <span className="font-black text-xl tracking-tight text-white hover:opacity-80 transition-opacity">
+        {/* Left: Clean ZOO Wordmark + 4 Mode Tabs */}
+        <div className="flex items-center gap-4 sm:gap-6">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-1.5 cursor-pointer group">
+            <span className="font-black text-lg tracking-tight text-white group-hover:text-cyan-400 transition-colors">
               ZOO
             </span>
           </Link>
 
-          <span className="text-zinc-600">/</span>
+          {/* 4 Canonical Mode Tabs */}
+          <nav className="flex items-center gap-1 p-0.5 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+            {NAV_ITEMS.map((item) => {
+              const isActive = currentMode === item.id
 
-          {/* Organization Switcher */}
-          <div className="relative">
-            <button
-              onClick={() => setShowOrgDropdown(!showOrgDropdown)}
-              className="action px-2 sm:px-3 py-1 text-xs"
-              style={{ minHeight: '32px' }}
-            >
-              <span>{activeOrg.icon}</span>
-              <span className="truncate max-w-[85px] sm:max-w-[140px]">{activeOrg.name}</span>
-              <ChevronDown className="h-3 w-3 text-zinc-400 shrink-0" />
-            </button>
-
-            {showOrgDropdown && (
-              <div
-                className="absolute top-10 left-0 w-64 rounded-2xl p-3 z-50 space-y-2 text-xs"
-                style={{
-                  backgroundColor: 'rgba(18, 18, 22, 0.96)',
-                  backdropFilter: 'blur(24px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                  border: '1px solid var(--border-strong)',
-                  boxShadow: 'var(--shadow-floating)',
-                }}
-              >
-                <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                  <span className="text-xs uppercase font-bold text-zinc-400">Switch Organization</span>
-                </div>
-
-                <div className="space-y-1">
-                  {orgs.map((org) => {
-                    const isSel = activeOrg.id === org.id
-                    return (
-                      <button
-                        key={org.id}
-                        onClick={() => {
-                          setActiveOrg(org)
-                          setShowOrgDropdown(false)
-                        }}
-                        className="w-full flex items-center justify-between p-2 rounded-xl text-left transition-colors cursor-pointer"
-                        style={{
-                          backgroundColor: isSel ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
-                          border: isSel ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid transparent',
-                        }}
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          <span className="text-base">{org.icon}</span>
-                          <div className="truncate">
-                            <p className="font-bold text-white truncate">{org.name}</p>
-                            <p className="text-xs text-zinc-400">{org.members} members • {org.role}</p>
-                          </div>
-                        </div>
-                        {isSel && <Check className="h-3.5 w-3.5 text-blue-400 shrink-0" />}
-                      </button>
-                    )
-                  })}
-
-                  <button
-                    onClick={() => {
-                      setShowOrgDropdown(false)
-                      setCreatedInviteLink(null)
-                      setShowCreateOrgModal(true)
-                    }}
-                    className="w-full flex items-center gap-2 p-2 rounded-xl text-blue-400 font-semibold border border-dashed border-white/10 mt-1 cursor-pointer"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    <span>Create Organization & Invite Pod</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Desktop Nav Pills */}
-          <div
-            className="hidden xl:flex items-center gap-1 p-0.5 rounded-full"
-            style={{
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-            }}
-          >
-            {NAV_LINKS.map((link) => {
-              const isActive = router.pathname === link.href
               return (
                 <Link
-                  key={link.href}
-                  href={link.href}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all"
-                  style={{
-                    background: isActive ? '#FFFFFF' : 'transparent',
-                    color: isActive ? '#000000' : 'rgba(255, 255, 255, 0.7)',
-                    boxShadow: isActive ? 'var(--shadow-sm)' : 'none',
-                  }}
+                  key={item.id}
+                  href={item.href}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-white text-black shadow-md shadow-white/10'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/[0.06]'
+                  }`}
                 >
-                  <span>{link.icon}</span>
-                  <span>{link.label}</span>
+                  <span className="text-xs">{item.icon}</span>
+                  <span>{item.label}</span>
                 </Link>
               )
             })}
-          </div>
+          </nav>
         </div>
 
-        {/* Right: 24/7 Autonomous Bot Status, Plans, User Session */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
-          {/* 24/7 MicroVM Indicator */}
-          <div className="relative hidden md:block">
+        {/* Right: Search, Notifications, Avatar */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Search Button (Cmd+K) */}
+          <button
+            onClick={() => {
+              setShowSearchModal(true)
+              zooAudio.playCue('ping')
+            }}
+            className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-white/[0.04] border border-white/10 hover:border-white/20 text-zinc-400 hover:text-white transition-all cursor-pointer text-xs"
+          >
+            <Search className="h-3.5 w-3.5 text-zinc-400" />
+            <span className="hidden sm:inline text-[11px]">Search...</span>
+            <kbd className="hidden sm:inline-block px-1.5 py-0.2 rounded bg-white/10 text-[9px] font-mono text-zinc-400">
+              ⌘K
+            </kbd>
+          </button>
+
+          {/* Notifications Bell */}
+          <div className="relative">
             <button
-              onClick={() => setShowBotsDropdown(!showBotsDropdown)}
-              className="pill cursor-pointer"
-              style={{
-                color: '#60A5FA',
-                borderColor: 'rgba(59, 130, 246, 0.25)',
-                background: 'rgba(59, 130, 246, 0.08)',
+              onClick={() => {
+                setShowNotifications(!showNotifications)
+                setUnreadNotifications(0)
               }}
+              className="relative p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
             >
-              <span className="h-2 w-2 rounded-full bg-blue-400" />
-              <Bot className="h-3 w-3" />
-              <span className="font-bold">24/7 Bots Active</span>
+              <Bell className="h-4 w-4" />
+              {unreadNotifications > 0 && (
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-cyan-400 ring-2 ring-zinc-950 animate-pulse" />
+              )}
             </button>
 
-            {showBotsDropdown && (
-              <div
-                className="absolute top-10 right-0 w-72 rounded-2xl p-3.5 z-50 space-y-2 text-xs"
-                style={{
-                  backgroundColor: 'rgba(18, 18, 22, 0.96)',
-                  backdropFilter: 'blur(24px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                  border: '1px solid var(--border-strong)',
-                  boxShadow: 'var(--shadow-floating)',
-                }}
-              >
+            {showNotifications && (
+              <div className="absolute right-0 top-11 w-80 rounded-2xl bg-[#0c0f17] border border-white/15 p-4 z-50 space-y-3 shadow-2xl backdrop-blur-2xl text-xs">
                 <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                  <span className="font-bold text-white">Zoo Cloud MicroVM Bots</span>
-                  <span className="text-xs text-emerald-400 font-mono font-bold">ONLINE</span>
+                  <span className="font-bold text-white">Mission Activity</span>
+                  <span className="text-[10px] text-zinc-400 font-mono">Real-time feed</span>
                 </div>
-                <p className="text-xs text-secondary leading-relaxed">
-                  Your animal familiars run continuous background tasks, bioacoustic audio processing, and sandbox builds in Zoo Cloud.
-                </p>
-                <div className="space-y-1.5 pt-1">
-                  <div className="p-2 rounded-lg bg-black/40 border border-white/5 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-medium text-white">
-                      <span>🐬</span>
-                      <span>Blue the Beluga</span>
+                <div className="space-y-2 max-h-72 overflow-y-auto">
+                  {NOTIFICATIONS.map((n) => (
+                    <div key={n.id} className="p-2.5 rounded-xl bg-zinc-900/80 border border-white/5 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-bold text-white">
+                          <span>{n.emoji}</span>
+                          <span className="truncate">{n.title}</span>
+                        </div>
+                        <span className="text-[9px] font-mono text-zinc-500">{n.time}</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-300 leading-snug">{n.desc}</p>
                     </div>
-                    <span className="text-xs text-zinc-400 font-mono">120 kHz Telemetry</span>
-                  </div>
-                  <div className="p-2 rounded-lg bg-black/40 border border-white/5 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-medium text-white">
-                      <span>🐅</span>
-                      <span>Siberian Tiger</span>
-                    </div>
-                    <span className="text-xs text-zinc-400 font-mono">Task ZOO-101</span>
-                  </div>
+                  ))}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Plans */}
-          <Link href="/pricing" className="action px-3 py-1 text-xs hidden sm:inline-flex" style={{ minHeight: '32px' }}>
-            <Sparkles className="h-3.5 w-3.5 text-blue-400" />
-            <span>Plans</span>
-          </Link>
+          {/* User Account / Avatar */}
+          <div className="relative">
+            <button
+              onClick={() => setShowUserDropdown(!showUserDropdown)}
+              className="flex items-center gap-1.5 p-1 rounded-xl hover:bg-white/5 transition-all cursor-pointer"
+            >
+              <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 text-white font-bold text-xs flex items-center justify-center ring-1 ring-white/20">
+                {user ? user.name.charAt(0).toUpperCase() : '🐋'}
+              </div>
+              <ChevronDown className="h-3 w-3 text-zinc-400" />
+            </button>
 
-          {/* User Account Capsule */}
-          {user ? (
-            <div className="relative">
-              <button
-                onClick={() => setShowUserDropdown(!showUserDropdown)}
-                className="action px-2.5 py-1 text-xs"
-                style={{ minHeight: '32px' }}
-              >
-                <div className="h-5 w-5 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
-                  {user.name.charAt(0).toUpperCase()}
+            {showUserDropdown && (
+              <div className="absolute right-0 top-11 w-56 rounded-2xl bg-[#0c0f17] border border-white/15 p-3 z-50 space-y-2 shadow-2xl backdrop-blur-2xl text-xs">
+                <div className="border-b border-white/10 pb-2">
+                  <p className="font-bold text-white">{user ? user.name : 'Explorer (Guest)'}</p>
+                  <p className="text-[10px] text-zinc-400">{user ? user.email : 'guest@zoolabs.io'}</p>
                 </div>
-                <span className="font-semibold text-white truncate max-w-[70px] sm:max-w-[100px]">{user.name}</span>
-                <span className="badge badge-accent py-0 px-1.5 hidden sm:inline-flex">{user.plan}</span>
-                <ChevronDown className="h-3 w-3 text-zinc-400" />
-              </button>
-
-              {showUserDropdown && (
-                <div
-                  className="absolute right-0 mt-2 w-64 rounded-2xl p-3 z-50 space-y-2 text-xs"
-                  style={{
-                    backgroundColor: 'rgba(18, 18, 22, 0.96)',
-                    backdropFilter: 'blur(24px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                    border: '1px solid var(--border-strong)',
-                    boxShadow: 'var(--shadow-floating)',
-                  }}
+                <Link
+                  href="/settings"
+                  onClick={() => setShowUserDropdown(false)}
+                  className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 text-zinc-300 hover:text-white transition-colors"
                 >
-                  <div className="border-b border-white/10 pb-2">
-                    <div className="flex items-center justify-between">
-                      <p className="font-bold text-white truncate">{user.name}</p>
-                      <span className="badge badge-online py-0 px-1.5">zoolabs.id</span>
-                    </div>
-                    <p className="text-xs text-zinc-400 truncate">{user.email}</p>
-                  </div>
-
-                  <Link
-                    href="/settings"
-                    onClick={() => setShowUserDropdown(false)}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 text-zinc-200"
-                  >
-                    <span>Billing & Account Settings</span>
-                    <Settings className="h-3.5 w-3.5 text-zinc-400" />
-                  </Link>
-
-                  <Link
-                    href="/pricing"
-                    onClick={() => setShowUserDropdown(false)}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 text-zinc-200"
-                  >
-                    <span>Manage Plans</span>
-                    <CreditCard className="h-3.5 w-3.5 text-blue-400" />
-                  </Link>
-
-                  <Link
-                    href="/animals"
-                    onClick={() => setShowUserDropdown(false)}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 text-zinc-200"
-                  >
-                    <span>My Animal Companions</span>
-                    <Egg className="h-3.5 w-3.5 text-orange-400" />
-                  </Link>
-
+                  <span>Memory & Settings</span>
+                  <Settings className="h-3.5 w-3.5 text-zinc-400" />
+                </Link>
+                <Link
+                  href="/pricing"
+                  onClick={() => setShowUserDropdown(false)}
+                  className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 text-zinc-300 hover:text-white transition-colors"
+                >
+                  <span>Upgrade Sovereign AI</span>
+                  <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+                </Link>
+                {user ? (
                   <button
-                    onClick={handleSignOut}
-                    className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-red-500/10 text-red-400 cursor-pointer"
+                    onClick={() => {
+                      localStorage.removeItem('zoo_user')
+                      setUser(null)
+                      setShowUserDropdown(false)
+                    }}
+                    className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-rose-950/40 text-rose-400 transition-colors text-left"
                   >
                     <span>Sign Out</span>
                     <LogOut className="h-3.5 w-3.5" />
                   </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <Link href="/login" className="action px-2.5 sm:px-3 py-1 text-xs hidden sm:inline-flex" style={{ minHeight: '32px' }}>
-                Log in
-              </Link>
-              <Link href="/signup" className="action px-3 py-1 text-xs" data-fill style={{ minHeight: '32px' }}>
-                Sign up
-              </Link>
-            </div>
-          )}
-
-          {/* Mobile Menu Trigger */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="xl:hidden p-1.5 rounded-lg text-zinc-400 hover:text-white"
-            aria-label="Toggle Navigation Menu"
-          >
-            {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-          </button>
-        </div>
-      </nav>
-
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
-        <>
-          <div
-            className="xl:hidden fixed inset-0 bg-black/80 backdrop-blur-md"
-            style={{ top: 48, zIndex: 998 }}
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          <div
-            className="xl:hidden fixed left-0 right-0 p-4 border-b space-y-3 text-xs"
-            style={{
-              top: 48,
-              zIndex: 999,
-              backgroundColor: '#0a0a0c',
-              borderColor: 'rgba(255, 255, 255, 0.12)',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.95)',
-            }}
-          >
-            <div className="grid grid-cols-2 gap-2">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 p-2.5 rounded-xl border border-white/5 bg-white/[0.03] text-white"
-                >
-                  <span>{link.icon}</span>
-                  <span className="font-semibold">{link.label}</span>
-                </Link>
-              ))}
-            </div>
-
-            <div className="pt-2 border-t border-white/10 flex items-center justify-between">
-              <Link
-                href="/pricing"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-1.5 text-blue-400 font-semibold"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>Pro Plans ($0 & $20/mo)</span>
-              </Link>
-
-              <a
-                href="https://zoo.ngo"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-zinc-400 hover:text-white"
-              >
-                <span>501(c)(3) Foundation</span>
-                <span>↗</span>
-              </a>
-            </div>
+                ) : (
+                  <Link
+                    href="/login"
+                    onClick={() => setShowUserDropdown(false)}
+                    className="w-full flex items-center justify-between p-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition-colors"
+                  >
+                    <span>Log In / Sign Up</span>
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
-        </>
+        </div>
+      </header>
+
+      {/* ─── 2. PERSISTENT CONTEXT STRIP ("One Context, Four Views") ─── */}
+      {!minimal && (
+        <div className="h-8 w-full border-b border-white/[0.06] bg-[#05070a]/90 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between shrink-0 text-[11px] text-zinc-400 z-40">
+          <div className="flex items-center gap-2 truncate">
+            {/* Active Context Marker */}
+            <span className="text-xs">{activeMission.emoji || '🎯'}</span>
+            <span className="font-semibold text-zinc-200 truncate">{activeMission.title}</span>
+            <span className="text-zinc-600 hidden sm:inline">•</span>
+            <span className="text-cyan-400 hidden sm:inline font-medium">
+              Blue + {activeMission.assignedAnimalIds.length - 1} agents
+            </span>
+            <span className="text-zinc-600 hidden md:inline">•</span>
+            <span className="hidden md:inline font-mono text-zinc-500">
+              {activeMission.progress}% complete ({activeMission.tasks.filter((t) => t.status === 'done').length}/
+              {activeMission.tasks.length} tasks)
+            </span>
+          </div>
+
+          {/* Mode Perspective Indicator */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[10px] font-mono text-zinc-500 hidden sm:inline">Perspective:</span>
+            <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-white font-medium text-[10px] capitalize">
+              {currentMode || 'Overview'} View
+            </span>
+          </div>
+        </div>
       )}
 
-      {/* Create Org Modal */}
-      {showCreateOrgModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div
-            className="w-full max-w-md rounded-3xl p-6 space-y-4 text-xs text-white"
-            style={{
-              backgroundColor: 'rgba(18, 18, 22, 0.98)',
-              border: '1px solid var(--border-strong)',
-              boxShadow: 'var(--shadow-floating)',
-            }}
-          >
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-blue-400" />
-                <h3 className="text-base font-bold text-white">Create Pod & Invite Friends</h3>
-              </div>
-              <button
-                onClick={() => setShowCreateOrgModal(false)}
-                className="text-zinc-400 hover:text-white cursor-pointer"
-              >
-                ✕
+      {/* ─── 3. GLOBAL SEARCH & COMMAND PALETTE MODAL (Cmd+K) ─── */}
+      {showSearchModal && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/80 backdrop-blur-md p-4">
+          <div className="w-full max-w-xl rounded-3xl border border-white/15 bg-zinc-950 p-4 shadow-2xl space-y-3">
+            {/* Search Input Bar */}
+            <div className="relative flex items-center border-b border-white/10 pb-3">
+              <Search className="h-4 w-4 text-cyan-400 ml-2" />
+              <input
+                type="text"
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search missions, animals, memory, tasks, or evidence datasets..."
+                className="w-full bg-transparent pl-3 pr-8 text-sm text-white placeholder:text-zinc-500 outline-none"
+              />
+              <button onClick={() => setShowSearchModal(false)} className="text-zinc-500 hover:text-white p-1">
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {!createdInviteLink ? (
-              <form onSubmit={handleCreateOrg} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-zinc-400">Pod / Organization Name</label>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={newOrgIcon}
-                      onChange={(e) => setNewOrgIcon(e.target.value)}
-                      className="bg-black/60 border border-white/10 rounded-xl px-2 py-2 text-base outline-none"
+            {/* Results or Suggestions */}
+            <div className="max-h-80 overflow-y-auto space-y-1 text-xs">
+              {searchQuery.trim() === '' ? (
+                <div className="p-3 text-zinc-500 space-y-2">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-600">Quick Jump</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        setShowSearchModal(false)
+                        router.push('/')
+                      }}
+                      className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-left text-zinc-200 flex items-center gap-2 transition-all cursor-pointer"
                     >
-                      <option value="🐬">🐬</option>
-                      <option value="🐅">🐅</option>
-                      <option value="🐘">🐘</option>
-                      <option value="🐆">🐆</option>
-                      <option value="🐋">🐋</option>
-                    </select>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Arctic Bioacoustics Lab"
-                      value={newOrgName}
-                      onChange={(e) => setNewOrgName(e.target.value)}
-                      className="flex-1 rounded-xl bg-black/60 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-white/30 placeholder:text-zinc-600"
-                    />
+                      <span>💬</span>
+                      <div>
+                        <p className="font-semibold text-white">Chat with AI</p>
+                        <p className="text-[10px] text-zinc-400">1:1 conversation with Blue</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowSearchModal(false)
+                        router.push('/vibe')
+                      }}
+                      className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-left text-zinc-200 flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                      <span>💜</span>
+                      <div>
+                        <p className="font-semibold text-white">Vibe Together</p>
+                        <p className="text-[10px] text-zinc-400">Live audio room & shared canvas</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowSearchModal(false)
+                        router.push('/work')
+                      }}
+                      className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-left text-zinc-200 flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                      <span>💼</span>
+                      <div>
+                        <p className="font-semibold text-white">Do the Work</p>
+                        <p className="text-[10px] text-zinc-400">Kanban tasks & research</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowSearchModal(false)
+                        router.push('/animals')
+                      }}
+                      className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-left text-zinc-200 flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                      <span>🐾</span>
+                      <div>
+                        <p className="font-semibold text-white">Build your Zoo</p>
+                        <p className="text-[10px] text-zinc-400">Living agent graph & character builder</p>
+                      </div>
+                    </button>
                   </div>
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-zinc-400">Invite Friends (Email Addresses)</label>
-                  <input
-                    type="text"
-                    placeholder="sarah@zoolabs.id, dev@hanzo.ai..."
-                    value={inviteEmails}
-                    onChange={(e) => setInviteEmails(e.target.value)}
-                    className="w-full rounded-xl bg-black/60 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-white/30 placeholder:text-zinc-600"
-                  />
-                  <p className="text-xs text-zinc-500">Teammates get instant access to your /vibe pod and workboards.</p>
-                </div>
-
-                <button
-                  type="submit"
-                  className="action w-full"
-                  data-fill
-                  style={{ minHeight: '44px' }}
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Create Pod & Generate Invite Link</span>
-                </button>
-              </form>
-            ) : (
-              <div className="space-y-4">
-                <div className="p-3.5 rounded-2xl bg-emerald-950/30 border border-emerald-500/20 text-xs space-y-1">
-                  <p className="font-bold text-emerald-400 flex items-center gap-1.5">
-                    <Check className="h-4 w-4" />
-                    <span>Pod "{newOrgName}" Created!</span>
-                  </p>
-                  <p className="text-zinc-400 text-xs">Share this invite link with your friends to collaborate in /vibe:</p>
-                </div>
-
-                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-black/60 border border-white/10">
-                  <input
-                    type="text"
-                    readOnly
-                    value={createdInviteLink}
-                    className="flex-1 bg-transparent text-xs text-white outline-none font-mono truncate"
-                  />
+              ) : searchResults.length > 0 ? (
+                searchResults.map((res, i) => (
                   <button
-                    onClick={handleCopyInviteLink}
-                    className="action px-3 py-1 text-xs"
-                    data-fill
-                    style={{ minHeight: '32px' }}
+                    key={i}
+                    onClick={() => {
+                      setShowSearchModal(false)
+                      router.push(res.url)
+                    }}
+                    className="w-full p-2.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800 text-left flex items-center justify-between text-zinc-200 transition-all cursor-pointer"
                   >
-                    {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                    <span>{copiedLink ? 'Copied!' : 'Copy'}</span>
+                    <div className="flex items-center gap-2.5 truncate">
+                      <span className="text-base">{res.emoji}</span>
+                      <div className="truncate">
+                        <p className="font-bold text-white truncate">{res.title}</p>
+                        <p className="text-[10px] text-zinc-500">{res.type}</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 text-zinc-500" />
                   </button>
+                ))
+              ) : (
+                <div className="p-6 text-center text-zinc-500">
+                  <p>No results found for &ldquo;{searchQuery}&rdquo;</p>
                 </div>
-
-                <button
-                  onClick={() => {
-                    setShowCreateOrgModal(false)
-                    router.push('/vibe')
-                  }}
-                  className="action w-full"
-                  data-fill
-                  style={{ minHeight: '44px' }}
-                >
-                  Enter Pod Vibe Room &rarr;
-                </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}

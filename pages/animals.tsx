@@ -200,8 +200,10 @@ export default function AnimalsPage() {
                     <line x1="50%" y1="50%" x2="20%" y2="50%" stroke="url(#lineGrad)" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
                     {/* Center Mission to Raven */}
                     <line x1="50%" y1="50%" x2="50%" y2="18%" stroke="url(#lineGrad)" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
+                    {/* Center Mission to Giraffe */}
+                    <line x1="50%" y1="50%" x2="80%" y2="20%" stroke="url(#lineGrad)" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
                     {/* Center Mission to Elephant */}
-                    <line x1="50%" y1="50%" x2="80%" y2="50%" stroke="url(#lineGrad)" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
+                    <line x1="50%" y1="50%" x2="80%" y2="60%" stroke="url(#lineGrad)" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
                     {/* Center Mission to Beaver */}
                     <line x1="50%" y1="50%" x2="50%" y2="82%" stroke="url(#lineGrad)" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
                   </svg>
@@ -212,20 +214,33 @@ export default function AnimalsPage() {
                     <h3 className="text-sm font-bold text-white mt-1">Mission: Arctic Belugas</h3>
                     <p className="text-[10px] text-cyan-300 font-mono mt-0.5">Progress: 68% · 14.2k Audio Hrs</p>
                     <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-center gap-2 text-[9px] text-zinc-400">
-                      <span>Elephant: 72%</span> • <span>Raven: 32 Papers</span>
+                      <span>Elephant: 72%</span> • <span>Giraffe: Roadmap</span>
                     </div>
                   </div>
 
-                  {/* TOP NODE: 🐦 Raven (Literature & Research) */}
+                  {/* TOP-LEFT NODE: 🐦 Raven (Literature & Research) */}
                   <button
                     onClick={() => setSelectedAgent(agents.find((a) => a.id === 'raven') || agents[0])}
-                    className="absolute top-4 left-1/2 -translate-x-1/2 z-20 p-3.5 rounded-2xl bg-zinc-900/90 border border-white/15 hover:border-cyan-400 shadow-xl text-center transition-all hover:scale-105 cursor-pointer"
+                    className="absolute top-4 left-1/3 -translate-x-1/2 z-20 p-3 rounded-2xl bg-zinc-900/90 border border-white/15 hover:border-cyan-400 shadow-xl text-center transition-all hover:scale-105 cursor-pointer"
                   >
                     <span className="text-2xl">🐦</span>
-                    <h4 className="text-xs font-bold text-white">Corvus the Raven</h4>
+                    <h4 className="text-xs font-bold text-white">Raven</h4>
                     <span className="text-[9px] text-cyan-400 font-mono">Literature Review</span>
-                    <div className="mt-1 px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 text-[9px] font-mono">
-                      ✓ 32 papers synthesized
+                    <div className="mt-1 px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 text-[9px] font-mono">
+                      ✓ 32 papers
+                    </div>
+                  </button>
+
+                  {/* TOP-RIGHT NODE: 🦒 Giraffe (Strategy & Synthesis) */}
+                  <button
+                    onClick={() => setSelectedAgent(agents.find((a) => a.id === 'giraffe') || agents[0])}
+                    className="absolute top-4 right-10 z-20 p-3 rounded-2xl bg-zinc-900/90 border border-amber-500/40 hover:border-amber-400 shadow-xl text-center transition-all hover:scale-105 cursor-pointer"
+                  >
+                    <span className="text-2xl">🦒</span>
+                    <h4 className="text-xs font-bold text-white">Twiga Giraffe</h4>
+                    <span className="text-[9px] text-amber-400 font-mono">Big-Picture Strategy</span>
+                    <div className="mt-1 px-1.5 py-0.5 rounded-full bg-amber-950 text-amber-300 text-[9px] font-mono">
+                      Horizon 2030
                     </div>
                   </button>
 
@@ -235,23 +250,23 @@ export default function AnimalsPage() {
                     className="absolute left-6 top-1/2 -translate-y-1/2 z-20 p-3.5 rounded-2xl bg-zinc-900/90 border border-cyan-400 shadow-xl text-center transition-all hover:scale-105 cursor-pointer ring-2 ring-cyan-500/20"
                   >
                     <span className="text-2xl">🐋</span>
-                    <h4 className="text-xs font-bold text-white">Blue the Beluga</h4>
-                    <span className="text-[9px] text-cyan-400 font-mono">Voice & Lead Scientist</span>
+                    <h4 className="text-xs font-bold text-white">Blue Beluga</h4>
+                    <span className="text-[9px] text-cyan-400 font-mono">Voice & Lead Host</span>
                     <div className="mt-1 px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 text-[9px] font-mono animate-pulse">
-                      🔊 120 kHz Echolocation
+                      🔊 120 kHz Audio
                     </div>
                   </button>
 
-                  {/* RIGHT NODE: 🐘 Elephant (Data & Memory) */}
+                  {/* RIGHT-BOTTOM NODE: 🐘 Elephant (Data & Memory) */}
                   <button
                     onClick={() => setSelectedAgent(agents.find((a) => a.id === 'elephant') || agents[0])}
-                    className="absolute right-6 top-1/2 -translate-y-1/2 z-20 p-3.5 rounded-2xl bg-zinc-900/90 border border-white/15 hover:border-cyan-400 shadow-xl text-center transition-all hover:scale-105 cursor-pointer"
+                    className="absolute right-6 bottom-16 z-20 p-3.5 rounded-2xl bg-zinc-900/90 border border-white/15 hover:border-cyan-400 shadow-xl text-center transition-all hover:scale-105 cursor-pointer"
                   >
                     <span className="text-2xl">🐘</span>
-                    <h4 className="text-xs font-bold text-white">Ganesha the Elephant</h4>
-                    <span className="text-[9px] text-cyan-400 font-mono">ClickHouse Datastore</span>
+                    <h4 className="text-xs font-bold text-white">Elephant</h4>
+                    <span className="text-[9px] text-cyan-400 font-mono">ClickHouse Memory</span>
                     <div className="mt-1 px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 text-[9px] font-mono">
-                      Cleaning audio · 72%
+                      Cleaning · 72%
                     </div>
                   </button>
 
@@ -261,10 +276,10 @@ export default function AnimalsPage() {
                     className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 p-3.5 rounded-2xl bg-zinc-900/90 border border-white/15 hover:border-cyan-400 shadow-xl text-center transition-all hover:scale-105 cursor-pointer"
                   >
                     <span className="text-2xl">🦫</span>
-                    <h4 className="text-xs font-bold text-white">Castor the Beaver</h4>
+                    <h4 className="text-xs font-bold text-white">Beaver</h4>
                     <span className="text-[9px] text-cyan-400 font-mono">Interactive Canvas</span>
                     <div className="mt-1 px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 text-[9px] font-mono">
-                      Population chart · 94%
+                      Chart & App · 94%
                     </div>
                   </button>
                 </div>
@@ -328,17 +343,44 @@ export default function AnimalsPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <h4 className="font-semibold text-zinc-300 uppercase tracking-wider text-[10px]">
-                        📚 What It Knows
-                      </h4>
-                      <div className="space-y-1">
-                        {selectedAgent.knows.map((k) => (
-                          <div key={k} className="p-2 rounded-lg bg-zinc-900/60 border border-white/5 text-zinc-300 flex items-center gap-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-zinc-300 uppercase tracking-wider text-[10px]">
+                          📚 Personal Knowledge & Memory
+                        </h4>
+                        <span className="text-[10px] text-cyan-400 font-mono">{selectedAgent.knows.length} items</span>
+                      </div>
+                      <div className="space-y-1 max-h-36 overflow-y-auto">
+                        {selectedAgent.knows.map((k, idx) => (
+                          <div key={idx} className="p-2 rounded-lg bg-zinc-900/60 border border-white/5 text-zinc-300 flex items-center gap-2">
                             <span className="text-cyan-400">•</span>
                             <span>{k}</span>
                           </div>
                         ))}
                       </div>
+                    </div>
+
+                    {/* Personalize Memory Input Box */}
+                    <div className="p-3 rounded-xl bg-black/50 border border-cyan-500/20 space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
+                        + Train Personal Context & Memory
+                      </p>
+                      <input
+                        type="text"
+                        id="memoryInput"
+                        placeholder="e.g. NOAA Station 47003 Beaufort Sea telemetry schema..."
+                        className="w-full p-2 rounded-lg bg-zinc-900 border border-white/10 text-xs text-white placeholder:text-zinc-500 outline-none"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const val = (e.target as HTMLInputElement).value.trim()
+                            if (val) {
+                              selectedAgent.knows.push(val)
+                              ;(e.target as HTMLInputElement).value = ''
+                              zooAudio.playCue('join')
+                            }
+                          }
+                        }}
+                      />
+                      <p className="text-[9px] text-zinc-500">Press Enter to sync memory into sovereign microVM.</p>
                     </div>
 
                     <div className="space-y-1.5">
@@ -358,13 +400,38 @@ export default function AnimalsPage() {
 
                 {/* Sub-tab 2: Tools & Skills */}
                 {inspectorTab === 'tools' && (
-                  <div className="space-y-2 text-xs">
-                    {selectedAgent.tools.map((tool) => (
-                      <div key={tool} className="p-2.5 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-between">
-                        <span className="font-medium text-white">{tool}</span>
-                        <span className="text-[10px] font-mono text-emerald-400">Granted</span>
-                      </div>
-                    ))}
+                  <div className="space-y-3 text-xs">
+                    <div className="space-y-1.5">
+                      {selectedAgent.tools.map((tool) => (
+                        <div key={tool} className="p-2.5 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-between">
+                          <span className="font-medium text-white">{tool}</span>
+                          <span className="text-[10px] font-mono text-emerald-400">Active Skill</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Add New Tool / Skill */}
+                    <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-purple-400">
+                        + Connect New Skill / MCP Tool
+                      </p>
+                      <input
+                        type="text"
+                        placeholder="e.g. Hydrophone FFT Analyzer, BioRxiv Crawler..."
+                        className="w-full p-2 rounded-lg bg-zinc-900 border border-white/10 text-xs text-white placeholder:text-zinc-500 outline-none"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const val = (e.target as HTMLInputElement).value.trim()
+                            if (val) {
+                              selectedAgent.tools.push(val)
+                              ;(e.target as HTMLInputElement).value = ''
+                              zooAudio.playCue('ping')
+                            }
+                          }
+                        }}
+                      />
+                      <p className="text-[9px] text-zinc-500">Press Enter to grant permissions to agent.</p>
+                    </div>
                   </div>
                 )}
 

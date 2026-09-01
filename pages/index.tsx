@@ -475,6 +475,30 @@ export default function Home() {
                           ''
                         ))}
                     </div>
+
+                    {/* Contextual Multi-Agent Strip: One Context, Four Views */}
+                    {isAssistant && (
+                      <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[11px] relative z-10">
+                        <div className="flex items-center gap-1.5 text-cyan-300 font-medium truncate max-w-[220px]">
+                          <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+                          <span className="truncate">Blue · Researching · 3 tasks active</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Link
+                            href="/vibe"
+                            className="px-2 py-0.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold transition-all flex items-center gap-1 text-[10px]"
+                          >
+                            <span>💜 Vibe</span>
+                          </Link>
+                          <Link
+                            href="/work"
+                            className="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold transition-all flex items-center gap-1 text-[10px]"
+                          >
+                            <span>💼 Work</span>
+                          </Link>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )

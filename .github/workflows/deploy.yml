@@ -21,16 +21,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      # pnpm, not bun: the gui runtime is ~60 packages pinned by the overrides
+      # block in pnpm-workspace.yaml, and only pnpm reads it. Installed by any
+      # other client the versions drift apart and the build fails on a type it
+      # cannot reconcile.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: 22
+          cache: pnpm
 
       - name: Install dependencies
-        run: bun install
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm test
 
       - name: Build
-        run: bun run build
+        run: pnpm build
         env:
           NODE_ENV: production
 

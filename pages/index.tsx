@@ -1,624 +1,888 @@
 import { useState, useRef, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import {
-  ArrowUp,
+  Search,
+  Bell,
   Sparkles,
-  Users,
-  Copy,
-  Check,
+  Plus,
+  Edit2,
+  ChevronDown,
+  UserPlus,
+  Layers,
+  ArrowRight,
   ExternalLink,
   Volume2,
   VolumeX,
-  Bot,
-  Zap,
-  Layers,
+  Radio,
+  FileText,
+  Database,
+  Globe,
+  Image as ImageIcon,
+  File,
+  CheckCircle2,
+  Clock,
+  ThumbsUp,
+  Heart,
   Smile,
-  Maximize2,
   Mic,
   MicOff,
-  Radio,
-  Compass,
-  FileCode,
+  Maximize2,
+  Play,
+  Share2,
+  AtSign,
+  Paperclip,
+  Settings2,
+  X,
+  Send,
 } from 'lucide-react'
 import ZooAppChrome from '../components/ZooAppChrome'
 import { zooAudio } from '../lib/audio-engine'
+import { useZooMissions } from '../lib/zoo-missions-context'
 
-const STATIC_CLIPS = [
-  '/bg_video/static/relactation0.mp4',
-  '/bg_video/static/relactation1.mp4',
-  '/bg_video/static/relactation2.mp4',
-  '/bg_video/static/relactation3.mp4',
-]
-
-const EMOTION_MAP: Record<string, { name: string; emoji: string; desc: string; clip?: string }> = {
-  happy: { name: 'Happy', emoji: '😊', desc: 'Positive neural state · High reward convergence.' },
-  playful: { name: 'Playful', emoji: '🐬', desc: 'Submerged acoustic echolocation ping active.' },
-  love: { name: 'Empathetic', emoji: '💙', desc: 'Synchronized multi-agent attention weight matrix.' },
-  curious: { name: 'Curious', emoji: '🤔', desc: 'Dynamic parameter exploration and frontier reasoning.' },
-  calm: { name: 'Serene', emoji: '🌊', desc: 'Baseline steady-state inference over 120kHz stream.' },
-  surprise: { name: 'Astonished', emoji: '😲', desc: 'High-entropy input detected across Hanzo Cloud.' },
-  proud: { name: 'Proud', emoji: '👑', desc: 'Decentralized open weights benchmark completed.' },
-  sad: { name: 'Gentle', emoji: '🥺', desc: 'Reflective deep acoustic tone monitoring pod state.' },
-}
-
-const CLEAN_PROMPTS = [
-  'Sovereign AI Foundation',
-  'BitDelta & DeltaSoup',
-  'Arctic Beluga Bioacoustics',
-  'Zoo Desktop Familiar',
-  'Live Python MicroVM',
-  '3D Character Avatars',
-]
-
-const IDLE_THOUGHTS = [
-  'BitDelta parameter soup is compiling the latest low-rank updates...',
-  'Zoo Desktop App runs native Rust and Pyodide microVMs locally.',
-  'Ready to execute autonomous agent loops or synthesize 3D character rigs.',
-  'The sovereign AI foundation is open-source and decentralized.',
-  'Echolocation neural vector aligned. Send your query anytime!',
-  'Blowing some ocean bubbles while you think...',
-  'Blue the Beluga is free and open-source for everyone to vibe with.',
-]
-
-export type Message = {
+interface ChatHistoryItem {
   id: string
-  role: 'user' | 'assistant'
-  content: string
-  emotion?: string
-  timestamp?: string
+  title: string
+  time: string
+  avatar: string
+  active?: boolean
 }
 
-let seq = 0
-const uid = () => `msg_${Date.now()}_${++seq}`
+interface ChatMessage {
+  id: string
+  sender: 'user' | 'blue'
+  senderName: string
+  avatar: string
+  timestamp: string
+  content: string
+  plan?: {
+    text: string
+    status: 'done' | 'in_progress' | 'queued'
+  }[]
+  reactions?: { emoji: string; count: number }[]
+  previewChart?: boolean
+  tasksCard?: {
+    agentName: string
+    tasks: { name: string; progress?: number; timeLeft?: string; status?: string }[]
+  }
+}
 
-export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([
+const CHAT_HISTORY: { section: string; items: ChatHistoryItem[] }[] = [
+  {
+    section: 'Today',
+    items: [
+      {
+        id: 'c1',
+        title: 'Investigate declining beluga populations',
+        time: '2m ago',
+        avatar: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=100&auto=format&fit=crop&q=80',
+        active: true,
+      },
+      {
+        id: 'c2',
+        title: 'What do belugas eat?',
+        time: '45m ago',
+        avatar: 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=100&auto=format&fit=crop&q=80',
+      },
+      {
+        id: 'c3',
+        title: 'Create kids infographic',
+        time: '1h ago',
+        avatar: 'https://images.unsplash.com/photo-1589656966895-2f33e7653819?w=100&auto=format&fit=crop&q=80',
+      },
+      {
+        id: 'c4',
+        title: 'Ocean noise impact',
+        time: '3h ago',
+        avatar: 'https://images.unsplash.com/photo-1520637736862-4d197d1e855a?w=100&auto=format&fit=crop&q=80',
+      },
+    ],
+  },
+  {
+    section: 'Yesterday',
+    items: [
+      {
+        id: 'c5',
+        title: 'Interview Dr. Moore',
+        time: 'Yesterday',
+        avatar: 'https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?w=100&auto=format&fit=crop&q=80',
+      },
+      {
+        id: 'c6',
+        title: 'Generate report outline',
+        time: 'Yesterday',
+        avatar: 'https://images.unsplash.com/photo-1547721064-da6cfb341d50?w=100&auto=format&fit=crop&q=80',
+      },
+      {
+        id: 'c7',
+        title: 'Best time to see whales?',
+        time: 'Yesterday',
+        avatar: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=100&auto=format&fit=crop&q=80',
+      },
+    ],
+  },
+  {
+    section: 'This week',
+    items: [
+      {
+        id: 'c8',
+        title: 'Arctic sea ice trends',
+        time: '2d ago',
+        avatar: 'https://images.unsplash.com/photo-1516934024742-b461fba47600?w=100&auto=format&fit=crop&q=80',
+      },
+      {
+        id: 'c9',
+        title: 'Shipping traffic data',
+        time: '2d ago',
+        avatar: 'https://images.unsplash.com/photo-1545671913-b89ac1b4ac10?w=100&auto=format&fit=crop&q=80',
+      },
+      {
+        id: 'c10',
+        title: 'Explain echolocation',
+        time: '3d ago',
+        avatar: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=100&auto=format&fit=crop&q=80',
+      },
+    ],
+  },
+]
+
+export default function ChatPage() {
+  const router = useRouter()
+  const { activeMission, agents } = useZooMissions()
+
+  const [activeChatId, setActiveChatId] = useState('c1')
+  const [input, setInput] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [isVoiceListening, setIsVoiceListening] = useState(false)
+  const [webSearchEnabled, setWebSearchEnabled] = useState(true)
+  const [researchMode, setResearchMode] = useState('Deep Research')
+  const [showMentionMenu, setShowMentionMenu] = useState(false)
+
+  // Messages in conversation
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
-      id: uid(),
-      role: 'assistant',
+      id: 'm1',
+      sender: 'user',
+      senderName: 'You',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      timestamp: '10:21 AM',
       content:
-        "Hello friend! I'm Blue, the sovereign AI familiar and open-source foundation avatar for Zoo Labs. Powered by Zen weights, BitDelta parameter soup, and Hanzo Cloud microVMs. What mission shall we explore today?",
-      emotion: 'Happy',
-      timestamp: 'Just now',
+        'Blue, investigate why beluga populations are declining in the Cook Inlet and create an interactive report that kids can understand.',
+    },
+    {
+      id: 'm2',
+      sender: 'blue',
+      senderName: 'Blue',
+      avatar: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=100&auto=format&fit=crop&q=80',
+      timestamp: '10:21 AM',
+      content:
+        "On it! I'll research the key factors affecting beluga populations in Cook Inlet and build an interactive report that's engaging and easy for kids to understand.\n\nHere's my plan:",
+      plan: [
+        { text: 'Gather population data and trends', status: 'done' },
+        { text: 'Identify threats and human impact', status: 'in_progress' },
+        { text: 'Find conservation efforts', status: 'queued' },
+        { text: 'Create kid-friendly interactive report', status: 'queued' },
+      ],
+      reactions: [
+        { emoji: '👍', count: 12 },
+        { emoji: '❤️', count: 3 },
+      ],
+      tasksCard: {
+        agentName: 'Blue is working...',
+        tasks: [
+          { name: 'Analyzing population data (NOAA)', progress: 72, timeLeft: '2m left' },
+          { name: 'Searching recent research papers', progress: 45, timeLeft: '3m left' },
+          { name: 'Compiling human impact factors', status: 'Queued' },
+        ],
+      },
+    },
+    {
+      id: 'm3',
+      sender: 'blue',
+      senderName: 'Blue',
+      avatar: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=100&auto=format&fit=crop&q=80',
+      timestamp: '10:27 AM',
+      content:
+        "I found some surprising trends in the population data. Here's a quick preview while I keep working.",
+      previewChart: true,
     },
   ])
 
-  const [input, setInput] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [currentEmotionKey, setCurrentEmotionKey] = useState('happy')
-  const [floatingFeelings, setFloatingFeelings] = useState<{ id: number; emoji: string }[]>([])
-  const [idleThought, setIdleThought] = useState(IDLE_THOUGHTS[0])
-  const [showIdleThought, setShowIdleThought] = useState(true)
-  const [emotionPopoverOpen, setEmotionPopoverOpen] = useState(false)
-  const [vibeModalOpen, setVibeModalOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [isVoiceListening, setIsVoiceListening] = useState(false)
-  const [isBlueSpeaking, setIsBlueSpeaking] = useState(false)
-
-  // Double-buffered crossfading video players
-  const [srcA, setSrcA] = useState<string>(STATIC_CLIPS[0])
-  const [srcB, setSrcB] = useState<string>('')
-  const [activePlayer, setActivePlayer] = useState<'A' | 'B'>('A')
-  const [isMuted, setIsMuted] = useState(true)
-
-  const idleLoopTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const idleThoughtTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollerRef = useRef<HTMLDivElement>(null)
 
-  const currentEmotionMeta = EMOTION_MAP[currentEmotionKey] || EMOTION_MAP.happy
-
-  const randomSwimClip = () => {
-    const r = STATIC_CLIPS[Math.floor(Math.random() * STATIC_CLIPS.length)]
-    return r
-  }
-
-  const playVideo = (clipUrl: string) => {
-    if (!clipUrl) return
-    if (activePlayer === 'A') {
-      setSrcB(clipUrl)
-    } else {
-      setSrcA(clipUrl)
-    }
-  }
-
-  const handleVideoLoaded = (player: 'A' | 'B') => {
-    if (player === 'B' && activePlayer === 'A') {
-      setActivePlayer('B')
-    } else if (player === 'A' && activePlayer === 'B') {
-      setActivePlayer('A')
-    }
-  }
-
   useEffect(() => {
-    const cycleIdleThoughts = () => {
-      idleThoughtTimer.current = setTimeout(() => {
-        const next = IDLE_THOUGHTS[Math.floor(Math.random() * IDLE_THOUGHTS.length)]
-        setIdleThought(next)
-        setShowIdleThought(true)
-        setTimeout(() => setShowIdleThought(false), 8000)
-        cycleIdleThoughts()
-      }, 18000)
-    }
-    cycleIdleThoughts()
-    return () => {
-      if (idleThoughtTimer.current) clearTimeout(idleThoughtTimer.current)
-    }
-  }, [])
-
-  // Listen to agent speaking state
-  useEffect(() => {
-    if (typeof window !== 'undefined' && zooAudio.onAgentSpeaking) {
-      const unsub = zooAudio.onAgentSpeaking((agentId, speaking) => {
-        if (agentId === 'blue' || agentId === 'all') {
-          setIsBlueSpeaking(speaking)
-        }
-      })
-      return unsub
-    }
-  }, [])
-
-  const triggerEmotion = (key: string) => {
-    const meta = EMOTION_MAP[key] || EMOTION_MAP.happy
-    setCurrentEmotionKey(key)
-
-    const id = Date.now() + Math.random()
-    setFloatingFeelings((prev) => [...prev.slice(-3), { id, emoji: meta.emoji }])
-    setTimeout(() => {
-      setFloatingFeelings((prev) => prev.filter((f) => f.id !== id))
-    }, 2400)
-
-    playVideo(randomSwimClip())
-  }
-
-  const scrollToBottom = () => {
     if (scrollerRef.current) {
       scrollerRef.current.scrollTop = scrollerRef.current.scrollHeight
     }
-  }
-
-  useEffect(() => {
-    scrollToBottom()
   }, [messages, busy])
 
-  const toggleVoiceInput = async () => {
+  const handleSendMessage = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const text = input.trim()
+    if (!text || busy) return
+
+    setInput('')
+    const userMsg: ChatMessage = {
+      id: `msg_${Date.now()}`,
+      sender: 'user',
+      senderName: 'You',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      content: text,
+    }
+
+    setMessages((prev) => [...prev, userMsg])
+    setBusy(true)
+
+    setTimeout(() => {
+      const replyMsg: ChatMessage = {
+        id: `reply_${Date.now()}`,
+        sender: 'blue',
+        senderName: 'Blue',
+        avatar: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=100&auto=format&fit=crop&q=80',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        content: `I've delegated this query across Raven (scholar RAG) and Elephant (ClickHouse datastore). I'm integrating this into our live Cook Inlet mission report now!`,
+      }
+      setMessages((prev) => [...prev, replyMsg])
+      setBusy(false)
+      zooAudio.speakAgent('blue', replyMsg.content)
+    }, 1400)
+  }
+
+  const toggleVoice = async () => {
     if (isVoiceListening) {
       setIsVoiceListening(false)
       zooAudio.stopMicrophone()
     } else {
-      const ok = await zooAudio.startMicrophone((speaking) => {
-        if (speaking) {
-          triggerEmotion('curious')
-        }
-      })
+      const ok = await zooAudio.startMicrophone(() => {})
       if (ok) {
         setIsVoiceListening(true)
-        // Check if Web Speech Recognition is available
         const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
         if (SpeechRec) {
           const rec = new SpeechRec()
-          rec.continuous = false
-          rec.interimResults = true
-          rec.onresult = (e: any) => {
-            const transcript = Array.from(e.results)
+          rec.onresult = (ev: any) => {
+            const transcript = Array.from(ev.results)
               .map((r: any) => r[0].transcript)
               .join('')
             setInput(transcript)
           }
-          rec.onend = () => {
-            setIsVoiceListening(false)
-            zooAudio.stopMicrophone()
-          }
+          rec.onend = () => setIsVoiceListening(false)
           rec.start()
         }
       }
     }
   }
 
-  const handleSend = async (customPrompt?: string) => {
-    const text = (customPrompt || input).trim()
-    if (!text || busy) return
-
-    setInput('')
-    setShowIdleThought(false)
-
-    const userMsg: Message = { id: uid(), role: 'user', content: text, timestamp: 'Just now' }
-    const assistantId = uid()
-    const assistantMsg: Message = { id: assistantId, role: 'assistant', content: '', timestamp: 'Just now' }
-
-    setMessages((prev) => [...prev, userMsg, assistantMsg])
-    setBusy(true)
-
-    try {
-      await simulateResponse(text, assistantId)
-    } catch {
-      // Fallback
-    } finally {
-      setBusy(false)
-      if (idleLoopTimer.current) clearTimeout(idleLoopTimer.current)
-      idleLoopTimer.current = setTimeout(() => playVideo(randomSwimClip()), 14000)
-    }
-  }
-
-  async function simulateResponse(userText: string, assistantId: string) {
-    let reply = ''
-    let emoKey = 'playful'
-    const lower = userText.toLowerCase()
-
-    if (lower.includes('sovereign') || lower.includes('foundation') || lower.includes('zen')) {
-      reply =
-        "Zoo Labs is building the decentralized Sovereign AI Foundation. Open weights, local fine-tuning, and high-performance microVM execution with zero vendor lock-in."
-      emoKey = 'proud'
-    } else if (lower.includes('bitdelta') || lower.includes('deltasoup') || lower.includes('personalization')) {
-      reply =
-        "BitDelta and DeltaSoup enable 1-bit quantized parameter personalization. You can blend multiple domain expert LoRAs and task vectors directly in VRAM without retraining!"
-      emoKey = 'curious'
-    } else if (lower.includes('arctic') || lower.includes('beluga') || lower.includes('mission') || lower.includes('sound')) {
-      reply =
-        "In our Arctic Mission, we correlate 10 years of Beaufort Sea hydrophone spectrograms with sea-ice loss. Raven synthesizes papers, Elephant cleans 1.4TB of audio, and Beaver builds the live chart!"
-      emoKey = 'playful'
-    } else if (lower.includes('desktop') || lower.includes('familiar') || lower.includes('app')) {
-      reply =
-        "The Zoo Desktop App runs native Rust and Pyodide microVMs locally on your Mac, Windows, or Linux. Blue can float as your desktop familiar, listening to audio and executing code in real time."
-      emoKey = 'playful'
-    } else if (lower.includes('3d') || lower.includes('character') || lower.includes('mesh') || lower.includes('avatar')) {
-      reply =
-        "Our 3D studio connects ComfyUI generative diffusion, TripoSR, and Trellis mesh synthesis. You can generate textured 3D character rigs and inspect them in real-time WebGL orbit canvases."
-      emoKey = 'love'
-    } else if (lower.includes('vibe') || lower.includes('room') || lower.includes('friend')) {
-      reply =
-        "In /vibe, you join a multiplayer studio (like Google Meet + Figma + Cursor). I join the audio call as an embodied PiP avatar while everyone edits code and previews the live app together."
-      emoKey = 'happy'
-    } else {
-      reply = `You asked: "${userText}". As Blue the Beluga, I'm here to vibe with your team, protect open intelligence, and run autonomous agent tasks across the digital ocean!`
-      emoKey = 'calm'
-    }
-
-    triggerEmotion(emoKey)
-
-    // Stream response
-    for (let i = 0; i <= reply.length; i += 3) {
-      const partial = reply.slice(0, i)
-      setMessages((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, content: partial, emotion: emoKey } : m))
-      )
-      await new Promise((r) => setTimeout(r, 16))
-    }
-
-    // Speak response with animal bioacoustics voice
-    zooAudio.speakAgent('blue', reply)
-  }
-
-  const copyRoomLink = () => {
-    navigator.clipboard.writeText(window.location.href)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
   return (
     <>
       <Head>
-        <title>Zoo Labs — Living World of Humans & AI Animals</title>
-        <meta
-          name="description"
-          content="Sovereign AI Foundation with Blue the Beluga, living agent missions, DeltaSoup personalization, and multiplayer sandboxes."
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-        <link rel="icon" href="/favicon.ico" />
+        <title>Chat — ZOO Labs</title>
+        <meta name="description" content="Talk to sovereign AI animal agents. One context, four views." />
       </Head>
 
-      <div className="relative h-screen w-screen overflow-hidden bg-black text-white font-sans select-none">
-        {/* ─── Apple-Grade Liquid Glass Ocean Video Canvas ─── */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <video
-            autoPlay
-            loop
-            muted={isMuted}
-            playsInline
-            onLoadedData={() => handleVideoLoaded('A')}
-            src={srcA}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
-              activePlayer === 'A' ? 'opacity-90' : 'opacity-0'
-            }`}
-          />
-          <video
-            autoPlay
-            loop
-            muted={isMuted}
-            playsInline
-            onLoadedData={() => handleVideoLoaded('B')}
-            src={srcB}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
-              activePlayer === 'B' ? 'opacity-90' : 'opacity-0'
-            }`}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/60 pointer-events-none" />
-          <div className="absolute inset-0 backdrop-blur-[2px] pointer-events-none" />
-        </div>
-
-        {/* ─── Unified App Chrome Navigation ─── */}
+      <div className="h-screen w-screen bg-[#07090e] text-zinc-100 flex flex-col font-sans select-none overflow-hidden">
+        {/* Top App Chrome (Restrained Global Header) */}
         <ZooAppChrome minimal={true} />
 
-        {/* ─── Left Side: Blue's Live Emotion & Agent Presence HUD ─── */}
-        <div className="absolute top-20 left-6 z-40 hidden md:flex flex-col gap-3 pointer-events-auto max-w-xs">
-          {/* Blue the Beluga Living Status Card */}
-          <div className="relative rounded-2xl border border-white/15 bg-black/60 p-3.5 backdrop-blur-2xl shadow-[0_16px_40px_rgba(0,0,0,0.7)] ring-1 ring-white/10 group">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div
-                  className={`h-12 w-12 rounded-full overflow-hidden border-2 transition-all ${
-                    isBlueSpeaking
-                      ? 'border-cyan-400 ring-4 ring-cyan-500/40 animate-pulse'
-                      : 'border-white/20'
-                  }`}
+        {/* ─── 3-COLUMN LIVING CHAT LAYOUT ─── */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* ═══ COLUMN 1: LEFT SIDEBAR (History & Meet Blue) ═══ */}
+          <aside className="w-64 bg-[#090c13] border-r border-white/[0.08] flex flex-col justify-between shrink-0 p-3 hidden md:flex">
+            {/* Top: + New Chat Button */}
+            <div className="space-y-4">
+              <button
+                onClick={() => {
+                  setMessages([])
+                  setInput('')
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all shadow-lg shadow-blue-600/20 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>New chat</span>
+              </button>
+
+              {/* History List Sections */}
+              <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-270px)] pr-1 text-xs">
+                {CHAT_HISTORY.map((sec) => (
+                  <div key={sec.section} className="space-y-1.5">
+                    <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider px-2">
+                      {sec.section}
+                    </span>
+                    <div className="space-y-0.5">
+                      {sec.items.map((item) => {
+                        const isSelected = item.id === activeChatId
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => setActiveChatId(item.id)}
+                            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#121826] text-white font-medium border border-blue-500/30'
+                                : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+                            }`}
+                          >
+                            <img
+                              src={item.avatar}
+                              alt=""
+                              className="h-6 w-6 rounded-full object-cover shrink-0 ring-1 ring-white/10"
+                            />
+                            <div className="truncate flex-1">
+                              <p className="truncate text-xs text-zinc-200">{item.title}</p>
+                            </div>
+                            <span className="text-[9px] text-zinc-600 shrink-0">{item.time}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom Card: Meet Blue & Footer */}
+            <div className="space-y-2 pt-2 border-t border-white/[0.06]">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-950/40 to-cyan-950/20 border border-blue-500/20 space-y-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-full overflow-hidden shrink-0 border border-cyan-400/30">
+                    <img
+                      src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=120&auto=format&fit=crop&q=80"
+                      alt="Blue"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">Meet Blue</h4>
+                    <p className="text-[10px] text-zinc-400">Your AI ocean partner</p>
+                  </div>
+                </div>
+                <Link
+                  href="/animals"
+                  className="w-full block py-1.5 text-center rounded-lg bg-white/10 hover:bg-white/15 text-[11px] text-zinc-200 font-medium transition-all"
                 >
+                  Learn more
+                </Link>
+              </div>
+
+              <div className="flex items-center justify-between px-2 text-[11px] text-zinc-400">
+                <span className="flex items-center gap-1.5">
+                  <span>💜</span> ZOO Labs
+                </span>
+                <ChevronDown className="h-3 w-3 text-zinc-600" />
+              </div>
+            </div>
+          </aside>
+
+          {/* ═══ COLUMN 2: CENTER CONVERSATION & MISSION CANVAS ═══ */}
+          <main className="flex-1 bg-[#07090e] flex flex-col overflow-hidden relative">
+            {/* Top Mission Header Strip */}
+            <div className="h-14 border-b border-white/[0.08] px-4 sm:px-6 flex items-center justify-between shrink-0 bg-[#090c13]/70 backdrop-blur-md">
+              {/* Mission Title & Status */}
+              <div className="flex items-center gap-3 truncate">
+                <div className="h-8 w-8 rounded-full overflow-hidden shrink-0 ring-1 ring-cyan-500/30">
                   <img
-                    src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=200&auto=format&fit=crop&q=80"
-                    alt="Blue the Beluga"
+                    src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=100&auto=format&fit=crop&q=80"
+                    alt="Blue"
                     className="h-full w-full object-cover"
                   />
                 </div>
-                {isBlueSpeaking && (
-                  <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-cyan-500 text-[10px]">
-                    <Radio className="h-2.5 w-2.5 animate-spin" />
-                  </span>
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <span>🐋 Blue</span>
-                    <span className="text-[10px] text-cyan-400 font-mono font-normal">Beluga</span>
-                  </h3>
-                  <button
-                    onClick={() => setEmotionPopoverOpen(!emotionPopoverOpen)}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-[10px] text-cyan-300 font-medium transition-all"
-                  >
-                    <span>{currentEmotionMeta.emoji}</span>
-                    <span>{currentEmotionMeta.name}</span>
-                  </button>
-                </div>
-                <p className="text-[10px] text-zinc-300 truncate mt-0.5">
-                  {busy ? '🐬 Processing neural vectors…' : isBlueSpeaking ? '🔊 Speaking…' : '🌊 Swimming in Arctic Ocean'}
-                </p>
-              </div>
-            </div>
-
-            {/* Live Bioacoustic Frequency Waveform */}
-            <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between text-[9px] font-mono text-zinc-400">
-              <span className="flex items-center gap-1 text-cyan-400">
-                <Radio className="h-2.5 w-2.5 animate-pulse" /> 120 kHz Echolocation
-              </span>
-              <span>ZenLM 70B · BitDelta</span>
-            </div>
-          </div>
-
-          {/* Quick Mission Link Pill */}
-          <Link
-            href="/vibe"
-            className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl border border-cyan-500/30 bg-cyan-950/40 hover:bg-cyan-900/50 text-xs text-cyan-200 backdrop-blur-xl transition-all shadow-lg hover:border-cyan-400/50"
-          >
-            <span className="flex items-center gap-1.5 font-medium">
-              <span>🤝</span> Active Mission: Arctic Belugas
-            </span>
-            <span className="text-[10px] font-mono bg-cyan-500/20 px-1.5 py-0.5 rounded text-cyan-300">
-              68% · 5 Agents
-            </span>
-          </Link>
-        </div>
-
-        {/* ─── Floating Feelings Animation ─── */}
-        <div className="absolute inset-0 pointer-events-none z-30 overflow-hidden">
-          {floatingFeelings.map((item) => (
-            <div
-              key={item.id}
-              className="absolute text-3xl sm:text-4xl animate-float-up pointer-events-none drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]"
-              style={{
-                left: `${35 + Math.random() * 30}%`,
-                bottom: '120px',
-              }}
-            >
-              {item.emoji}
-            </div>
-          ))}
-        </div>
-
-        {/* ─── Center: Main Conversation Stream ─── */}
-        <main className="relative z-20 flex h-full flex-col justify-between pt-16 pb-32 px-4 sm:px-6 pointer-events-none max-w-5xl mx-auto w-full">
-          {/* Subtle Ambient Idle Thought Banner */}
-          {showIdleThought && (
-            <div className="mx-auto mt-2 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-4 py-1.5 text-xs text-white/80 backdrop-blur-2xl animate-in fade-in slide-in-from-top-2 duration-500 shadow-xl pointer-events-auto">
-              <Sparkles className="h-3.5 w-3.5 text-cyan-400 animate-spin" />
-              <span>{idleThought}</span>
-            </div>
-          )}
-
-          {/* Conversation Bubbles */}
-          <div
-            ref={scrollerRef}
-            className="flex-1 my-auto space-y-4 overflow-y-auto max-h-[calc(100vh-270px)] px-2 scrollbar-none pointer-events-auto max-w-3xl mx-auto w-full"
-          >
-            {messages.map((m) => {
-              const isAssistant = m.role === 'assistant'
-
-              return (
-                <div
-                  key={m.id}
-                  className={`flex w-full ${isAssistant ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-top-3 duration-500 ease-out`}
-                >
-                  <div
-                    className={`relative max-w-[92%] sm:max-w-md md:max-w-lg rounded-3xl p-4 sm:p-5 text-xs sm:text-sm leading-relaxed backdrop-blur-3xl transition-all shadow-[0_20px_50px_rgba(0,0,0,0.85)] ${
-                      isAssistant
-                        ? 'border border-white/20 bg-black/55 text-white/95 ring-1 ring-white/10 overflow-hidden'
-                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium border border-blue-400/30 shadow-[0_8px_32px_rgba(0,102,255,0.4)]'
-                    }`}
-                  >
-                    {isAssistant && (
-                      <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10 relative z-10">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-white/90 flex items-center gap-1.5">
-                          <span className="text-sm">🐋</span> Blue the Beluga
-                        </span>
-                        <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                          {m.emotion || currentEmotionMeta.name}
-                        </span>
-                      </div>
-                    )}
-                    <div className="whitespace-pre-wrap font-normal text-zinc-100 relative z-10">
-                      {m.content ||
-                        (busy ? (
-                          <span className="animate-pulse flex items-center gap-2 text-cyan-300 font-mono text-xs">
-                            <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-spin" /> Thinking & exploring…
-                          </span>
-                        ) : (
-                          ''
-                        ))}
-                    </div>
-
-                    {/* Contextual Multi-Agent Strip: One Context, Four Views */}
-                    {isAssistant && (
-                      <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[11px] relative z-10">
-                        <div className="flex items-center gap-1.5 text-cyan-300 font-medium truncate max-w-[220px]">
-                          <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-                          <span className="truncate">Blue · Researching · 3 tasks active</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <Link
-                            href="/vibe"
-                            className="px-2 py-0.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold transition-all flex items-center gap-1 text-[10px]"
-                          >
-                            <span>💜 Vibe</span>
-                          </Link>
-                          <Link
-                            href="/work"
-                            className="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold transition-all flex items-center gap-1 text-[10px]"
-                          >
-                            <span>💼 Work</span>
-                          </Link>
-                        </div>
-                      </div>
-                    )}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xs sm:text-sm font-bold text-white truncate">
+                      Beluga Population Research
+                    </h2>
+                    <Edit2 className="h-3 w-3 text-zinc-500 hover:text-white cursor-pointer" />
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-zinc-400">
+                    <span>Started 2m ago by you</span>
+                    <span>•</span>
+                    <span className="text-cyan-400 font-medium flex items-center gap-1">
+                      <span>🐅</span> Blue is working on this (3 agents • 3 tasks running)
+                    </span>
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        </main>
+              </div>
 
-        {/* ─── Bottom Floating Minimalist Liquid Glass Composer ─── */}
-        <div className="absolute bottom-5 left-0 right-0 z-50 px-4 sm:px-6 flex flex-col items-center pointer-events-auto">
-          {/* Suggestion Prompt Chips */}
-          <div className="flex flex-wrap items-center justify-center gap-2 pb-2.5 max-w-2xl w-full select-none">
-            {CLEAN_PROMPTS.map((prompt) => (
-              <button
-                key={prompt}
-                onClick={() => handleSend(prompt)}
-                disabled={busy}
-                className="rounded-full border border-white/10 bg-black/50 px-3.5 py-1 text-xs text-white/75 hover:border-white/30 hover:bg-black/80 hover:text-white backdrop-blur-2xl active:scale-95 transition-all cursor-pointer disabled:opacity-50 shadow-lg"
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
+              {/* Action Buttons: + Invite & ✨ Switch to Vibe */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => alert('Invite link copied to clipboard!')}
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/10 border border-white/10 text-xs font-semibold text-zinc-200 transition-all cursor-pointer"
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  <span>Invite</span>
+                </button>
 
-          {/* Clean, Elegant Floating Bar with Voice Mic & Send */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleSend()
-            }}
-            className="flex items-center gap-2 rounded-full border border-white/20 bg-black/75 p-2 shadow-[0_16px_48px_rgba(0,0,0,0.85)] backdrop-blur-3xl max-w-2xl w-full ring-1 ring-white/10"
-          >
-            {/* Real Audio Voice Microphone Button */}
-            <button
-              type="button"
-              onClick={toggleVoiceInput}
-              title={isVoiceListening ? 'Stop listening' : 'Start voice input'}
-              className={`flex h-8 w-8 items-center justify-center rounded-full transition-all cursor-pointer ${
-                isVoiceListening
-                  ? 'bg-rose-600 text-white animate-pulse shadow-lg shadow-rose-600/50'
-                  : 'bg-white/10 hover:bg-white/20 text-white/80'
-              }`}
+                <Link
+                  href="/vibe"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/25 transition-all cursor-pointer"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>Switch to Vibe</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Conversation Messages Feed */}
+            <div
+              ref={scrollerRef}
+              className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 max-w-4xl mx-auto w-full scrollbar-none"
             >
-              {isVoiceListening ? <Mic className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </button>
+              {messages.map((msg) => {
+                const isUser = msg.sender === 'user'
 
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value)
-                if (e.target.value.length > 0 && currentEmotionKey === 'calm') {
-                  setCurrentEmotionKey('curious')
+                if (isUser) {
+                  return (
+                    <div key={msg.id} className="flex items-start gap-3 justify-end">
+                      <div className="max-w-xl p-4 rounded-3xl bg-[#141b2d] border border-blue-500/20 text-zinc-100 text-xs sm:text-sm leading-relaxed shadow-lg">
+                        <div className="flex items-center justify-between pb-1 mb-1 text-[10px] text-zinc-400 font-medium">
+                          <span>{msg.senderName}</span>
+                          <span>{msg.timestamp}</span>
+                        </div>
+                        <p>{msg.content}</p>
+                      </div>
+                      <img
+                        src={msg.avatar}
+                        alt="User"
+                        className="h-8 w-8 rounded-full object-cover shrink-0 ring-1 ring-blue-400/40"
+                      />
+                    </div>
+                  )
                 }
-              }}
-              placeholder="Ask Blue anything about marine biology, BitDelta, 3D avatars, or cloud..."
-              className="flex-1 bg-transparent px-3 py-1.5 text-xs sm:text-sm text-white outline-none placeholder:text-white/40 font-normal"
-            />
 
-            <button
-              type="submit"
-              disabled={busy || !input.trim()}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white font-bold transition-all hover:bg-blue-500 active:scale-90 disabled:opacity-30 cursor-pointer shadow-md shadow-blue-600/30"
-              aria-label="Send message"
-            >
-              <ArrowUp className="h-4 w-4 stroke-[2.5]" />
-            </button>
-          </form>
-        </div>
+                // Assistant (Blue)
+                return (
+                  <div key={msg.id} className="flex items-start gap-3 justify-start">
+                    <img
+                      src={msg.avatar}
+                      alt="Blue"
+                      className="h-8 w-8 rounded-full object-cover shrink-0 ring-1 ring-cyan-400/40"
+                    />
 
-        {/* ─── Emotion Selector Modal ─── */}
-        {emotionPopoverOpen && (
-          <div
-            className="absolute w-80 rounded-2xl border border-white/15 bg-black/95 p-4 shadow-2xl backdrop-blur-3xl z-50 space-y-3"
-            style={{ left: '24px', top: '230px' }}
-          >
-            <div className="flex items-center justify-between border-b border-white/10 pb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{currentEmotionMeta.emoji}</span>
-                <div>
-                  <h4 className="text-xs font-semibold text-white">{currentEmotionMeta.name}</h4>
-                  <p className="text-[10px] text-blue-400 font-mono">Zen 70B · BitDelta LoRA</p>
+                    <div className="max-w-2xl space-y-3">
+                      <div className="p-5 rounded-3xl bg-[#0c101a] border border-white/10 text-zinc-200 text-xs sm:text-sm leading-relaxed shadow-xl space-y-3">
+                        <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white text-xs">Blue</span>
+                            <span className="text-[10px] text-zinc-500">{msg.timestamp}</span>
+                            <span className="flex items-center gap-1 text-[10px] font-mono text-cyan-400">
+                              <Radio className="h-2.5 w-2.5 animate-pulse" /> 120 kHz
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="whitespace-pre-line text-zinc-200">{msg.content}</p>
+
+                        {/* Plan Checklist */}
+                        {msg.plan && (
+                          <div className="space-y-1.5 pt-1">
+                            {msg.plan.map((item, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between p-2 rounded-xl bg-black/30 border border-white/5 text-xs"
+                              >
+                                <div className="flex items-center gap-2 text-zinc-300">
+                                  <CheckCircle2
+                                    className={`h-4 w-4 ${
+                                      item.status === 'done'
+                                        ? 'text-emerald-400'
+                                        : item.status === 'in_progress'
+                                        ? 'text-cyan-400 animate-pulse'
+                                        : 'text-zinc-600'
+                                    }`}
+                                  />
+                                  <span>{item.text}</span>
+                                </div>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-mono capitalize ${
+                                    item.status === 'done'
+                                      ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/30'
+                                      : item.status === 'in_progress'
+                                      ? 'bg-cyan-950 text-cyan-400 border border-cyan-500/30'
+                                      : 'bg-zinc-900 text-zinc-500'
+                                  }`}
+                                >
+                                  {item.status.replace('_', ' ')}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Reactions Bar */}
+                        {msg.reactions && (
+                          <div className="flex items-center gap-2 pt-1">
+                            {msg.reactions.map((r, i) => (
+                              <button
+                                key={i}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/10 border border-white/10 text-xs text-zinc-300 transition-all cursor-pointer"
+                              >
+                                <span>{r.emoji}</span>
+                                <span className="font-mono text-[10px]">{r.count}</span>
+                              </button>
+                            ))}
+                            <button className="p-1 rounded-full text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-all">
+                              <Smile className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Live Multi-Agent Tasks Card ("Blue is working...") */}
+                      {msg.tasksCard && (
+                        <div className="p-4 rounded-3xl bg-[#0a0f1c] border border-cyan-500/30 space-y-3 shadow-2xl">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+                              <span className="text-xs font-bold text-white">{msg.tasksCard.agentName}</span>
+                            </div>
+                            <span className="text-[10px] font-mono text-cyan-400">Autonomous loop</span>
+                          </div>
+
+                          <div className="space-y-2 text-xs">
+                            {msg.tasksCard.tasks.map((task, idx) => (
+                              <div
+                                key={idx}
+                                className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between gap-3"
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <span className="text-zinc-400">⌕</span>
+                                  <span className="text-zinc-200 truncate">{task.name}</span>
+                                </div>
+                                <div className="flex items-center gap-3 shrink-0">
+                                  {task.progress !== undefined ? (
+                                    <>
+                                      <div className="w-24 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                                        <div
+                                          className="h-full bg-gradient-to-r from-cyan-500 to-blue-500"
+                                          style={{ width: `${task.progress}%` }}
+                                        />
+                                      </div>
+                                      <span className="text-[10px] font-mono text-cyan-400">{task.progress}%</span>
+                                      <span className="text-[10px] font-mono text-zinc-500">{task.timeLeft}</span>
+                                    </>
+                                  ) : (
+                                    <span className="text-[10px] font-mono text-zinc-500">Queued</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="pt-1 flex justify-end">
+                            <Link
+                              href="/work"
+                              className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 cursor-pointer"
+                            >
+                              <span>View all tasks (3)</span>
+                              <ArrowRight className="h-3 w-3" />
+                            </Link>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Embedded Interactive Chart Card */}
+                      {msg.previewChart && (
+                        <div className="p-4 rounded-3xl bg-[#090d17] border border-white/10 space-y-3 shadow-2xl">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="text-xs font-bold text-white">Cook Inlet Beluga Population (1979–2024)</h4>
+                              <p className="text-[10px] text-zinc-400">Estimated population count</p>
+                            </div>
+                            <button className="text-zinc-500 hover:text-white p-1">
+                              <Maximize2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+
+                          {/* SVG Population Decline Timeline */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="sm:col-span-2 h-32 bg-black/50 rounded-2xl p-2 border border-white/5 flex flex-col justify-between">
+                              <svg className="w-full h-24 overflow-visible" viewBox="0 0 300 80">
+                                <path
+                                  d="M0,20 Q60,18 100,35 T200,60 T300,70"
+                                  fill="none"
+                                  stroke="#06b6d4"
+                                  strokeWidth="2.5"
+                                />
+                                <circle cx="300" cy="70" r="4" fill="#38bdf8" className="animate-ping" />
+                              </svg>
+                              <div className="flex justify-between text-[9px] font-mono text-zinc-500">
+                                <span>1979 (1,300 whales)</span>
+                                <span>2000 (350)</span>
+                                <span className="text-rose-400">2024 (279)</span>
+                              </div>
+                            </div>
+
+                            <div className="relative h-32 rounded-2xl overflow-hidden border border-white/10 group">
+                              <img
+                                src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=80"
+                                alt="Thermal map"
+                                className="h-full w-full object-cover group-hover:scale-105 transition-all"
+                              />
+                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                <button className="h-8 w-8 rounded-full bg-cyan-600 text-white flex items-center justify-center shadow-lg">
+                                  <Play className="h-4 w-4 ml-0.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+
+              {busy && (
+                <div className="flex items-center gap-2 text-xs font-mono text-cyan-400 animate-pulse pl-11">
+                  <Sparkles className="h-3.5 w-3.5 animate-spin" />
+                  <span>Blue is coordinating with Raven and Elephant…</span>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Floating Composer */}
+            <div className="p-4 max-w-4xl mx-auto w-full">
+              <form
+                onSubmit={handleSendMessage}
+                className="p-3 rounded-3xl bg-[#0c101a] border border-white/15 shadow-2xl space-y-2.5 focus-within:border-cyan-500/50 transition-all"
+              >
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Message Blue..."
+                  className="w-full bg-transparent px-2 text-xs sm:text-sm text-white placeholder:text-zinc-500 outline-none"
+                />
+
+                {/* Composer Toolbar */}
+                <div className="flex items-center justify-between pt-1 border-t border-white/[0.06] text-xs">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowMentionMenu(!showMentionMenu)}
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+                    >
+                      <AtSign className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWebSearchEnabled(!webSearchEnabled)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                        webSearchEnabled
+                          ? 'bg-cyan-950 text-cyan-300 border border-cyan-500/30'
+                          : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      <Globe className="h-3 w-3" />
+                      <span>Web</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setResearchMode(researchMode === 'Deep Research' ? 'Standard' : 'Deep Research')
+                      }
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/[0.04] border border-white/10 text-zinc-300 hover:text-white text-[11px] transition-all cursor-pointer"
+                    >
+                      <Settings2 className="h-3 w-3 text-purple-400" />
+                      <span>{researchMode}</span>
+                      <ChevronDown className="h-2.5 w-2.5 text-zinc-500" />
+                    </button>
+                  </div>
+
+                  {/* Right Voice & Send Button */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={toggleVoice}
+                      className={`p-2 rounded-full transition-all cursor-pointer ${
+                        isVoiceListening
+                          ? 'bg-rose-600 text-white animate-pulse'
+                          : 'bg-white/10 hover:bg-white/20 text-zinc-300'
+                      }`}
+                    >
+                      <Mic className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!input.trim() || busy}
+                      className="h-8 w-8 rounded-full bg-blue-600 hover:bg-blue-500 disabled:opacity-30 text-white flex items-center justify-center transition-all cursor-pointer shadow-lg shadow-blue-600/30"
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </form>
+              <p className="text-[10px] text-center text-zinc-600 mt-2">
+                Blue can make mistakes. Check important info.
+              </p>
+            </div>
+          </main>
+
+          {/* ═══ COLUMN 3: RIGHT SIDEBAR (Agents, Resources, Context, Artifacts) ═══ */}
+          <aside className="w-80 bg-[#090c13] border-l border-white/[0.08] flex flex-col justify-between shrink-0 p-4 overflow-y-auto space-y-5 hidden lg:flex">
+            {/* 1. Agents Working On This */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-zinc-300">Agents working on this</span>
+              </div>
+              <div className="space-y-2 text-xs">
+                {/* Blue */}
+                <div className="p-2.5 rounded-2xl bg-[#0c101a] border border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">🐋</span>
+                    <div>
+                      <h4 className="font-bold text-white text-xs">Blue</h4>
+                      <p className="text-[10px] text-zinc-400">Lead researcher</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold">Working</span>
+                </div>
+
+                {/* Elephant */}
+                <div className="p-2.5 rounded-2xl bg-[#0c101a] border border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">🐘</span>
+                    <div>
+                      <h4 className="font-bold text-white text-xs">Elephant</h4>
+                      <p className="text-[10px] text-zinc-400">Processing data</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold">Working</span>
+                </div>
+
+                {/* Raven */}
+                <div className="p-2.5 rounded-2xl bg-[#0c101a] border border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">🐦</span>
+                    <div>
+                      <h4 className="font-bold text-white text-xs">Raven</h4>
+                      <p className="text-[10px] text-zinc-400">Literature review</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold">Working</span>
+                </div>
+
+                {/* Giraffe */}
+                <div className="p-2.5 rounded-2xl bg-[#0c101a] border border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">🦒</span>
+                    <div>
+                      <h4 className="font-bold text-white text-xs">Giraffe</h4>
+                      <p className="text-[10px] text-zinc-400">Big picture analysis</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-500">Queued</span>
                 </div>
               </div>
-              <button
-                onClick={() => setEmotionPopoverOpen(false)}
-                className="text-zinc-400 hover:text-white text-xs p-1 cursor-pointer"
+
+              <Link
+                href="/animals"
+                className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 font-medium pt-1"
               >
-                ✕
-              </button>
+                <span>View all agents</span>
+                <ArrowRight className="h-3 w-3" />
+              </Link>
             </div>
 
-            <p className="text-[11px] leading-relaxed text-white/70">
-              {currentEmotionMeta.desc}
-            </p>
-
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {[
-                { k: 'happy', e: '😊', label: 'Happy' },
-                { k: 'playful', e: '🐬', label: 'Playful' },
-                { k: 'love', e: '💙', label: 'Empathetic' },
-                { k: 'curious', e: '🤔', label: 'Curious' },
-                { k: 'calm', e: '🌊', label: 'Serene' },
-                { k: 'surprise', e: '😲', label: 'Astonished' },
-                { k: 'proud', e: '👑', label: 'Proud' },
-              ].map((emo) => (
-                <button
-                  key={emo.k}
-                  onClick={() => {
-                    triggerEmotion(emo.k)
-                    setEmotionPopoverOpen(false)
-                  }}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/10 hover:border-white/30 hover:bg-white/15 text-xs text-white transition-all cursor-pointer"
-                >
-                  <span>{emo.e}</span>
-                  <span className="text-[10px]">{emo.label}</span>
-                </button>
-              ))}
+            {/* 2. Resources */}
+            <div className="space-y-2.5 pt-3 border-t border-white/[0.06] text-xs">
+              <span className="text-xs font-bold text-zinc-300">Resources</span>
+              <div className="space-y-1 text-zinc-400">
+                <div className="flex items-center justify-between p-1.5 hover:bg-white/[0.04] rounded-lg">
+                  <span className="flex items-center gap-2">
+                    <FileText className="h-3.5 w-3.5 text-zinc-400" /> Documents
+                  </span>
+                  <span className="font-mono text-zinc-500">18</span>
+                </div>
+                <div className="flex items-center justify-between p-1.5 hover:bg-white/[0.04] rounded-lg">
+                  <span className="flex items-center gap-2">
+                    <Database className="h-3.5 w-3.5 text-zinc-400" /> Datasets
+                  </span>
+                  <span className="font-mono text-zinc-500">5</span>
+                </div>
+                <div className="flex items-center justify-between p-1.5 hover:bg-white/[0.04] rounded-lg">
+                  <span className="flex items-center gap-2">
+                    <Globe className="h-3.5 w-3.5 text-zinc-400" /> Web links
+                  </span>
+                  <span className="font-mono text-zinc-500">27</span>
+                </div>
+                <div className="flex items-center justify-between p-1.5 hover:bg-white/[0.04] rounded-lg">
+                  <span className="flex items-center gap-2">
+                    <ImageIcon className="h-3.5 w-3.5 text-zinc-400" /> Images
+                  </span>
+                  <span className="font-mono text-zinc-500">12</span>
+                </div>
+                <div className="flex items-center justify-between p-1.5 hover:bg-white/[0.04] rounded-lg">
+                  <span className="flex items-center gap-2">
+                    <File className="h-3.5 w-3.5 text-zinc-400" /> Notes
+                  </span>
+                  <span className="font-mono text-zinc-500">7</span>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+
+            {/* 3. Context Tags */}
+            <div className="space-y-2 pt-3 border-t border-white/[0.06] text-xs">
+              <span className="text-xs font-bold text-zinc-300">Context</span>
+              <div className="flex flex-wrap gap-1.5">
+                {['Cook Inlet', 'Belugas', 'Conservation', 'Climate Change', 'Noise Pollution'].map((t) => (
+                  <span
+                    key={t}
+                    className="px-2.5 py-1 rounded-xl bg-white/[0.04] border border-white/10 text-zinc-300 text-[10px]"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+              <button className="text-[11px] text-zinc-500 hover:text-zinc-300 pt-0.5">View more</button>
+            </div>
+
+            {/* 4. Recent Artifacts */}
+            <div className="space-y-2 pt-3 border-t border-white/[0.06] text-xs">
+              <span className="text-xs font-bold text-zinc-300">Recent artifacts</span>
+              <div className="space-y-2">
+                <div className="p-2.5 rounded-xl bg-[#0c101a] border border-white/5 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-cyan-400">📊</span>
+                    <h5 className="font-bold text-white text-xs truncate">Beluga Report (Draft)</h5>
+                  </div>
+                  <p className="text-[10px] text-zinc-500">Interactive • Updated just now</p>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-[#0c101a] border border-white/5 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-400">📈</span>
+                    <h5 className="font-bold text-white text-xs truncate">Population Trends Chart</h5>
+                  </div>
+                  <p className="text-[10px] text-zinc-500">Image • 10m ago</p>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-[#0c101a] border border-white/5 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-indigo-400">📄</span>
+                    <h5 className="font-bold text-white text-xs truncate">Threats Overview</h5>
+                  </div>
+                  <p className="text-[10px] text-zinc-500">Document • 25m ago</p>
+                </div>
+              </div>
+
+              <Link
+                href="/work"
+                className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 font-medium pt-1"
+              >
+                <span>View all artifacts</span>
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </aside>
+        </div>
       </div>
     </>
   )

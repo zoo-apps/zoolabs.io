@@ -144,7 +144,7 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
           </Link>
 
           {/* 4 Canonical Mode Tabs */}
-          <nav className="flex items-center gap-1 p-0.5 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+          <nav className="flex items-center gap-1.5 p-1 rounded-full bg-[#0a0e17] border border-white/[0.08]">
             {NAV_ITEMS.map((item) => {
               const isActive = currentMode === item.id
 
@@ -152,10 +152,10 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
                 <Link
                   key={item.id}
                   href={item.href}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-white text-black shadow-md shadow-white/10'
-                      : 'text-zinc-400 hover:text-white hover:bg-white/[0.06]'
+                      ? 'bg-[#151f38] text-white border border-blue-500/40 shadow-sm'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
                   }`}
                 >
                   <span className="text-xs">{item.icon}</span>
@@ -167,20 +167,17 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
         </div>
 
         {/* Right: Search, Notifications, Avatar */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           {/* Search Button (Cmd+K) */}
           <button
             onClick={() => {
               setShowSearchModal(true)
               zooAudio.playCue('ping')
             }}
-            className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-white/[0.04] border border-white/10 hover:border-white/20 text-zinc-400 hover:text-white transition-all cursor-pointer text-xs"
+            className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 hover:border-white/20 text-zinc-400 hover:text-white transition-all cursor-pointer text-xs"
           >
             <Search className="h-3.5 w-3.5 text-zinc-400" />
-            <span className="hidden sm:inline text-[11px]">Search...</span>
-            <kbd className="hidden sm:inline-block px-1.5 py-0.2 rounded bg-white/10 text-[9px] font-mono text-zinc-400">
-              ⌘K
-            </kbd>
+            <span className="text-[11px]">Search</span>
           </button>
 
           {/* Notifications Bell */}
@@ -190,11 +187,13 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
                 setShowNotifications(!showNotifications)
                 setUnreadNotifications(0)
               }}
-              className="relative p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+              className="relative p-2 rounded-full text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
             >
               <Bell className="h-4 w-4" />
               {unreadNotifications > 0 && (
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-cyan-400 ring-2 ring-zinc-950 animate-pulse" />
+                <span className="absolute top-1 right-1 h-3.5 w-3.5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-[#07090e]">
+                  1
+                </span>
               )}
             </button>
 
@@ -226,12 +225,13 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
           <div className="relative">
             <button
               onClick={() => setShowUserDropdown(!showUserDropdown)}
-              className="flex items-center gap-1.5 p-1 rounded-xl hover:bg-white/5 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 p-0.5 rounded-full hover:ring-2 hover:ring-blue-500/40 transition-all cursor-pointer"
             >
-              <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 text-white font-bold text-xs flex items-center justify-center ring-1 ring-white/20">
-                {user ? user.name.charAt(0).toUpperCase() : '🐋'}
-              </div>
-              <ChevronDown className="h-3 w-3 text-zinc-400" />
+              <img
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+                alt="User"
+                className="h-7 w-7 rounded-full object-cover ring-1 ring-white/20"
+              />
             </button>
 
             {showUserDropdown && (

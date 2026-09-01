@@ -23,6 +23,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { getBackendBaseUrl, streamChatCompletion } from '../lib/hanzo-ai-service'
+import ZooLogo from './ZooLogo'
 
 type McpLog = {
   id: string
@@ -190,11 +191,9 @@ export default function ZooMcpCopilot() {
             className="group relative flex h-13 w-13 items-center justify-center rounded-2xl bg-gradient-to-br from-zinc-900 to-black border border-white/20 shadow-2xl shadow-cyan-500/20 hover:border-cyan-400 hover:scale-105 active:scale-95 transition-all cursor-pointer"
             title="Open Zoo MCP Control Center"
           >
-            {/* Pure Zoo Geometric Logo */}
+            {/* Pure Zoo RGB Geometric Logo */}
             <div className="flex items-center justify-center">
-              <span className="font-black text-lg tracking-tighter text-white group-hover:text-cyan-400 transition-colors">
-                Z
-              </span>
+              <ZooLogo size={26} />
             </div>
 
             {/* Glowing online microVM indicator */}
@@ -209,8 +208,8 @@ export default function ZooMcpCopilot() {
             {/* Header */}
             <div className="h-12 border-b border-white/10 px-4 bg-white/[0.02] flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="h-7 w-7 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center font-black text-xs text-cyan-400">
-                  Z
+                <div className="h-7 w-7 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                  <ZooLogo size={18} />
                 </div>
                 <div>
                   <h4 className="font-bold text-xs text-white tracking-tight flex items-center gap-1.5">

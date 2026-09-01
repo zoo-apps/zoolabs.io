@@ -66,1009 +66,901 @@ import {
   MapPin,
   Play,
   Pause,
+  PanelLeft,
+  X,
+  MoreHorizontal,
+  Folder,
+  File,
+  Terminal,
+  BarChart,
+  Lightbulb,
 } from 'lucide-react'
 import ZooAppChrome from '../components/ZooAppChrome'
 import { zooAudio } from '../lib/audio-engine'
-import { useZooMissions, AnimalAgent } from '../lib/zoo-missions-context'
+import { useZooMissions } from '../lib/zoo-missions-context'
+
+export interface VibeChatMessage {
+  id: string
+  sender: string
+  avatar?: string
+  initial?: string
+  color?: string
+  time: string
+  text: string
+  reactions?: { emoji: string; count: number }[]
+  agentTask?: {
+    title: string
+    desc: string
+    progress: number
+    doneText: string
+  }
+  isAgent?: boolean
+}
 
 export type Participant = {
   id: string
   name: string
-  avatar: string
+  avatar?: string
   initial?: string
-  emoji?: string
+  color?: string
   role: 'human' | 'agent'
   isYou?: boolean
-  isHost?: boolean
   isMuted: boolean
   isSpeaking: boolean
-  badge?: string
-  isAnon?: boolean
-}
-
-type ChatItem = {
-  id: string
-  sender: {
-    name: string
-    avatar?: string
-    emoji?: string
-    role?: 'human' | 'agent'
-    badge?: string
-    initial?: string
-    color?: string
-  }
-  time: string
-  content: string
-  reactions?: { emoji: string; count: number; active?: boolean }[]
-  agentCard?: {
-    isThinking?: boolean
-    thinkingWave?: boolean
-    message: string
-    editedTag?: string
-    progress?: number
-  }
 }
 
 export default function VibeRoomPage() {
-  const { activeMission, missions, setActiveMissionId, agents, updateTaskStatus } = useZooMissions()
+  const { activeMission, agents } = useZooMissions()
 
-  // Auth & User State
-  const [currentUser, setCurrentUser] = useState<{
-    name: string
-    avatar: string
-    emoji: string
-    isLoggedIn: boolean
-  }>({
-    name: 'Sarah Chen (Marine Biologist)',
-    avatar: '👩‍🔬',
-    emoji: '👩‍🔬',
-    isLoggedIn: true,
-  })
-
-  // Canvas Mode: Chart, Story, Habitat, Preview/Code, Map
-  const [canvasMode, setCanvasMode] = useState<'chart' | 'story' | 'habitat' | 'preview' | 'code' | 'map'>('chart')
-  const [leftTab, setLeftTab] = useState<'chat' | 'agents' | 'activity' | 'files'>('chat')
-  const [rightPanelOpen, setRightPanelOpen] = useState(true)
+  // Room state
+  const [roomTitle, setRoomTitle] = useState('Ocean Deep Dive (Genesis Pod)')
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
+  const [rightPanelOpen, setRightPanelOpen] = useState(true)
+  const [activeTab, setActiveTab] = useState<'preview' | 'index' | 'styles' | 'header' | 'layout'>('preview')
+  const [activeFile, setActiveFile] = useState('HeroSection.tsx')
+  const [activeRightTab, setActiveRightTab] = useState<'chat' | 'polls' | 'notes' | 'files'>('chat')
   const [viewportMode, setViewportMode] = useState<'desktop' | 'mobile'>('desktop')
 
-  // Voice & Audio Room State (Discord-style)
+  // Audio / Call controls
   const [micOn, setMicOn] = useState(false)
-  const [deafened, setDeafened] = useState(false)
   const [cameraOn, setCameraOn] = useState(false)
   const [screenShareOn, setScreenShareOn] = useState(false)
-  const [isVoiceConnected, setIsVoiceConnected] = useState(true)
-  const [userSpeakingLevel, setUserSpeakingLevel] = useState(0)
-  const [activeSpeakerId, setActiveSpeakerId] = useState<string | null>(null)
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false)
-
-  // Participants (Unified with living agents fleet)
-  const [humanParticipants, setHumanParticipants] = useState<Participant[]>([
-    { id: 'h1', name: 'Dr. Sarah Lin', avatar: '👩‍🔬', emoji: '👩‍🔬', role: 'human', isHost: true, isMuted: false, isSpeaking: false, isYou: true },
-    { id: 'h2', name: 'Richard Kaminsky', avatar: 'R', initial: 'R', role: 'human', isMuted: false, isSpeaking: false },
-    { id: 'h3', name: 'Anonymous Otter', avatar: '🦦', emoji: '🦦', role: 'human', isAnon: true, isMuted: true, isSpeaking: false },
-    { id: 'h4', name: 'Anonymous Arctic Fox', avatar: '🦊', emoji: '🦊', role: 'human', isAnon: true, isMuted: false, isSpeaking: false },
-  ])
-
-  // Chat Feed
-  const [chatMessages, setChatMessages] = useState<ChatItem[]>([
-    {
-      id: 'c1',
-      sender: { name: 'Dr. Sarah Lin', emoji: '👩‍🔬', color: 'bg-blue-600', role: 'human' },
-      time: '6:30 PM',
-      content: 'Blue, pull the last ten years of Beaufort Sea beluga population and acoustic data.',
-      reactions: [{ emoji: '🐋', count: 4 }, { emoji: '❄️', count: 2 }],
-    },
-    {
-      id: 'c2',
-      sender: { name: 'Blue the Beluga', emoji: '🐋', role: 'agent', badge: 'Lead Scientist' },
-      time: '6:30 PM',
-      content: 'On it! Delegating dataset extraction to Elephant and literature review to Raven.',
-      agentCard: {
-        isThinking: false,
-        message: 'Dispatched 2 subagents: Elephant (Datastore) & Raven (Scholar). Hot-swapping center canvas to Population & Spectrogram Chart.',
-        editedTag: 'Swapped Canvas -> Chart',
-      },
-    },
-    {
-      id: 'c3',
-      sender: { name: 'Ganesha the Elephant', emoji: '🐘', role: 'agent', badge: 'Data Custodian' },
-      time: '6:31 PM',
-      content: 'Downloading NOAA Beaufort Sea hydrophone dataset (1.4 TB)... Ingesting into ClickHouse datastore.',
-      agentCard: {
-        isThinking: true,
-        message: 'Cleaning and applying bandpass notch filter (120-450 Hz) to eliminate propeller noise.',
-        progress: 72,
-        editedTag: 'Elephant -> cleaning -> 72%',
-      },
-    },
-    {
-      id: 'c4',
-      sender: { name: 'Corvus the Raven', emoji: '🐦', role: 'agent', badge: 'Research Scholar' },
-      time: '6:32 PM',
-      content: 'Synthesized 32 peer-reviewed papers on Arctic ice loss vs whale calving. Statistically significant correlation confirmed (p < 0.001).',
-      reactions: [{ emoji: '👏', count: 3 }, { emoji: '🔥', count: 3 }],
-    },
-    {
-      id: 'c5',
-      sender: { name: 'Anonymous Otter', emoji: '🦦', color: 'bg-amber-600', role: 'human' },
-      time: '6:33 PM',
-      content: 'Can we turn this into something kids and classrooms can understand?',
-      reactions: [{ emoji: '🎨', count: 2 }],
-    },
-    {
-      id: 'c6',
-      sender: { name: 'Blue the Beluga', emoji: '🐋', role: 'agent', badge: 'Lead Scientist' },
-      time: '6:34 PM',
-      content: "Castor the Beaver is generating an illustrated storybook card series for K-12 students! Check out the 'Story' tab.",
-      agentCard: {
-        isThinking: false,
-        message: 'Published Beluga Storybook: "The Whale Who Sang Through the Ice". Ready for classroom exploration.',
-        editedTag: 'Created Storybook.pdf',
-      },
-    },
-  ])
-
-  const [chatInput, setChatInput] = useState('')
+  const [isAudioPlaying, setIsAudioPlaying] = useState(true)
   const [copiedLink, setCopiedLink] = useState(false)
-  const chatScrollerRef = useRef<HTMLDivElement>(null)
 
-  // Draggable PiP State
-  const [pipPos, setPipPos] = useState({ x: 0, y: 0 })
-  const isDraggingRef = useRef(false)
-  const dragStartRef = useRef({ mouseX: 0, mouseY: 0, posX: 0, posY: 0 })
+  // Poll state
+  const [pollVoted, setPollVoted] = useState<number | null>(0)
+  const [pollOptions, setPollOptions] = useState([
+    { id: 0, text: 'Yes, full cluster metrics', votes: 4, pct: 80 },
+    { id: 1, text: 'No, keep it minimal', votes: 1, pct: 20 },
+  ])
 
-  // Initialize Discord Audio Engine
-  useEffect(() => {
-    if (typeof window !== 'undefined' && zooAudio) {
-      // Subscribe to user VAD speaking events
-      const unsubUser = zooAudio.onUserSpeaking((speaking, level) => {
-        setUserSpeakingLevel(level)
-        setHumanParticipants((prev) =>
-          prev.map((p) => (p.isYou ? { ...p, isSpeaking: speaking } : p))
-        )
-      })
+  // Participants
+  const [participants, setParticipants] = useState<Participant[]>([
+    { id: 'p1', name: 'Richard Kaminsky', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80', role: 'human', isYou: true, isMuted: false, isSpeaking: false },
+    { id: 'p2', name: 'Sarah Chen', initial: 'S', color: 'bg-emerald-600', role: 'human', isMuted: false, isSpeaking: false },
+    { id: 'p3', name: 'Alex Rivera', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80', role: 'human', isMuted: false, isSpeaking: false },
+    { id: 'p4', name: 'Blue the Beluga', avatar: '🐋', role: 'agent', isMuted: false, isSpeaking: true },
+    { id: 'p5', name: 'Ocean Bot', avatar: '🤖', role: 'agent', isMuted: false, isSpeaking: false },
+    { id: 'p6', name: 'demo-user', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80', role: 'human', isMuted: true, isSpeaking: false },
+  ])
 
-      // Subscribe to agent speaking events
-      const unsubAgent = zooAudio.onAgentSpeaking((agentId, speaking) => {
-        setActiveSpeakerId(speaking ? agentId : null)
-      })
+  // Chat message thread
+  const [messages, setMessages] = useState<VibeChatMessage[]>([
+    {
+      id: 'm1',
+      sender: 'Richard Kaminsky',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      time: '6:39 PM',
+      text: "Hey team! I'm in the Genesis Pod room. Let's build out the new sovereign AI interface.",
+      reactions: [{ emoji: '❤️', count: 3 }, { emoji: '💡', count: 2 }, { emoji: '🚀', count: 1 }],
+      isAgent: false,
+    },
+    {
+      id: 'm2',
+      sender: 'Blue the Beluga',
+      avatar: '🐋',
+      time: '6:40 PM',
+      text: "Got it! I'll scaffold the new landing section and hook up the API. 🐋",
+      agentTask: {
+        title: 'Working on it...',
+        desc: 'Editing HeroSection.tsx',
+        progress: 78,
+        doneText: 'Generating copy ✓',
+      },
+      isAgent: true,
+    },
+    {
+      id: 'm3',
+      sender: 'Sarah Chen',
+      initial: 'S',
+      color: 'bg-emerald-600',
+      time: '6:42 PM',
+      text: 'The 3D Canvas orbit engine is working super smoothly now! 🎨',
+      reactions: [{ emoji: '❤️', count: 2 }, { emoji: '🚀', count: 1 }],
+      isAgent: false,
+    },
+  ])
+  const [chatInput, setChatInput] = useState('')
+  const [roomChatInput, setRoomChatInput] = useState('')
 
-      return () => {
-        unsubUser()
-        unsubAgent()
-      }
-    }
-  }, [])
+  const handleSendChat = () => {
+    if (!chatInput.trim()) return
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `m_${Date.now()}`,
+        sender: 'Richard Kaminsky',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+        time: 'Just now',
+        text: chatInput.trim(),
+        isAgent: false,
+      },
+    ])
+    setChatInput('')
+  }
 
-  // Auto-scroll chat
-  useEffect(() => {
-    if (chatScrollerRef.current) {
-      chatScrollerRef.current.scrollTop = chatScrollerRef.current.scrollHeight
-    }
-  }, [chatMessages])
+  const handleVote = (id: number) => {
+    setPollVoted(id)
+    setPollOptions((prev) =>
+      prev.map((opt) => (opt.id === id ? { ...opt, votes: opt.votes + 1 } : opt))
+    )
+  }
 
-  // Toggle Microphone
-  const toggleMicrophone = async () => {
+  const toggleMic = async () => {
     if (micOn) {
       zooAudio.toggleMute()
       setMicOn(false)
-      setHumanParticipants((prev) =>
-        prev.map((p) => (p.isYou ? { ...p, isMuted: true, isSpeaking: false } : p))
-      )
     } else {
       const ok = await zooAudio.startMicrophone()
-      if (ok) {
-        setMicOn(true)
-        setHumanParticipants((prev) =>
-          prev.map((p) => (p.isYou ? { ...p, isMuted: false } : p))
-        )
-      }
+      if (ok) setMicOn(true)
     }
-  }
-
-  // Toggle Deafen
-  const toggleDeafen = () => {
-    const isDef = zooAudio.toggleDeafen()
-    setDeafened(isDef)
-  }
-
-  // Handle Dragging of Blue PiP
-  const handlePointerDown = (e: React.PointerEvent) => {
-    isDraggingRef.current = true
-    dragStartRef.current = {
-      mouseX: e.clientX,
-      mouseY: e.clientY,
-      posX: pipPos.x,
-      posY: pipPos.y,
-    }
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-  }
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDraggingRef.current) return
-    const dx = e.clientX - dragStartRef.current.mouseX
-    const dy = e.clientY - dragStartRef.current.mouseY
-    setPipPos({
-      x: dragStartRef.current.posX + dx,
-      y: dragStartRef.current.posY + dy,
-    })
-  }
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    isDraggingRef.current = false
-    try {
-      ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
-    } catch {}
-  }
-
-  const handleSendMessage = (text: string) => {
-    if (!text.trim()) return
-
-    const newMsg: ChatItem = {
-      id: `c_${Date.now()}`,
-      sender: {
-        name: currentUser.name,
-        emoji: currentUser.emoji,
-        color: 'bg-blue-600',
-        role: 'human',
-      },
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      content: text,
-      reactions: [],
-    }
-
-    setChatMessages((prev) => [...prev, newMsg])
-    setChatInput('')
-
-    // Play subtle send cue
-    zooAudio.playCue('ping')
-
-    // AI Response orchestration
-    setTimeout(() => {
-      const lower = text.toLowerCase()
-      let agentId = 'blue'
-      let replyContent = ''
-      let agentName = 'Blue the Beluga'
-      let agentEmoji = '🐋'
-      let badge = 'Lead Scientist'
-
-      if (lower.includes('data') || lower.includes('dataset') || lower.includes('clickhouse') || lower.includes('filter')) {
-        agentId = 'elephant'
-        agentName = 'Ganesha the Elephant'
-        agentEmoji = '🐘'
-        badge = 'Data Custodian'
-        replyContent = 'Indexed 14,280 hours of acoustic recordings into ClickHouse. Applying notch filter at 120-450 Hz eliminated ship cavitation noise!'
-      } else if (lower.includes('research') || lower.includes('paper') || lower.includes('study') || lower.includes('cite')) {
-        agentId = 'raven'
-        agentName = 'Corvus the Raven'
-        agentEmoji = '🐦'
-        badge = 'Research Scholar'
-        replyContent = 'Found 32 matching studies on arXiv & PubMed. Migration speed drops by 40% when ice pack density decreases below 15%.'
-      } else if (lower.includes('story') || lower.includes('kid') || lower.includes('school') || lower.includes('chart')) {
-        agentId = 'beaver'
-        agentName = 'Castor the Beaver'
-        agentEmoji = '🦫'
-        badge = 'App Builder'
-        replyContent = 'I updated the interactive canvas with the illustrated storybook and spectrogram player!'
-      } else {
-        replyContent = `Understood! Coordinating with the pod to analyze ${text}. All telemetry is streaming live from the Beaufort Sea.`
-      }
-
-      const agentMsg: ChatItem = {
-        id: `c_${Date.now() + 1}`,
-        sender: {
-          name: agentName,
-          emoji: agentEmoji,
-          role: 'agent',
-          badge,
-        },
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        content: replyContent,
-        agentCard: {
-          isThinking: false,
-          message: `Executed in Hanzo Cloud microVM (${agentId}.hanzo.cloud).`,
-          editedTag: `Synced ${agentName}`,
-        },
-      }
-
-      setChatMessages((prev) => [...prev, agentMsg])
-
-      // Speak aloud in species-specific voice!
-      zooAudio.speakAgent(agentId, replyContent)
-    }, 900)
-  }
-
-  const copyRoomLink = () => {
-    navigator.clipboard.writeText(window.location.href)
-    setCopiedLink(true)
-    setTimeout(() => setCopiedLink(false), 2000)
   }
 
   return (
-    <>
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#07090e] text-white select-none font-sans">
       <Head>
-        <title>Vibe Room — Live Multiplayer World | Zoo Labs</title>
-        <meta
-          name="description"
-          content="Live multiplayer room where scientists, creators, kids, and autonomous AI animals work on real missions together."
-        />
+        <title>Vibe Studio · Ocean Deep Dive · ZOO</title>
       </Head>
 
-      <div className="h-screen w-screen flex flex-col bg-[#05070a] text-zinc-100 font-sans select-none overflow-hidden">
-        {/* ─── Top Chrome Navigation ─── */}
-        <ZooAppChrome minimal={true} />
+      {/* Global Top Navbar */}
+      <ZooAppChrome />
 
-        {/* ─── Mission Context Subheader Bar ─── */}
-        <header className="h-12 bg-[#090c12] border-b border-white/[0.08] flex items-center justify-between px-4 shrink-0 text-xs z-30">
-          <div className="flex items-center gap-3">
-            {/* Active Mission Badge */}
-            <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-cyan-950/60 border border-cyan-500/30 text-cyan-200">
-              <span className="text-sm">🎯</span>
-              <span className="font-semibold text-white">Mission:</span>
-              <span className="truncate max-w-xs sm:max-w-md font-medium text-cyan-300">
-                {activeMission.title}
-              </span>
-            </div>
+      {/* ─── 2. SUBHEADER BAR ─── */}
+      <div className="h-12 border-b border-white/[0.08] bg-[#0a0e17] px-4 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setLeftPanelOpen(!leftPanelOpen)}
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all"
+            title="Toggle Left Sidebar"
+          >
+            <PanelLeft className="h-4 w-4" />
+          </button>
 
-            {/* Mission Progress Pill */}
-            <div className="hidden md:flex items-center gap-2 text-zinc-400 font-mono text-[11px] bg-zinc-900/80 px-2.5 py-1 rounded-lg border border-white/5">
-              <span>Progress:</span>
-              <div className="w-16 h-2 rounded-full bg-zinc-800 overflow-hidden">
-                <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${activeMission.progress}%` }} />
-              </div>
-              <span className="text-cyan-400 font-bold">{activeMission.progress}%</span>
-            </div>
-          </div>
-
-          {/* Right Action Buttons */}
           <div className="flex items-center gap-2">
-            {/* Discord-Style Voice Status Indicator */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/50 border border-emerald-500/30 text-emerald-400 text-[11px] font-mono">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Voice Live (24ms)</span>
+            <span className="text-sm">🐋</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-xs text-white tracking-wide">{roomTitle}</span>
+              <ChevronDown className="h-3.5 w-3.5 text-zinc-400 cursor-pointer" />
+            </div>
+            <span className="text-[11px] text-zinc-500">Blue the Beluga is in the room</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-950/60 border border-emerald-500/30 text-[10px] text-emerald-400 font-mono font-bold">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>LIVE 120kHz</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs text-zinc-300 font-medium">
+            <span>🪟</span>
+            <span>2D Habitat</span>
+          </button>
+
+          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs text-zinc-300 font-medium">
+            <span>🧊</span>
+            <span>3D Splat</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (typeof navigator !== 'undefined') {
+                navigator.clipboard.writeText(window.location.href)
+                setCopiedLink(true)
+                setTimeout(() => setCopiedLink(false), 2000)
+              }
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-lg shadow-blue-500/20 transition-all"
+          >
+            <Users className="h-3.5 w-3.5" />
+            <span>{copiedLink ? 'Copied Link!' : 'Invite'}</span>
+          </button>
+
+          <button className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5">
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* ─── 3. MAIN WORKBENCH BODY ─── */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* LEFT PANEL: In the room + Room tools + Live activity */}
+        {leftPanelOpen && (
+          <aside className="w-64 border-r border-white/[0.08] bg-[#090d16] flex flex-col shrink-0">
+            {/* Participants */}
+            <div className="p-3 border-b border-white/[0.08]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-zinc-300">
+                  In the Room <span className="text-zinc-500 font-normal">{participants.length}</span>
+                </span>
+                <button className="text-[11px] text-zinc-400 hover:text-white">Mute all</button>
+              </div>
+
+              <div className="space-y-1.5">
+                {participants.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between p-1.5 rounded-lg hover:bg-white/[0.04] text-xs"
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      {p.avatar && p.avatar.startsWith('http') ? (
+                        <img src={p.avatar} alt={p.name} className="h-5 w-5 rounded-full object-cover" />
+                      ) : p.avatar ? (
+                        <span className="text-sm">{p.avatar}</span>
+                      ) : (
+                        <div
+                          className={`h-5 w-5 rounded-full ${p.color || 'bg-blue-600'} text-white font-bold text-[10px] flex items-center justify-center`}
+                        >
+                          {p.initial}
+                        </div>
+                      )}
+                      <span className="text-zinc-200 font-medium truncate">
+                        {p.name} {p.isYou && <span className="text-zinc-500 font-normal">You</span>}
+                      </span>
+                      {p.role === 'agent' && (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 font-mono">
+                          Agent
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      {p.isSpeaking ? (
+                        <span className="text-cyan-400 font-mono text-xs animate-pulse">ılı</span>
+                      ) : p.isMuted ? (
+                        <MicOff className="h-3.5 w-3.5 text-rose-400" />
+                      ) : (
+                        <Mic className="h-3.5 w-3.5 text-emerald-400" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <button
-              onClick={copyRoomLink}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs transition-all border border-white/10 cursor-pointer"
-            >
-              {copiedLink ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-              <span>{copiedLink ? 'Copied' : 'Invite'}</span>
-            </button>
-          </div>
-        </header>
+            {/* Room Tools */}
+            <div className="p-3 border-b border-white/[0.08]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-zinc-300">Room Tools</span>
+                <button className="text-zinc-400 hover:text-white">
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
 
-        {/* ─── Main Room Layout: 3 Columns (Left Feed + Center Canvas + Right Pod) ─── */}
-        <div className="flex-1 flex overflow-hidden relative">
-          {/* ════ LEFT COLUMN: Chat, Living Agents, Activity, Files ════ */}
-          {leftPanelOpen && (
-            <aside className="w-80 lg:w-96 bg-[#080b10] border-r border-white/[0.08] flex flex-col shrink-0 z-20">
-              {/* Left Sub-tabs */}
-              <div className="h-10 border-b border-white/[0.08] flex items-center px-2 gap-1 bg-[#0a0d14] shrink-0 text-xs">
+              <div className="grid grid-cols-3 gap-1.5 text-center">
                 {[
-                  { id: 'chat', label: 'Room Chat', icon: MessageSquare },
-                  { id: 'agents', label: 'Active Animals', icon: Bot },
-                  { id: 'activity', label: 'Mission Log', icon: Activity },
-                  { id: 'files', label: 'Datasets & Files', icon: FolderOpen },
-                ].map((t) => {
-                  const Icon = t.icon
+                  { name: 'Share Screen', icon: Monitor },
+                  { name: 'Upload', icon: UploadCloud },
+                  { name: 'Whiteboard', icon: Layout },
+                  { name: 'Docs', icon: FileText },
+                  { name: 'Terminal', icon: TerminalIcon },
+                  { name: 'Notion', icon: BookOpen },
+                ].map((tool, idx) => {
+                  const Icon = tool.icon
                   return (
                     <button
-                      key={t.id}
-                      onClick={() => setLeftTab(t.id as any)}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
-                        leftTab === t.id
-                          ? 'bg-zinc-800 text-white shadow-sm'
-                          : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
-                      }`}
+                      key={idx}
+                      className="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 flex flex-col items-center gap-1 transition-all"
                     >
-                      <Icon className="h-3.5 w-3.5" />
-                      <span>{t.label}</span>
+                      <Icon className="h-4 w-4 text-zinc-400" />
+                      <span className="text-[10px] text-zinc-300">{tool.name}</span>
                     </button>
                   )
                 })}
               </div>
+            </div>
 
-              {/* Tab 1: Room Chat */}
-              {leftTab === 'chat' && (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  <div ref={chatScrollerRef} className="flex-1 overflow-y-auto p-3 space-y-3.5 text-xs">
-                    {chatMessages.map((msg) => {
-                      const isAgent = msg.sender.role === 'agent'
-
-                      return (
-                        <div key={msg.id} className="space-y-1 group">
-                          {/* Sender Info */}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 font-medium">
-                              <span className="text-base">{msg.sender.emoji || '👤'}</span>
-                              <span className="text-white font-semibold">{msg.sender.name}</span>
-                              {msg.sender.badge && (
-                                <span className="px-1.5 py-0.2 rounded-full bg-cyan-950 border border-cyan-500/30 text-[9px] text-cyan-300 font-mono">
-                                  {msg.sender.badge}
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[10px] text-zinc-500 font-mono">{msg.time}</span>
-                          </div>
-
-                          {/* Content */}
-                          {msg.content && (
-                            <div className="pl-6 text-zinc-300 leading-relaxed">
-                              {msg.content}
-                            </div>
-                          )}
-
-                          {/* AI Agent Delegation & Action Card */}
-                          {msg.agentCard && (
-                            <div className="ml-6 p-2.5 rounded-xl bg-zinc-900/90 border border-cyan-500/30 space-y-1.5 shadow-lg">
-                              {msg.agentCard.isThinking && (
-                                <div className="flex items-center gap-2 text-cyan-400 font-mono text-[11px]">
-                                  <Sparkles className="h-3 w-3 animate-spin" />
-                                  <span>Active Subagent Task…</span>
-                                </div>
-                              )}
-                              <p className="text-zinc-300 leading-relaxed text-[11px]">
-                                {msg.agentCard.message}
-                              </p>
-                              {msg.agentCard.editedTag && (
-                                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-mono text-cyan-400">
-                                  <Check className="h-2.5 w-2.5 text-emerald-400" />
-                                  <span>{msg.agentCard.editedTag}</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Reactions */}
-                          {msg.reactions && msg.reactions.length > 0 && (
-                            <div className="flex items-center gap-1.5 pl-6 pt-0.5">
-                              {msg.reactions.map((r, i) => (
-                                <span
-                                  key={i}
-                                  className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800/80 text-[10px] text-zinc-300"
-                                >
-                                  <span>{r.emoji}</span>
-                                  <span>{r.count}</span>
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  {/* Chat Composer */}
-                  <div className="p-3 border-t border-white/[0.08] bg-[#07090e]">
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault()
-                        handleSendMessage(chatInput)
-                      }}
-                      className="flex items-center gap-2 bg-zinc-900 border border-white/10 rounded-xl px-3 py-2"
-                    >
-                      <input
-                        type="text"
-                        value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        placeholder="Ask Blue, Elephant, or Raven..."
-                        className="flex-1 bg-transparent text-xs text-white placeholder:text-zinc-500 outline-none"
-                      />
-                      <button
-                        type="submit"
-                        disabled={!chatInput.trim()}
-                        className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white transition-all cursor-pointer"
-                      >
-                        <Send className="h-3.5 w-3.5" />
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 2: Active Animals in the Mission */}
-              {leftTab === 'agents' && (
-                <div className="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs">
-                  {agents.map((agent) => (
-                    <div
-                      key={agent.id}
-                      className="p-3 rounded-xl bg-zinc-900/80 border border-white/10 space-y-1.5 hover:border-cyan-500/40 transition-all"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{agent.emoji}</span>
-                          <div>
-                            <h4 className="font-semibold text-white">{agent.name}</h4>
-                            <p className="text-[10px] text-cyan-400 font-mono">{agent.role}</p>
-                          </div>
-                        </div>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[9px] font-mono ${
-                            agent.status === 'active'
-                              ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/30'
-                              : agent.status === 'busy'
-                              ? 'bg-amber-950 text-amber-400 border border-amber-500/30'
-                              : 'bg-zinc-800 text-zinc-400'
-                          }`}
-                        >
-                          {agent.status}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-zinc-300 leading-snug">{agent.currentJob}</p>
-                      <div className="flex items-center justify-between text-[10px] text-zinc-500 pt-1 border-t border-white/5 font-mono">
-                        <span>{agent.brain.split('·')[0]}</span>
-                        <button
-                          onClick={() => {
-                            zooAudio.speakAgent(agent.id, `Hello! I am ${agent.name}, handling ${agent.currentJob}`)
-                          }}
-                          className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 cursor-pointer"
-                        >
-                          <Volume2 className="h-3 w-3" /> Voice
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Tab 3: Mission Log */}
-              {leftTab === 'activity' && (
-                <div className="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs">
-                  {activeMission.decisions.map((dec) => (
-                    <div key={dec.id} className="p-3 rounded-xl bg-zinc-900/80 border border-white/10 space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-semibold text-cyan-300">{dec.decidedBy}</span>
-                        <span className="text-zinc-500 text-[10px]">{dec.timestamp}</span>
-                      </div>
-                      <p className="text-zinc-300 text-[11px]">{dec.scenario}</p>
-                      <div className="p-2 rounded bg-black/40 border border-white/5 text-[10px] text-emerald-300 font-mono">
-                        ✓ {dec.outcome}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Tab 4: Datasets & Files */}
-              {leftTab === 'files' && (
-                <div className="flex-1 overflow-y-auto p-3 space-y-2.5 text-xs">
-                  {activeMission.evidence.datasets.map((ds) => (
-                    <div key={ds.name} className="p-3 rounded-xl bg-zinc-900/80 border border-white/10 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-white truncate">{ds.name}</span>
-                        <span className="text-[10px] font-mono text-cyan-400">{ds.size}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-zinc-400 font-mono">
-                        <span>{ds.records}</span>
-                        <span>{ds.format}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </aside>
-          )}
-
-          {/* ════ CENTER CANVAS: The Work (Chart / Story / Habitat / App) ════ */}
-          <main className="flex-1 flex flex-col overflow-hidden bg-[#040609] relative">
-            {/* Center Canvas Mode Selector Bar */}
-            <div className="h-10 bg-[#0a0d14] border-b border-white/[0.08] flex items-center justify-between px-4 shrink-0 text-xs z-20">
-              <div className="flex items-center gap-1.5">
-                {[
-                  { id: 'chart', label: '📊 Acoustics & Population Chart' },
-                  { id: 'story', label: '🎨 Illustrated Storybook' },
-                  { id: 'map', label: '🗺️ Beaufort Sea Telemetry Map' },
-                  { id: 'habitat', label: '🌊 3D Ocean Habitat' },
-                  { id: 'preview', label: '💻 Interactive App Preview' },
-                ].map((mode) => (
-                  <button
-                    key={mode.id}
-                    onClick={() => setCanvasMode(mode.id as any)}
-                    className={`flex items-center gap-1 px-3 py-1 rounded-md transition-all ${
-                      canvasMode === mode.id
-                        ? 'bg-zinc-800 text-white font-medium shadow-sm border border-white/10'
-                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
-                    }`}
-                  >
-                    <span>{mode.label}</span>
-                  </button>
-                ))}
+            {/* Activity Stream */}
+            <div className="flex-1 p-3 overflow-y-auto space-y-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-zinc-300">Activity</span>
+                <span className="text-[10px] text-zinc-500 flex items-center gap-1 cursor-pointer">
+                  Live <ChevronDown className="h-3 w-3" />
+                </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="space-y-2 text-xs">
+                <div className="p-2 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
+                  <div className="flex items-center justify-between text-zinc-200">
+                    <span className="font-semibold flex items-center gap-1">
+                      <span>🐋</span> Blue the Beluga
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-mono">6:42 PM</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                    <span>Edited Header.tsx</span>
+                    <span className="text-emerald-400 font-mono text-[10px]">+142 -24</span>
+                  </div>
+                </div>
+
+                <div className="p-2 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
+                  <div className="flex items-center justify-between text-zinc-200">
+                    <span className="font-semibold flex items-center gap-1">
+                      <span>🐋</span> Blue the Beluga
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-mono">6:42 PM</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                    <span>Deployed preview</span>
+                    <span className="text-blue-400 font-mono text-[10px] flex items-center gap-0.5">
+                      Open <ExternalLink className="h-2.5 w-2.5" />
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-2 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
+                  <div className="flex items-center justify-between text-zinc-200">
+                    <span className="font-semibold flex items-center gap-1">
+                      <span className="h-3.5 w-3.5 rounded-full bg-emerald-500 text-[8px] flex items-center justify-center font-bold text-white">
+                        S
+                      </span>
+                      Sarah Chen
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-mono">6:41 PM</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400">Created Figma frame: Hero Section</p>
+                </div>
+
+                <div className="p-2 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
+                  <div className="flex items-center justify-between text-zinc-200">
+                    <span className="font-semibold flex items-center gap-1">
+                      <span>👤</span> Alex Rivera
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-mono">6:41 PM</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400">Pushed to main (Commit a1b2c3d)</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick room message input */}
+            <div className="p-2.5 border-t border-white/[0.08] bg-[#07090e]">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.04] border border-white/10">
+                <input
+                  type="text"
+                  value={roomChatInput}
+                  onChange={(e) => setRoomChatInput(e.target.value)}
+                  placeholder="Message the room..."
+                  className="flex-1 bg-transparent text-xs text-white placeholder:text-zinc-500 outline-none"
+                />
+                <button className="text-zinc-400 hover:text-white">
+                  <Smile className="h-3.5 w-3.5" />
+                </button>
+                <button className="text-zinc-400 hover:text-white">
+                  <Paperclip className="h-3.5 w-3.5" />
+                </button>
+                <button className="p-1 rounded bg-blue-600 text-white hover:bg-blue-500">
+                  <Send className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          </aside>
+        )}
+
+        {/* CENTER STAGE: Tab Bar + Browser & Code Split Workbench */}
+        <main className="flex-1 flex flex-col bg-[#07090e] overflow-hidden min-w-0">
+          {/* Tabs Bar */}
+          <div className="h-9 border-b border-white/[0.08] bg-[#0a0e17] flex items-center justify-between px-3 shrink-0">
+            <div className="flex items-center gap-1 text-xs">
+              {[
+                { id: 'preview', label: 'Preview' },
+                { id: 'index', label: 'index.tsx' },
+                { id: 'styles', label: 'styles.css' },
+                { id: 'header', label: 'Header.tsx' },
+                { id: 'layout', label: 'layout.tsx' },
+              ].map((tab) => (
                 <button
-                  onClick={() => setLeftPanelOpen(!leftPanelOpen)}
-                  className="p-1 rounded text-zinc-400 hover:text-white"
-                  title="Toggle Left Panel"
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`px-3 py-1.5 rounded-t-lg transition-all font-medium text-xs flex items-center gap-1.5 ${
+                    activeTab === tab.id
+                      ? 'bg-[#111726] text-white border-t-2 border-blue-500'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/[0.03]'
+                  }`}
                 >
-                  <Layout className="h-4 w-4" />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+              <button className="p-1 text-zinc-500 hover:text-white rounded">
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Upper Preview Canvas Area */}
+          <div className="flex-1 flex flex-col border-b border-white/[0.08] relative overflow-hidden bg-[#0a0e1a]">
+            {/* Browser Header Bar */}
+            <div className="h-8 border-b border-white/[0.08] bg-[#0d121f] flex items-center justify-between px-3 text-xs">
+              <div className="flex items-center gap-2">
+                <button className="text-zinc-500 hover:text-white">
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
+                <button className="text-zinc-500 hover:text-white">
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+                <button className="text-zinc-500 hover:text-white">
+                  <RefreshCw className="h-3 w-3" />
+                </button>
+
+                <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-black/40 border border-white/10 text-[11px] text-zinc-300 font-mono">
+                  <Lock className="h-3 w-3 text-emerald-400" />
+                  <span>https://zoo.ai</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-zinc-400">
+                <button
+                  onClick={() => setViewportMode('mobile')}
+                  className={`p-1 rounded ${viewportMode === 'mobile' ? 'text-cyan-400 bg-white/10' : 'hover:text-white'}`}
+                >
+                  <Smartphone className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => setViewportMode('desktop')}
+                  className={`p-1 rounded ${viewportMode === 'desktop' ? 'text-cyan-400 bg-white/10' : 'hover:text-white'}`}
+                >
+                  <Monitor className="h-3.5 w-3.5" />
+                </button>
+                <span className="text-[11px] text-zinc-400">100% ⌄</span>
+              </div>
+            </div>
+
+            {/* Live Rendered Canvas inside Browser */}
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col justify-between relative bg-gradient-to-b from-[#07090e] via-[#090e1f] to-[#05070c]">
+              {/* Floating PiP Blue Agent Card in corner */}
+              <div className="absolute top-6 right-6 w-72 rounded-2xl overflow-hidden border border-blue-500/40 bg-black/80 shadow-2xl z-20 backdrop-blur-xl">
+                <div className="h-7 bg-blue-950/80 px-2.5 flex items-center justify-between border-b border-blue-500/20">
+                  <span className="text-[11px] font-bold text-cyan-300 flex items-center gap-1">
+                    <span>Blue</span> ✦
+                  </span>
+                  <Maximize2 className="h-3 w-3 text-zinc-400 cursor-pointer" />
+                </div>
+                <div className="h-36 relative overflow-hidden bg-black flex items-center justify-center">
+                  <video
+                    src="/bg_video/static/94263e80-7711-4191-8848-18e470fcf147.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute bottom-2 left-2 right-2 px-2 py-1 rounded-lg bg-black/70 backdrop-blur-md border border-cyan-400/30 flex items-center justify-between">
+                    <span className="text-[10px] text-cyan-300 font-medium flex items-center gap-1">
+                      <span className="animate-pulse">ılı</span> Blue is listening
+                    </span>
+                    <span className="text-[10px] font-mono text-zinc-400">120kHz</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Zoo AI Landing Page Mock */}
+              <div className="max-w-3xl space-y-6">
+                <div className="flex items-center gap-6 text-xs text-zinc-400 font-medium">
+                  <span className="font-bold text-white text-base font-mono">ZOO</span>
+                  <span className="text-zinc-200">Product ⌄</span>
+                  <span>Pricing</span>
+                  <span>Docs ⌄</span>
+                  <span>Resources ⌄</span>
+                </div>
+
+                <div className="space-y-3 pt-4">
+                  <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+                    The Sovereign <br />
+                    <span className="bg-gradient-to-r from-purple-400 via-indigo-300 to-cyan-400 bg-clip-text text-transparent">
+                      AI Cloud
+                    </span>{' '}
+                    for Builders
+                  </h1>
+                  <p className="text-sm text-zinc-400 max-w-lg leading-relaxed">
+                    Deploy, scale and own your AI. Privacy first. Open always.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition-all">
+                    Start Building
+                  </button>
+                  <button className="px-5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-white font-semibold text-xs transition-all">
+                    View Docs
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-4 gap-4 pt-6 border-t border-white/10 max-w-xl">
+                  <div>
+                    <p className="text-lg font-bold text-white font-mono">120k+</p>
+                    <p className="text-[11px] text-zinc-400">Builders</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-white font-mono">99.99%</p>
+                    <p className="text-[11px] text-zinc-400">Uptime</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-white font-mono">42</p>
+                    <p className="text-[11px] text-zinc-400">Regions</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-white font-mono">∞</p>
+                    <p className="text-[11px] text-zinc-400">Possibilities</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Lower Split: Code Editor & Dev Server Logs */}
+          <div className="h-56 flex border-t border-white/[0.08] bg-[#080c16]">
+            {/* Files Tree */}
+            <div className="w-44 border-r border-white/[0.08] p-2.5 overflow-y-auto text-xs space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 px-1">
+                Files
+              </span>
+              <div className="space-y-0.5 text-zinc-400">
+                <div className="flex items-center gap-1 text-zinc-300 font-semibold">
+                  <ChevronDown className="h-3 w-3" /> app
+                </div>
+                <div className="pl-3 space-y-0.5">
+                  <div className="flex items-center gap-1 text-zinc-300 font-semibold">
+                    <ChevronDown className="h-3 w-3" /> (site)
+                  </div>
+                  <div className="pl-3 space-y-0.5">
+                    <div className="flex items-center gap-1 text-zinc-300 font-semibold">
+                      <ChevronDown className="h-3 w-3" /> components
+                    </div>
+                    <div className="pl-3 space-y-0.5 text-[11px]">
+                      <div className="text-cyan-400 bg-white/10 px-1.5 py-0.5 rounded font-mono">
+                        HeroSection.tsx
+                      </div>
+                      <div className="text-zinc-400 px-1.5 py-0.5">Header.tsx</div>
+                      <div className="text-zinc-400 px-1.5 py-0.5">Footer.tsx</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-zinc-400">
+                  <ChevronRight className="h-3 w-3" /> lib
+                </div>
+                <div className="flex items-center gap-1 text-zinc-400">
+                  <ChevronRight className="h-3 w-3" /> styles
+                </div>
+              </div>
+            </div>
+
+            {/* Code Editor */}
+            <div className="flex-1 border-r border-white/[0.08] flex flex-col bg-[#0b101d]">
+              <div className="h-7 bg-[#0d1322] px-3 flex items-center justify-between border-b border-white/[0.08] text-xs">
+                <span className="font-mono text-zinc-300">HeroSection.tsx</span>
+                <span className="text-[10px] text-zinc-500 font-mono">TypeScript React</span>
+              </div>
+              <div className="flex-1 p-3 overflow-y-auto font-mono text-xs text-zinc-300 space-y-0.5 leading-relaxed">
+                <div><span className="text-purple-400">export default function</span> <span className="text-blue-400">HeroSection</span>() &#123;</div>
+                <div className="pl-4"><span className="text-purple-400">return</span> (</div>
+                <div className="pl-8">&lt;<span className="text-cyan-400">section</span> <span className="text-amber-300">className</span>=<span className="text-emerald-300">&quot;relative overflow-hidden&quot;</span>&gt;</div>
+                <div className="pl-12">&lt;<span className="text-cyan-400">div</span> <span className="text-amber-300">className</span>=<span className="text-emerald-300">&quot;mx-auto max-w-7xl px-6 py-24&quot;</span>&gt;</div>
+                <div className="pl-16">&lt;<span className="text-cyan-400">h1</span> <span className="text-amber-300">className</span>=<span className="text-emerald-300">&quot;text-5xl md:text-7xl font-bold tracking-tight text-white&quot;</span>&gt;</div>
+                <div className="pl-20">The Sovereign &lt;<span className="text-cyan-400">span</span> <span className="text-amber-300">className</span>=<span className="text-emerald-300">&quot;text-gradient&quot;</span>&gt;AI Cloud&lt;/<span className="text-cyan-400">span</span>&gt; for Builders</div>
+                <div className="pl-16">&lt;/<span className="text-cyan-400">h1</span>&gt;</div>
+                <div className="pl-16">&lt;<span className="text-cyan-400">p</span> <span className="text-amber-300">className</span>=<span className="text-emerald-300">&quot;mt-6 text-lg text-zinc-300 max-w-2xl&quot;</span>&gt;</div>
+                <div className="pl-20">Deploy, scale and own your AI. Privacy first. Open always.</div>
+                <div className="pl-16">&lt;/<span className="text-cyan-400">p</span>&gt;</div>
+                <div className="pl-8">&lt;/<span className="text-cyan-400">section</span>&gt;</div>
+                <div className="pl-4">)</div>
+                <div>&#125;</div>
+              </div>
+            </div>
+
+            {/* Terminal / Live Server */}
+            <div className="w-80 flex flex-col bg-[#07090e]">
+              <div className="h-7 bg-[#0a0e17] px-3 flex items-center justify-between border-b border-white/[0.08] text-xs">
+                <div className="flex items-center gap-3 text-[11px]">
+                  <span className="font-bold text-white border-b-2 border-blue-500 pb-0.5">Terminal</span>
+                  <span className="text-zinc-400">Git</span>
+                  <span className="text-zinc-400">AI Logs</span>
+                </div>
+                <div className="flex items-center gap-1 text-zinc-500">
+                  <Plus className="h-3 w-3 cursor-pointer hover:text-white" />
+                  <X className="h-3 w-3 cursor-pointer hover:text-white" />
+                </div>
+              </div>
+              <div className="flex-1 p-3 overflow-y-auto font-mono text-[11px] text-zinc-400 space-y-1">
+                <p className="text-emerald-400">✓ Compiled successfully in 842ms</p>
+                <p>| Local:   http://localhost:3000</p>
+                <p>| Network: http://192.168.1.42:3000</p>
+                <p className="text-cyan-400">✓ Hot reloading...</p>
+                <p>✓ 1 file changed</p>
+                <p className="text-emerald-400">✓ Recompiled in 191ms</p>
+                <p className="animate-pulse">_</p>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        {/* RIGHT PANEL: Vibe with Friends + Live Polls + Chat */}
+        {rightPanelOpen && (
+          <aside className="w-80 border-l border-white/[0.08] bg-[#090d16] flex flex-col shrink-0">
+            {/* Header */}
+            <div className="h-10 border-b border-white/[0.08] px-3 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+                <span>Vibe with Friends</span>
+                <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
+              </div>
+
+              <div className="flex items-center gap-2 text-zinc-400">
+                <span className="text-xs flex items-center gap-1">
+                  <Users className="h-3.5 w-3.5" /> 6
+                </span>
+                <button
+                  onClick={() => setRightPanelOpen(false)}
+                  className="p-1 hover:text-white rounded"
+                >
+                  <X className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
 
-            {/* CANVAS 1: Interactive Acoustics & Population Chart */}
-            {canvasMode === 'chart' && (
-              <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center space-y-6">
-                <div className="max-w-4xl w-full rounded-3xl border border-white/15 bg-zinc-950/80 p-6 backdrop-blur-3xl shadow-2xl space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-                    <div>
-                      <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                        <span>📊</span> Beaufort Sea Beluga Population & Acoustic Density (2016–2026)
-                      </h2>
-                      <p className="text-xs text-zinc-400 mt-1">
-                        Correlating 14,280 hours of hydrophone recording spectrograms with seasonal sea-ice loss.
-                      </p>
-                    </div>
-
-                    {/* Audio Playback Controls */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setIsAudioPlaying(!isAudioPlaying)
-                          zooAudio.playCue('echolocation')
-                        }}
-                        className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-lg shadow-cyan-600/30 transition-all cursor-pointer"
-                      >
-                        {isAudioPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-                        <span>{isAudioPlaying ? 'Mute Bioacoustics' : 'Play Whistle Audio'}</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Synthetic Interactive Multi-Year Spectrogram & Population Curves */}
-                  <div className="h-64 w-full bg-black/60 rounded-2xl border border-white/10 p-4 flex flex-col justify-between relative overflow-hidden">
-                    <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 z-10">
-                      <span>Population Count (Est. Pod Size)</span>
-                      <span className="text-cyan-400">96 kHz Whistle Harmonics</span>
-                      <span className="text-amber-400">Shipping Corridor Noise (dB)</span>
-                    </div>
-
-                    {/* SVG Graphic with dynamic wave curves */}
-                    <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none" viewBox="0 0 800 200">
-                      <defs>
-                        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.4" />
-                          <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.0" />
-                        </linearGradient>
-                      </defs>
-                      {/* Population curve */}
-                      <path
-                        d="M0,140 Q150,110 300,120 T600,60 T800,40 L800,200 L0,200 Z"
-                        fill="url(#chartGrad)"
-                      />
-                      <path
-                        d="M0,140 Q150,110 300,120 T600,60 T800,40"
-                        fill="none"
-                        stroke="#06b6d4"
-                        strokeWidth="3"
-                      />
-                      {/* Ship noise spikes */}
-                      <path
-                        d="M0,180 Q100,170 200,140 T400,110 T600,160 T800,120"
-                        fill="none"
-                        stroke="#f59e0b"
-                        strokeWidth="2"
-                        strokeDasharray="4 4"
-                      />
-                    </svg>
-
-                    {/* Timeline Axis */}
-                    <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 pt-2 border-t border-white/10 z-10">
-                      <span>2016</span>
-                      <span>2018</span>
-                      <span>2020</span>
-                      <span>2022</span>
-                      <span>2024</span>
-                      <span className="text-white font-bold">2026 (Current)</span>
-                    </div>
-                  </div>
-
-                  {/* 3 Metric Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="p-3.5 rounded-2xl bg-zinc-900 border border-white/10">
-                      <span className="text-[11px] text-zinc-400">Total Classified Whistles</span>
-                      <p className="text-xl font-bold text-white mt-1">142,800</p>
-                      <span className="text-[10px] text-emerald-400 font-mono">+18% with Elephant clean</span>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-zinc-900 border border-white/10">
-                      <span className="text-[11px] text-zinc-400">Vocal Separation Factor</span>
-                      <p className="text-xl font-bold text-cyan-400 mt-1">4.2x</p>
-                      <span className="text-[10px] text-zinc-400 font-mono">During heavy icebreaker transit</span>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-zinc-900 border border-white/10">
-                      <span className="text-[11px] text-zinc-400">Proposed Speed Buffer</span>
-                      <p className="text-xl font-bold text-amber-400 mt-1">15 Knots</p>
-                      <span className="text-[10px] text-zinc-400 font-mono">Submitting to Arctic Council</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* CANVAS 2: Illustrated Storybook for K-12 Classrooms */}
-            {canvasMode === 'story' && (
-              <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center space-y-6">
-                <div className="max-w-3xl w-full rounded-3xl border border-white/15 bg-zinc-950/90 p-8 shadow-2xl space-y-6">
-                  <div className="text-center space-y-2">
-                    <span className="text-3xl">🐋 📖</span>
-                    <h2 className="text-2xl font-extrabold text-white">
-                      The Whale Who Sang Through the Ice
-                    </h2>
-                    <p className="text-xs text-cyan-400 font-medium">
-                      Citizen Science & Classroom Edition · Created by Blue & Castor the Beaver
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-2xl bg-blue-950/40 border border-blue-500/30 space-y-2">
-                      <h4 className="font-bold text-white text-sm">Chapter 1: The Ocean’s Canaries</h4>
-                      <p className="text-xs text-zinc-300 leading-relaxed">
-                        Beluga whales are famous for their chirps, whistles, and clicks. They use sound like natural flashlights in the dark icy Arctic sea!
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 space-y-2">
-                      <h4 className="font-bold text-white text-sm">Chapter 2: Listening Underwater</h4>
-                      <p className="text-xs text-zinc-300 leading-relaxed">
-                        Scientists place hydrophones (underwater microphones) deep under the ice to listen without disturbing the pods.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-emerald-300 text-sm">Classroom Action: Schoolyard Listening</h4>
-                      <p className="text-xs text-zinc-300">
-                        Record bird and wildlife sounds in your schoolyard with the Zoo App!
-                      </p>
-                    </div>
-                    <button className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-all">
-                      Start Activity
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* CANVAS 3: 3D Ocean Habitat */}
-            {canvasMode === 'habitat' && (
-              <div className="flex-1 relative overflow-hidden flex items-center justify-center">
-                <video
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  src="/bg_video/static/relactation0.mp4"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/60 pointer-events-none" />
-                <div className="relative z-10 text-center space-y-3 p-6 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/10">
-                  <span className="text-4xl">🐋</span>
-                  <h3 className="text-lg font-bold text-white">Blue is swimming in the Beaufort Sea</h3>
-                  <p className="text-xs text-zinc-400">Listening to hydrophone arrays HYD-BF-01 through 03.</p>
-                </div>
-              </div>
-            )}
-
-            {/* CANVAS 4: Interactive App Preview */}
-            {canvasMode === 'preview' && (
-              <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
-                <div className="max-w-4xl w-full rounded-2xl border border-white/15 bg-black/80 p-6 shadow-2xl space-y-4">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                    <span className="font-mono text-xs text-emerald-400">https://arctic.zoo.ngo</span>
-                    <span className="text-xs text-zinc-400">Live MicroVM Container</span>
-                  </div>
-                  <div className="py-12 text-center space-y-3">
-                    <h1 className="text-3xl font-extrabold text-white">Arctic Marine Protection Portal</h1>
-                    <p className="text-sm text-zinc-300 max-w-lg mx-auto">
-                      Powered by Zoo Labs Sovereign AI Foundation and real-time bioacoustics telemetry.
-                    </p>
-                    <button className="px-5 py-2 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs shadow-lg">
-                      Explore Public Findings
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* CANVAS 5: Telemetry Map */}
-            {canvasMode === 'map' && (
-              <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center">
-                <div className="max-w-4xl w-full rounded-2xl border border-white/15 bg-zinc-950 p-6 shadow-2xl space-y-4">
-                  <h3 className="font-bold text-white text-base">🗺️ Beaufort Sea Hydrophone Network</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {activeMission.evidence.hydrophones.map((h) => (
-                      <div key={h.id} className="p-3 rounded-xl bg-zinc-900 border border-white/10 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono text-cyan-400 text-xs font-bold">{h.id}</span>
-                          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                        </div>
-                        <p className="text-xs text-zinc-200">{h.location}</p>
-                        <p className="text-[10px] text-zinc-500 font-mono">{h.freq}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ─── Persistent Draggable FaceTime-style Blue PiP ─── */}
-            <div
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              className="absolute z-40 rounded-2xl overflow-hidden border-2 border-cyan-400/80 bg-black/90 shadow-[0_20px_50px_rgba(0,0,0,0.9)] cursor-grab active:cursor-grabbing backdrop-blur-2xl touch-none"
-              style={{
-                width: '260px',
-                height: '170px',
-                right: '24px',
-                bottom: '80px',
-                transform: `translate3d(${pipPos.x}px, ${pipPos.y}px, 0px)`,
-              }}
-            >
-              <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                src="/bg_video/static/relactation1.mp4"
-                className="h-full w-full object-cover pointer-events-none"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-
-              <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
-                <span className="px-2 py-0.5 rounded-full bg-black/70 text-[10px] font-semibold text-white flex items-center gap-1 border border-white/20">
-                  <span>🐋</span> Blue PiP
-                </span>
-                {activeSpeakerId === 'blue' && (
-                  <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping" />
-                )}
-              </div>
-
-              <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between pointer-events-none">
-                <span className="text-[10px] text-cyan-300 font-mono">
-                  {activeSpeakerId === 'blue' ? '🔊 Speaking…' : '🌊 Listening…'}
-                </span>
-              </div>
+            {/* Sub-tabs: Chat, Polls, Notes, Files */}
+            <div className="h-8 border-b border-white/[0.08] bg-[#070a12] px-3 flex items-center gap-4 text-xs">
+              {['Chat', 'Polls', 'Notes', 'Files'].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setActiveRightTab(t.toLowerCase() as any)}
+                  className={`py-1 font-semibold transition-all ${
+                    activeRightTab === t.toLowerCase()
+                      ? 'text-white border-b-2 border-blue-500'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
             </div>
-          </main>
 
-          {/* ════ RIGHT COLUMN: Living Pod & Multi-Agent Participants ════ */}
-          {rightPanelOpen && (
-            <aside className="w-64 lg:w-72 bg-[#080b10] border-l border-white/[0.08] flex flex-col shrink-0 z-20">
-              {/* Voice Room Header */}
-              <div className="h-10 border-b border-white/[0.08] flex items-center justify-between px-3 bg-[#0a0d14] shrink-0 text-xs font-semibold text-zinc-300">
-                <span className="flex items-center gap-1.5">
-                  <Volume2 className="h-3.5 w-3.5 text-cyan-400" />
-                  <span>Voice Channel (Pod)</span>
-                </span>
-                <span className="text-[10px] text-zinc-500 font-mono">
-                  {humanParticipants.length + agents.length} in room
-                </span>
-              </div>
-
-              {/* Participants List */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-4 text-xs">
-                {/* Humans */}
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
-                    Humans ({humanParticipants.length})
-                  </span>
-                  {humanParticipants.map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex items-center justify-between p-2 rounded-xl bg-zinc-900/60 border border-white/5"
-                    >
-                      <div className="flex items-center gap-2">
+            {/* Chat Messages Stream */}
+            <div className="flex-1 p-3 overflow-y-auto space-y-3 text-xs">
+              {messages.map((m) => (
+                <div key={m.id} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      {m.avatar && m.avatar.startsWith('http') ? (
+                        <img src={m.avatar} alt={m.sender} className="h-5 w-5 rounded-full object-cover" />
+                      ) : m.avatar ? (
+                        <span className="text-xs">{m.avatar}</span>
+                      ) : (
                         <div
-                          className={`h-7 w-7 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                            p.isSpeaking
-                              ? 'border-2 border-emerald-400 ring-4 ring-emerald-500/40 bg-emerald-950'
-                              : 'bg-zinc-800 border border-white/10'
-                          }`}
+                          className={`h-5 w-5 rounded-full ${m.color || 'bg-emerald-600'} text-white font-bold text-[10px] flex items-center justify-center`}
                         >
-                          {p.emoji || p.avatar}
+                          {m.initial}
                         </div>
-                        <div>
-                          <p className="font-semibold text-white text-xs leading-tight">
-                            {p.name} {p.isYou && '(You)'}
-                          </p>
-                          <p className="text-[10px] text-zinc-400">
-                            {p.isHost ? 'Host' : 'Member'}
-                          </p>
-                        </div>
+                      )}
+                      <span className="font-bold text-white text-[11px]">{m.sender}</span>
+                      {m.isAgent && (
+                        <span className="text-[9px] px-1 py-0.2 rounded bg-blue-500/20 text-blue-300 font-mono">
+                          Agent
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-zinc-500 font-mono">{m.time}</span>
+                  </div>
+
+                  <p className="text-zinc-300 text-xs pl-6 leading-relaxed">{m.text}</p>
+
+                  {/* Agent Task Card */}
+                  {m.agentTask && (
+                    <div className="ml-6 p-2 rounded-xl bg-blue-950/40 border border-blue-500/30 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-blue-300 font-medium">{m.agentTask.title}</span>
+                        <span className="text-emerald-400 font-mono text-[10px]">
+                          {m.agentTask.doneText}
+                        </span>
                       </div>
-                      <div>
-                        {p.isMuted ? (
-                          <MicOff className="h-3.5 w-3.5 text-rose-400" />
-                        ) : (
-                          <Mic className="h-3.5 w-3.5 text-emerald-400" />
-                        )}
+                      <p className="text-[11px] text-zinc-400">{m.agentTask.desc}</p>
+                      <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden">
+                        <div
+                          className="bg-blue-500 h-full rounded-full transition-all duration-500"
+                          style={{ width: `${m.agentTask.progress}%` }}
+                        />
                       </div>
                     </div>
+                  )}
+
+                  {/* Message Reactions */}
+                  {m.reactions && (
+                    <div className="flex items-center gap-1 pl-6 pt-0.5">
+                      {m.reactions.map((r, i) => (
+                        <span
+                          key={i}
+                          className="px-1.5 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-[10px] text-zinc-300 flex items-center gap-1 cursor-pointer hover:bg-white/10"
+                        >
+                          <span>{r.emoji}</span>
+                          <span>{r.count}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Interactive Poll Card */}
+              <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
+                <div className="flex items-center gap-2">
+                  <img
+                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+                    alt="Richard"
+                    className="h-5 w-5 rounded-full object-cover"
+                  />
+                  <span className="text-zinc-300 text-xs font-medium">
+                    Richard Kaminsky <span className="text-zinc-500">started a poll</span>
+                  </span>
+                </div>
+
+                <p className="font-bold text-white text-xs">
+                  Should we add live GPU cluster telemetry to the right inspector pane?
+                </p>
+
+                <div className="space-y-1.5">
+                  {pollOptions.map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => handleVote(opt.id)}
+                      className={`w-full p-2 rounded-xl text-left border transition-all relative overflow-hidden ${
+                        pollVoted === opt.id
+                          ? 'bg-blue-950/60 border-blue-500 text-white'
+                          : 'bg-white/[0.02] border-white/5 hover:bg-white/5 text-zinc-300'
+                      }`}
+                    >
+                      <div
+                        className="absolute inset-y-0 left-0 bg-blue-500/20"
+                        style={{ width: `${opt.pct}%` }}
+                      />
+                      <div className="relative flex items-center justify-between text-xs font-medium">
+                        <span>{opt.text}</span>
+                        <span className="font-mono text-[11px] text-zinc-400">
+                          {opt.votes} votes {opt.pct}%
+                        </span>
+                      </div>
+                    </button>
                   ))}
                 </div>
 
-                {/* AI Animals */}
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider flex items-center gap-1">
-                    <Bot className="h-3 w-3" /> AI Animals ({agents.length})
-                  </span>
-                  {agents.map((a) => {
-                    const isSpeaking = activeSpeakerId === a.id
-
-                    return (
-                      <div
-                        key={a.id}
-                        className="flex items-center justify-between p-2 rounded-xl bg-zinc-900/60 border border-white/5"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`h-7 w-7 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                              isSpeaking
-                                ? 'border-2 border-cyan-400 ring-4 ring-cyan-500/40 bg-cyan-950 animate-pulse'
-                                : 'bg-zinc-800 border border-white/10'
-                            }`}
-                          >
-                            {a.emoji}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-white text-xs leading-tight truncate max-w-[120px]">
-                              {a.name}
-                            </p>
-                            <p className="text-[10px] text-cyan-400 font-mono truncate max-w-[120px]">
-                              {a.role.split('&')[0]}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="h-2 w-2 rounded-full bg-cyan-400" />
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Bottom Voice Control Bar (Discord-style) */}
-              <div className="p-3 border-t border-white/[0.08] bg-[#06080d] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={toggleMicrophone}
-                    className={`p-2 rounded-xl transition-all cursor-pointer ${
-                      micOn ? 'bg-zinc-800 text-white hover:bg-zinc-700' : 'bg-rose-600/30 text-rose-400 border border-rose-500/30'
-                    }`}
-                    title={micOn ? 'Mute Mic' : 'Unmute Mic'}
-                  >
-                    {micOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-                  </button>
-                  <button
-                    onClick={toggleDeafen}
-                    className={`p-2 rounded-xl transition-all cursor-pointer ${
-                      deafened ? 'bg-rose-600/30 text-rose-400 border border-rose-500/30' : 'bg-zinc-800 text-white hover:bg-zinc-700'
-                    }`}
-                    title={deafened ? 'Undeafen' : 'Deafen'}
-                  >
-                    {deafened ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      zooAudio.playCue('leave')
-                      setIsVoiceConnected(!isVoiceConnected)
-                    }}
-                    className="p-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white transition-all cursor-pointer"
-                    title="Disconnect"
-                  >
-                    <PhoneOff className="h-4 w-4" />
+                <div className="flex items-center justify-between text-[10px] text-zinc-500 pt-1">
+                  <span>5 votes · Poll closes in 1m</span>
+                  <button className="px-2 py-0.5 rounded bg-white/10 text-white hover:bg-white/20">
+                    Vote
                   </button>
                 </div>
               </div>
-            </aside>
-          )}
-        </div>
+
+              <div className="text-[11px] text-zinc-500 flex items-center gap-1.5 pt-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>demo-user is typing...</span>
+              </div>
+            </div>
+
+            {/* Chat Composer */}
+            <div className="p-3 border-t border-white/[0.08] bg-[#07090e]">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendChat()}
+                  placeholder="Message the room..."
+                  className="flex-1 bg-transparent text-xs text-white placeholder:text-zinc-500 outline-none"
+                />
+                <button className="text-zinc-400 hover:text-white">
+                  <Smile className="h-4 w-4" />
+                </button>
+                <button className="text-zinc-400 hover:text-white">
+                  <Plus className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={handleSendChat}
+                  className="p-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-500"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </aside>
+        )}
       </div>
-    </>
+
+      {/* ─── 4. BOTTOM AUDIO & CALL CONTROL BAR ─── */}
+      <footer className="h-14 border-t border-white/[0.08] bg-[#07090e] px-4 flex items-center justify-between shrink-0">
+        {/* Left: Spatial Audio status */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-xs text-zinc-300">
+            <span>🐋</span>
+            <span className="font-semibold text-white">Room Audio</span>
+          </div>
+          <div className="flex items-center gap-1 text-cyan-400 font-mono text-xs">
+            <span className="animate-pulse">ılılılı</span>
+            <span className="text-[11px] text-zinc-400">120kHz Spatial</span>
+          </div>
+        </div>
+
+        {/* Center Call Controls */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleMic}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
+              micOn
+                ? 'bg-white/10 text-white border-white/20'
+                : 'bg-white/[0.04] text-zinc-300 border-white/10 hover:bg-white/10'
+            }`}
+          >
+            {micOn ? <Mic className="h-4 w-4 text-emerald-400" /> : <Mic className="h-4 w-4" />}
+            <span>Mic</span>
+          </button>
+
+          <button
+            onClick={() => setCameraOn(!cameraOn)}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
+              cameraOn
+                ? 'bg-white/10 text-white border-white/20'
+                : 'bg-white/[0.04] text-zinc-300 border-white/10 hover:bg-white/10'
+            }`}
+          >
+            <Video className="h-4 w-4" />
+            <span>Camera</span>
+          </button>
+
+          <button
+            onClick={() => setScreenShareOn(!screenShareOn)}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
+              screenShareOn
+                ? 'bg-blue-600/30 text-blue-300 border-blue-500/40'
+                : 'bg-white/[0.04] text-zinc-300 border-white/10 hover:bg-white/10'
+            }`}
+          >
+            <Monitor className="h-4 w-4" />
+            <span>Share</span>
+          </button>
+
+          {/* Blue + Action Button */}
+          <Link
+            href="/beluga"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-500/30 transition-all"
+          >
+            <span>🐋</span>
+            <span>Blue +</span>
+          </Link>
+        </div>
+
+        {/* Right Attendees & Leave */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
+            <Users className="h-3.5 w-3.5" />
+            <span>{participants.length}</span>
+          </div>
+
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20"
+          >
+            <PhoneOff className="h-3.5 w-3.5" />
+            <span>Leave</span>
+          </Link>
+        </div>
+      </footer>
+    </div>
   )
 }

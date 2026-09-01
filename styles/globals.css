@@ -1,4 +1,7 @@
 /* ─── Hanzo.ai Modern Liquid Glass Design System — Zoo Labs ─── */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @font-face {
   font-family: "Zen";

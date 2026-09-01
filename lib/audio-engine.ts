@@ -13,15 +13,13 @@ export interface AudioVoiceSettings {
 // Species-specific voice and acoustic profile
 export const ANIMAL_VOICE_PROFILES: Record<string, AudioVoiceSettings> = {
   blue: { pitch: 1.08, rate: 0.96, volume: 1.0, toneFreq: 440 }, // Beluga: warm, melodic
-  raven: { pitch: 1.28, rate: 1.12, volume: 1.0, toneFreq: 680 }, // Raven: sharp, analytical
+  wolf: { pitch: 1.15, rate: 1.05, volume: 1.0, toneFreq: 520 }, // Wolf: focused, scholarly
   elephant: { pitch: 0.62, rate: 0.88, volume: 1.0, toneFreq: 120 }, // Elephant: deep, resonant bass
-  tiger: { pitch: 0.78, rate: 1.02, volume: 1.0, toneFreq: 220 }, // Tiger: crisp, authoritative
-  beaver: { pitch: 1.18, rate: 1.06, volume: 1.0, toneFreq: 520 }, // Beaver: eager, energetic builder
-  octopus: { pitch: 1.02, rate: 1.08, volume: 1.0, toneFreq: 340 }, // Octopus: multidimensional
-  owl: { pitch: 0.85, rate: 0.90, volume: 1.0, toneFreq: 180 }, // Owl: calm, scientific validation
-  fox: { pitch: 1.05, rate: 1.15, volume: 1.0, toneFreq: 480 }, // Fox: quick, clever debugger
-  bees: { pitch: 1.35, rate: 1.20, volume: 0.9, toneFreq: 880 }, // Bees: swarm buzz
-  dolphin: { pitch: 1.15, rate: 1.04, volume: 1.0, toneFreq: 600 }, // Dolphin: communicative
+  giraffe: { pitch: 0.92, rate: 0.92, volume: 1.0, toneFreq: 300 }, // Giraffe: visionary, calm
+  tiger: { pitch: 0.78, rate: 1.02, volume: 1.0, toneFreq: 220 }, // Tiger: crisp, authoritative security
+  leopard: { pitch: 1.22, rate: 1.18, volume: 1.0, toneFreq: 640 }, // Leopard: fast tracer, nimble
+  rhino: { pitch: 0.70, rate: 0.85, volume: 1.0, toneFreq: 160 }, // Rhino: rigorous logician
+  hippo: { pitch: 0.82, rate: 1.00, volume: 1.0, toneFreq: 200 }, // Hippo: sturdy builder
 }
 
 class ZooAudioEngine {
@@ -180,13 +178,13 @@ class ZooAudioEngine {
         // Select suitable voice
         const voices = window.speechSynthesis.getVoices()
         if (voices.length > 0) {
-          if (agentId.toLowerCase() === 'elephant') {
+          if (agentId.toLowerCase() === 'elephant' || agentId.toLowerCase() === 'rhino') {
             const deepVoice = voices.find((v) => /daniel|alex|male|george/i.test(v.name))
             if (deepVoice) utterance.voice = deepVoice
-          } else if (agentId.toLowerCase() === 'blue' || agentId.toLowerCase() === 'dolphin') {
+          } else if (agentId.toLowerCase() === 'blue' || agentId.toLowerCase() === 'giraffe') {
             const friendlyVoice = voices.find((v) => /samantha|karen|victoria|female/i.test(v.name))
             if (friendlyVoice) utterance.voice = friendlyVoice
-          } else if (agentId.toLowerCase() === 'raven' || agentId.toLowerCase() === 'owl') {
+          } else if (agentId.toLowerCase() === 'wolf' || agentId.toLowerCase() === 'leopard') {
             const crispVoice = voices.find((v) => /karen|moira|tessa|fiona/i.test(v.name))
             if (crispVoice) utterance.voice = crispVoice
           }

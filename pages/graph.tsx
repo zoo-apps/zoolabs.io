@@ -28,31 +28,31 @@ export default function GraphExplorerPage() {
   const [selectedNode, setSelectedNode] = useState<any>(null)
   const [graphFilter, setGraphFilter] = useState<'all' | 'agents' | 'missions' | 'decisions' | 'datasets'>('all')
 
-  // Synthetic Graph Nodes & Edges based on Semantica AGI architecture
+  // Dynamic Graph Nodes & Edges based on Hanzo Multi-Agent Architecture
   const NODES = [
     { id: 'm-beluga', type: 'mission', label: 'Arctic Belugas Mission', emoji: '🎯', status: 'In Progress (68%)', layer: 'Core' },
     { id: 'a-blue', type: 'agent', label: 'Blue the Beluga', emoji: '🐋', role: 'Voice & Lead Scientist', layer: 'Agents' },
     { id: 'a-elephant', type: 'agent', label: 'Ganesha Elephant', emoji: '🐘', role: 'ClickHouse Custodian', layer: 'Agents' },
-    { id: 'a-raven', type: 'agent', label: 'Corvus Raven', emoji: '🐦', role: 'Literature Scholar', layer: 'Agents' },
-    { id: 'a-beaver', type: 'agent', label: 'Castor Beaver', emoji: '🦫', role: 'Frontend & Charts', layer: 'Agents' },
-    { id: 'a-owl', type: 'agent', label: 'Athena Owl', emoji: '🦉', role: 'Scientific Auditor', layer: 'Agents' },
+    { id: 'a-wolf', type: 'agent', label: 'Fenrir Wolf', emoji: '🐺', role: 'Literature Scholar', layer: 'Agents' },
+    { id: 'a-hippo', type: 'agent', label: 'Kiboko Hippo', emoji: '🦛', role: 'Frontend & Charts', layer: 'Agents' },
+    { id: 'a-rhino', type: 'agent', label: 'Kifaru Rhino', emoji: '🦏', role: 'Scientific Auditor', layer: 'Agents' },
     { id: 'ds-noaa', type: 'dataset', label: 'NOAA 14.2k Hr Hydrophone Audio', emoji: '📊', size: '1.4 TB', layer: 'Evidence' },
     { id: 'ds-papers', type: 'dataset', label: '32 Arctic Marine Biology Papers', emoji: '📚', size: '32 Items', layer: 'Evidence' },
     { id: 'dec-01', type: 'decision', label: 'DEC-01: Apply 120Hz Notch Filter', emoji: '⚖️', by: 'Blue -> Elephant', layer: 'Decisions' },
-    { id: 'dec-02', type: 'decision', label: 'DEC-02: Publish K-12 Storybook', emoji: '⚖️', by: 'Blue -> Beaver', layer: 'Decisions' },
-    { id: 'dec-03', type: 'decision', label: 'DEC-03: Propose 15-Knot Speed Limit', emoji: '⚖️', by: 'Athena -> Council', layer: 'Decisions' },
+    { id: 'dec-02', type: 'decision', label: 'DEC-02: Publish K-12 Storybook', emoji: '⚖️', by: 'Blue -> Hippo', layer: 'Decisions' },
+    { id: 'dec-03', type: 'decision', label: 'DEC-03: Propose 15-Knot Speed Limit', emoji: '⚖️', by: 'Rhino -> Council', layer: 'Decisions' },
   ]
 
   const EDGES = [
     { from: 'a-blue', to: 'm-beluga', relation: 'LEADS', type: 'influence' },
     { from: 'a-elephant', to: 'm-beluga', relation: 'PROCESSES', type: 'causal' },
-    { from: 'a-raven', to: 'm-beluga', relation: 'RESEARCHES', type: 'causal' },
-    { from: 'a-beaver', to: 'm-beluga', relation: 'BUILDS', type: 'causal' },
+    { from: 'a-wolf', to: 'm-beluga', relation: 'RESEARCHES', type: 'causal' },
+    { from: 'a-hippo', to: 'm-beluga', relation: 'BUILDS', type: 'causal' },
     { from: 'a-elephant', to: 'ds-noaa', relation: 'INGESTS', type: 'data' },
-    { from: 'a-raven', to: 'ds-papers', relation: 'EXTRACTS_EVIDENCE', type: 'data' },
+    { from: 'a-wolf', to: 'ds-papers', relation: 'EXTRACTS_EVIDENCE', type: 'data' },
     { from: 'dec-01', to: 'ds-noaa', relation: 'PROVENANCE_OF', type: 'decision' },
     { from: 'dec-01', to: 'a-elephant', relation: 'EXECUTED_BY', type: 'decision' },
-    { from: 'dec-02', to: 'a-beaver', relation: 'DELEGATED_TO', type: 'decision' },
+    { from: 'dec-02', to: 'a-hippo', relation: 'DELEGATED_TO', type: 'decision' },
     { from: 'dec-03', to: 'm-beluga', relation: 'OUTCOME_OF', type: 'decision' },
   ]
 
@@ -72,10 +72,10 @@ export default function GraphExplorerPage() {
   return (
     <>
       <Head>
-        <title>Semantica Graph — Knowledge & Decision Intelligence | Zoo Labs</title>
+        <title>Knowledge & Causal Graph — Zoo Labs | Hanzo AI</title>
         <meta
           name="description"
-          content="Interactive knowledge graph, decision causal chains, and W3C PROV-O provenance explorer."
+          content="Interactive multi-agent knowledge graph, causal decision chains, and W3C PROV-O provenance explorer."
         />
       </Head>
 
@@ -87,8 +87,8 @@ export default function GraphExplorerPage() {
         <header className="h-12 border-b border-white/[0.08] bg-[#090c12] px-6 flex items-center justify-between shrink-0 z-40 text-xs">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <Network className="h-4 w-4 text-purple-400" />
-              <h1 className="font-bold text-white">Semantica Decision & Context Graph</h1>
+              <Network className="h-4 w-4 text-cyan-400" />
+              <h1 className="font-bold text-white">Multi-Agent Knowledge & Causal Graph</h1>
             </div>
             <span className="text-zinc-600">/</span>
             <span className="text-zinc-400 font-mono text-[11px]">ForceAtlas2 • W3C PROV-O Compliant</span>
@@ -175,7 +175,7 @@ export default function GraphExplorerPage() {
             </div>
           </main>
 
-          {/* Right Inspector: Semantica Entity & Lineage Detail */}
+          {/* Right Inspector: Entity & Lineage Detail */}
           {selectedNode && (
             <aside className="w-80 lg:w-96 border-l border-white/[0.08] bg-[#07090e] p-5 flex flex-col justify-between shrink-0 overflow-y-auto space-y-5">
               <div className="space-y-4">

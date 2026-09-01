@@ -19,50 +19,67 @@ import {
   Database,
   Calendar,
   X,
+  CreditCard,
+  Heart,
+  Plus,
+  User,
 } from 'lucide-react'
 import { useZooMissions } from '../lib/zoo-missions-context'
 import { zooAudio } from '../lib/audio-engine'
 
+// Navigation links matching the latest Zoo workbench ecosystem
 const NAV_ITEMS = [
-  { href: '/', label: 'Chat', icon: '💬', id: 'chat' },
+  { href: '/beluga', label: 'Ocean', icon: '🐟', id: 'ocean' },
   { href: '/vibe', label: 'Vibe', icon: '💜', id: 'vibe' },
-  { href: '/work', label: 'Work', icon: '💼', id: 'work' },
+  { href: '/work', label: 'Work', icon: '🗄️', id: 'work' },
   { href: '/animals', label: 'Animals', icon: '🐾', id: 'animals' },
+  { href: '/video', label: 'Video', icon: '🎬', id: 'video' },
+  { href: '/music', label: 'Music', icon: '🎵', id: 'music' },
+  { href: '/design', label: 'Design', icon: '🎨', id: 'design' },
+  { href: '/3d', label: '3D', icon: '🧊', id: '3d' },
 ]
 
 export default function ZooAppChrome({ minimal = false }: { minimal?: boolean }) {
   const router = useRouter()
-  const { activeMission, missions, setActiveMissionId, agents } = useZooMissions()
+  const { activeMission, missions, agents } = useZooMissions()
 
-  const [user, setUser] = useState<{ name: string; email: string; plan: string } | null>(null)
+  const [user, setUser] = useState<{ name: string; email: string; plan: string; avatar?: string } | null>({
+    name: 'Richard Kaminsky',
+    email: 'richard@zoo.ngo',
+    plan: 'Free Familiar',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+  })
+
   const [showSearchModal, setShowSearchModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [showNotifications, setShowNotifications] = useState(false)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
+  const [showOrgDropdown, setShowOrgDropdown] = useState(false)
+  const [activeOrgName, setActiveOrgName] = useState('Zoo Labs (Personal)')
   const [unreadNotifications, setUnreadNotifications] = useState(2)
 
   // Notification items
   const NOTIFICATIONS = [
     {
       id: 'n1',
-      title: 'Raven completed literature synthesis',
-      desc: 'Extracted 32 papers on Arctic ship noise impact (p < 0.001 correlation).',
+      title: 'Fenrir Wolf completed literature synthesis',
+      desc: 'Synthesized 32 papers on Arctic ship noise impact (p < 0.001 correlation).',
       time: '4m ago',
-      emoji: '🐦',
+      emoji: '🐺',
     },
     {
       id: 'n2',
-      title: 'Elephant finished hydrophone cleaning',
+      title: 'Ganesha Elephant finished hydrophone cleaning',
       desc: '1.4 TB NOAA dataset indexed into ClickHouse datastore.',
       time: '12m ago',
       emoji: '🐘',
     },
     {
       id: 'n3',
-      title: 'Beaver updated interactive canvas',
+      title: 'Kiboko Hippo updated interactive canvas',
       desc: 'Spectrogram + population chart ready in /vibe.',
       time: '25m ago',
-      emoji: '🦫',
+      emoji: '🦛',
     },
   ]
 
@@ -88,6 +105,7 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
         setShowSearchModal(false)
         setShowNotifications(false)
         setShowUserDropdown(false)
+        setShowOrgDropdown(false)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -96,55 +114,83 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
 
   // Determine current active mode
   const currentMode =
-    router.pathname === '/'
-      ? 'chat'
+    router.pathname === '/' || router.pathname === '/beluga'
+      ? 'ocean'
       : router.pathname === '/vibe'
       ? 'vibe'
       : router.pathname === '/work'
       ? 'work'
       : router.pathname === '/animals'
       ? 'animals'
+      : router.pathname === '/video'
+      ? 'video'
+      : router.pathname === '/music'
+      ? 'music'
+      : router.pathname === '/design'
+      ? 'design'
+      : router.pathname === '/3d'
+      ? '3d'
       : ''
-
-  // Search Results
-  const searchResults = searchQuery.trim()
-    ? [
-        ...missions
-          .filter((m) => m.title.toLowerCase().includes(searchQuery.toLowerCase()))
-          .map((m) => ({ type: 'Mission', title: m.title, url: '/work', emoji: m.emoji || '🎯' })),
-        ...agents
-          .filter(
-            (a) =>
-              a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              a.role.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-          .map((a) => ({ type: 'Animal Agent', title: `${a.name} (${a.role})`, url: '/animals', emoji: a.emoji })),
-        ...activeMission.tasks
-          .filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
-          .map((t) => ({ type: 'Task', title: t.title, url: '/work', emoji: '📋' })),
-        ...activeMission.evidence.datasets
-          .filter((d) => d.name.toLowerCase().includes(searchQuery.toLowerCase()))
-          .map((d) => ({ type: 'Dataset', title: d.name, url: '/work', emoji: '📊' })),
-      ]
-    : []
 
   return (
     <>
       {/* ─── 1. TOP GLOBAL NAVIGATION ─── */}
       <header
-        className="h-12 w-full border-b border-white/[0.08] bg-[#07090e]/90 backdrop-blur-2xl flex items-center justify-between px-4 sm:px-6 z-50 shrink-0 text-xs select-none font-sans"
+        className="h-12 w-full border-b border-white/[0.08] bg-[#07090e]/95 backdrop-blur-2xl flex items-center justify-between px-3 sm:px-5 z-50 shrink-0 text-xs select-none font-sans"
       >
-        {/* Left: Clean ZOO Wordmark + 4 Mode Tabs */}
-        <div className="flex items-center gap-4 sm:gap-6">
+        {/* Left: Clean ZOO Wordmark + Org Selector + Mode Tabs */}
+        <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto no-scrollbar">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-1.5 cursor-pointer group">
-            <span className="font-black text-lg tracking-tight text-white group-hover:text-cyan-400 transition-colors">
+          <Link href="/" className="flex items-center gap-1.5 cursor-pointer group shrink-0">
+            <span className="font-black text-base sm:text-lg tracking-tight text-white group-hover:text-cyan-400 transition-colors font-mono">
               ZOO
             </span>
           </Link>
 
-          {/* 4 Canonical Mode Tabs */}
-          <nav className="flex items-center gap-1.5 p-1 rounded-full bg-[#0a0e17] border border-white/[0.08]">
+          {/* Org Selector Dropdown (Zoo Labs Personal) */}
+          <div className="relative shrink-0">
+            <button
+              onClick={() => setShowOrgDropdown(!showOrgDropdown)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-zinc-200 text-xs font-medium transition-all"
+            >
+              <span>{activeOrgName}</span>
+              <ChevronDown className="h-3 w-3 text-zinc-400" />
+            </button>
+
+            {showOrgDropdown && (
+              <div className="absolute left-0 top-full mt-1.5 w-60 bg-[#0d121f] border border-white/15 rounded-2xl shadow-2xl p-2 z-50 space-y-1">
+                <button
+                  onClick={() => {
+                    setActiveOrgName('Zoo Labs (Personal)')
+                    setShowOrgDropdown(false)
+                  }}
+                  className="w-full flex items-center justify-between p-2 rounded-xl text-left hover:bg-white/5 text-zinc-200"
+                >
+                  <div>
+                    <p className="font-bold text-xs">Zoo Labs (Personal)</p>
+                    <p className="text-[10px] text-zinc-400">Free Familiar Plan</p>
+                  </div>
+                  {activeOrgName.includes('Personal') && <Check className="h-3.5 w-3.5 text-cyan-400" />}
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveOrgName('Zoo Labs Foundation')
+                    setShowOrgDropdown(false)
+                  }}
+                  className="w-full flex items-center justify-between p-2 rounded-xl text-left hover:bg-white/5 text-zinc-200"
+                >
+                  <div>
+                    <p className="font-bold text-xs">Zoo Labs Foundation</p>
+                    <p className="text-[10px] text-purple-400">501(c)(3) Team Workspace</p>
+                  </div>
+                  {activeOrgName.includes('Foundation') && <Check className="h-3.5 w-3.5 text-cyan-400" />}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Ecosystem Navigation Tabs */}
+          <nav className="flex items-center gap-0.5 p-0.5 rounded-full bg-white/[0.03] border border-white/[0.08] shrink-0">
             {NAV_ITEMS.map((item) => {
               const isActive = currentMode === item.id
 
@@ -152,68 +198,81 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
                 <Link
                   key={item.id}
                   href={item.href}
-                  className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                     isActive
                       ? 'bg-[#151f38] text-white border border-blue-500/40 shadow-sm'
                       : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
                   }`}
                 >
                   <span className="text-xs">{item.icon}</span>
-                  <span>{item.label}</span>
+                  <span className="hidden sm:inline">{item.label}</span>
                 </Link>
               )
             })}
           </nav>
         </div>
 
-        {/* Right: Search, Notifications, Avatar */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          {/* Search Button (Cmd+K) */}
+        {/* Right Section: 24/7 Bots Active + Google User Chip + Bell + Avatar */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* 24/7 Bots Active Status Pill */}
+          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-950/60 border border-blue-500/30 text-blue-300 text-[11px] font-medium">
+            <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
+            <span>24/7 Bots Active</span>
+          </div>
+
+          {/* Google User Plan Chip */}
+          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10 text-zinc-300 text-[11px]">
+            <span className="text-xs font-bold text-blue-400">G</span>
+            <span className="font-medium text-white">Google User</span>
+            <span className="text-zinc-400 text-[10px]">Free Familiar</span>
+          </div>
+
+          {/* Quick Search */}
           <button
-            onClick={() => {
-              setShowSearchModal(true)
-              zooAudio.playCue('ping')
-            }}
-            className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 hover:border-white/20 text-zinc-400 hover:text-white transition-all cursor-pointer text-xs"
+            onClick={() => setShowSearchModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-zinc-400 hover:text-white transition-all cursor-pointer"
+            title="Search (Cmd+K)"
           >
-            <Search className="h-3.5 w-3.5 text-zinc-400" />
-            <span className="text-[11px]">Search</span>
+            <Search className="h-3.5 w-3.5" />
+            <span className="hidden xl:inline text-xs">Search</span>
           </button>
 
-          {/* Notifications Bell */}
+          {/* Notification Bell */}
           <div className="relative">
             <button
               onClick={() => {
                 setShowNotifications(!showNotifications)
                 setUnreadNotifications(0)
               }}
-              className="relative p-2 rounded-full text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all relative cursor-pointer"
+              title="Notifications"
             >
               <Bell className="h-4 w-4" />
               {unreadNotifications > 0 && (
-                <span className="absolute top-1 right-1 h-3.5 w-3.5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-[#07090e]">
-                  1
+                <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadNotifications}
                 </span>
               )}
             </button>
 
+            {/* Notification Popover */}
             {showNotifications && (
-              <div className="absolute right-0 top-11 w-80 rounded-2xl bg-[#0c0f17] border border-white/15 p-4 z-50 space-y-3 shadow-2xl backdrop-blur-2xl text-xs">
-                <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                  <span className="font-bold text-white">Mission Activity</span>
-                  <span className="text-[10px] text-zinc-400 font-mono">Real-time feed</span>
+              <div className="absolute right-0 top-full mt-2 w-80 bg-[#0d121f] border border-white/15 rounded-2xl shadow-2xl p-3 z-50 space-y-2">
+                <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                  <span className="font-bold text-white text-xs">Autonomous Agent Updates</span>
+                  <span className="text-[10px] text-zinc-400">Real-time</span>
                 </div>
-                <div className="space-y-2 max-h-72 overflow-y-auto">
+                <div className="space-y-2">
                   {NOTIFICATIONS.map((n) => (
-                    <div key={n.id} className="p-2.5 rounded-xl bg-zinc-900/80 border border-white/5 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 font-bold text-white">
+                    <div key={n.id} className="p-2 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-white flex items-center gap-1.5">
                           <span>{n.emoji}</span>
                           <span className="truncate">{n.title}</span>
-                        </div>
-                        <span className="text-[9px] font-mono text-zinc-500">{n.time}</span>
+                        </span>
+                        <span className="text-[10px] text-zinc-500 font-mono shrink-0">{n.time}</span>
                       </div>
-                      <p className="text-[11px] text-zinc-300 leading-snug">{n.desc}</p>
+                      <p className="text-[11px] text-zinc-400 leading-tight">{n.desc}</p>
                     </div>
                   ))}
                 </div>
@@ -221,201 +280,103 @@ export default function ZooAppChrome({ minimal = false }: { minimal?: boolean })
             )}
           </div>
 
-          {/* User Account / Avatar */}
+          {/* User Profile Avatar & Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowUserDropdown(!showUserDropdown)}
-              className="flex items-center gap-1.5 p-0.5 rounded-full hover:ring-2 hover:ring-blue-500/40 transition-all cursor-pointer"
+              className="h-7 w-7 rounded-full overflow-hidden border border-white/20 hover:border-cyan-400 transition-all cursor-pointer"
             >
               <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-                alt="User"
-                className="h-7 w-7 rounded-full object-cover ring-1 ring-white/20"
+                src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                alt="User Avatar"
+                className="h-full w-full object-cover"
               />
             </button>
 
             {showUserDropdown && (
-              <div className="absolute right-0 top-11 w-56 rounded-2xl bg-[#0c0f17] border border-white/15 p-3 z-50 space-y-2 shadow-2xl backdrop-blur-2xl text-xs">
-                <div className="border-b border-white/10 pb-2">
-                  <p className="font-bold text-white">{user ? user.name : 'Explorer (Guest)'}</p>
-                  <p className="text-[10px] text-zinc-400">{user ? user.email : 'guest@zoolabs.io'}</p>
+              <div className="absolute right-0 top-full mt-2 w-64 bg-[#0d121f] border border-white/15 rounded-2xl shadow-2xl p-3 z-50 space-y-3">
+                <div className="pb-2 border-b border-white/10">
+                  <p className="font-bold text-white text-xs">{user?.name || 'Richard Kaminsky'}</p>
+                  <p className="text-[11px] text-zinc-400">{user?.email || 'richard@zoo.ngo'}</p>
+                  <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono">
+                    {user?.plan || 'Free Familiar'}
+                  </span>
                 </div>
-                <Link
-                  href="/settings"
-                  onClick={() => setShowUserDropdown(false)}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 text-zinc-300 hover:text-white transition-colors"
-                >
-                  <span>Memory & Settings</span>
-                  <Settings className="h-3.5 w-3.5 text-zinc-400" />
-                </Link>
-                <Link
-                  href="/pricing"
-                  onClick={() => setShowUserDropdown(false)}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 text-zinc-300 hover:text-white transition-colors"
-                >
-                  <span>Upgrade Sovereign AI</span>
-                  <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
-                </Link>
-                {user ? (
-                  <button
-                    onClick={() => {
-                      localStorage.removeItem('zoo_user')
-                      setUser(null)
-                      setShowUserDropdown(false)
-                    }}
-                    className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-rose-950/40 text-rose-400 transition-colors text-left"
+
+                <div className="space-y-1 text-xs">
+                  <Link
+                    href="/pricing"
+                    className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 text-zinc-200"
                   >
-                    <span>Sign Out</span>
-                    <LogOut className="h-3.5 w-3.5" />
-                  </button>
-                ) : (
+                    <span className="flex items-center gap-2">
+                      <CreditCard className="h-3.5 w-3.5 text-blue-400" />
+                      <span>Upgrade Plan</span>
+                    </span>
+                    <span className="text-[10px] text-cyan-400 font-bold">$19/mo</span>
+                  </Link>
+
+                  <Link
+                    href="/settings"
+                    className="flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 text-zinc-200"
+                  >
+                    <Settings className="h-3.5 w-3.5 text-zinc-400" />
+                    <span>Workspace Settings</span>
+                  </Link>
+
                   <Link
                     href="/login"
-                    onClick={() => setShowUserDropdown(false)}
-                    className="w-full flex items-center justify-between p-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition-colors"
+                    className="flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 text-rose-300"
                   >
-                    <span>Log In / Sign Up</span>
+                    <LogOut className="h-3.5 w-3.5 text-rose-400" />
+                    <span>Sign Out</span>
                   </Link>
-                )}
+                </div>
               </div>
             )}
           </div>
         </div>
       </header>
 
-      {/* ─── 2. PERSISTENT CONTEXT STRIP ("One Context, Four Views") ─── */}
-      {!minimal && (
-        <div className="h-8 w-full border-b border-white/[0.06] bg-[#05070a]/90 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between shrink-0 text-[11px] text-zinc-400 z-40">
-          <div className="flex items-center gap-2 truncate">
-            {/* Active Context Marker */}
-            <span className="text-xs">{activeMission.emoji || '🎯'}</span>
-            <span className="font-semibold text-zinc-200 truncate">{activeMission.title}</span>
-            <span className="text-zinc-600 hidden sm:inline">•</span>
-            <span className="text-cyan-400 hidden sm:inline font-medium">
-              Blue + {activeMission.assignedAnimalIds.length - 1} agents
-            </span>
-            <span className="text-zinc-600 hidden md:inline">•</span>
-            <span className="hidden md:inline font-mono text-zinc-500">
-              {activeMission.progress}% complete ({activeMission.tasks.filter((t) => t.status === 'done').length}/
-              {activeMission.tasks.length} tasks)
-            </span>
-          </div>
-
-          {/* Mode Perspective Indicator */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[10px] font-mono text-zinc-500 hidden sm:inline">Perspective:</span>
-            <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-white font-medium text-[10px] capitalize">
-              {currentMode || 'Overview'} View
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* ─── 3. GLOBAL SEARCH & COMMAND PALETTE MODAL (Cmd+K) ─── */}
+      {/* ─── 2. SEARCH MODAL (Cmd+K) ─── */}
       {showSearchModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/80 backdrop-blur-md p-4">
-          <div className="w-full max-w-xl rounded-3xl border border-white/15 bg-zinc-950 p-4 shadow-2xl space-y-3">
-            {/* Search Input Bar */}
-            <div className="relative flex items-center border-b border-white/10 pb-3">
-              <Search className="h-4 w-4 text-cyan-400 ml-2" />
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-start justify-center pt-20 p-4">
+          <div className="w-full max-w-lg bg-[#0d121f] border border-white/20 rounded-3xl p-4 shadow-2xl space-y-3">
+            <div className="flex items-center gap-2 px-2 pb-2 border-b border-white/10">
+              <Search className="h-4 w-4 text-zinc-400" />
               <input
                 type="text"
                 autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search missions, animals, memory, tasks, or evidence datasets..."
-                className="w-full bg-transparent pl-3 pr-8 text-sm text-white placeholder:text-zinc-500 outline-none"
+                placeholder="Search missions, animals, tools, or papers..."
+                className="flex-1 bg-transparent text-sm text-white placeholder:text-zinc-500 outline-none"
               />
-              <button onClick={() => setShowSearchModal(false)} className="text-zinc-500 hover:text-white p-1">
+              <button
+                onClick={() => setShowSearchModal(false)}
+                className="p-1 text-zinc-400 hover:text-white rounded"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Results or Suggestions */}
-            <div className="max-h-80 overflow-y-auto space-y-1 text-xs">
-              {searchQuery.trim() === '' ? (
-                <div className="p-3 text-zinc-500 space-y-2">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-600">Quick Jump</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => {
-                        setShowSearchModal(false)
-                        router.push('/')
-                      }}
-                      className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-left text-zinc-200 flex items-center gap-2 transition-all cursor-pointer"
-                    >
-                      <span>💬</span>
-                      <div>
-                        <p className="font-semibold text-white">Chat with AI</p>
-                        <p className="text-[10px] text-zinc-400">1:1 conversation with Blue</p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowSearchModal(false)
-                        router.push('/vibe')
-                      }}
-                      className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-left text-zinc-200 flex items-center gap-2 transition-all cursor-pointer"
-                    >
-                      <span>💜</span>
-                      <div>
-                        <p className="font-semibold text-white">Vibe Together</p>
-                        <p className="text-[10px] text-zinc-400">Live audio room & shared canvas</p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowSearchModal(false)
-                        router.push('/work')
-                      }}
-                      className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-left text-zinc-200 flex items-center gap-2 transition-all cursor-pointer"
-                    >
-                      <span>💼</span>
-                      <div>
-                        <p className="font-semibold text-white">Do the Work</p>
-                        <p className="text-[10px] text-zinc-400">Kanban tasks & research</p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowSearchModal(false)
-                        router.push('/animals')
-                      }}
-                      className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-left text-zinc-200 flex items-center gap-2 transition-all cursor-pointer"
-                    >
-                      <span>🐾</span>
-                      <div>
-                        <p className="font-semibold text-white">Build your Zoo</p>
-                        <p className="text-[10px] text-zinc-400">Living agent graph & character builder</p>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              ) : searchResults.length > 0 ? (
-                searchResults.map((res, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      setShowSearchModal(false)
-                      router.push(res.url)
-                    }}
-                    className="w-full p-2.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800 text-left flex items-center justify-between text-zinc-200 transition-all cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2.5 truncate">
-                      <span className="text-base">{res.emoji}</span>
-                      <div className="truncate">
-                        <p className="font-bold text-white truncate">{res.title}</p>
-                        <p className="text-[10px] text-zinc-500">{res.type}</p>
-                      </div>
-                    </div>
-                    <ArrowRight className="h-3.5 w-3.5 text-zinc-500" />
-                  </button>
-                ))
-              ) : (
-                <div className="p-6 text-center text-zinc-500">
-                  <p>No results found for &ldquo;{searchQuery}&rdquo;</p>
-                </div>
-              )}
+            <div className="space-y-1 max-h-64 overflow-y-auto">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 px-2">
+                Quick Navigation
+              </p>
+              {NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  onClick={() => setShowSearchModal(false)}
+                  className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 text-xs text-zinc-200"
+                >
+                  <span className="flex items-center gap-2">
+                    <span>{item.icon}</span>
+                    <span>{item.label} Studio</span>
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 text-zinc-500" />
+                </Link>
+              ))}
             </div>
           </div>
         </div>

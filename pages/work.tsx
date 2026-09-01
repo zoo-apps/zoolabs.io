@@ -46,8 +46,14 @@ export default function WorkWorkspace() {
   const { activeMission, missions, setActiveMissionId, updateTaskStatus, addTask, agents } = useZooMissions()
 
   const [activeView, setActiveView] = useState<'board' | 'list' | 'decisions'>('board')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<MissionTask | null>(activeMission.tasks[0] || null)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+      setSidebarOpen(true)
+    }
+  }, [])
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [newTaskModal, setNewTaskModal] = useState(false)
@@ -116,7 +122,7 @@ export default function WorkWorkspace() {
         <title>Missions & Work — Unified Living World | Zoo Labs</title>
         <meta
           name="description"
-          content="Multi-agent mission dispatcher, drag-and-drop Kanban board, and Semantica causal decision lineage."
+          content="Multi-agent mission dispatcher, drag-and-drop Kanban board, and Hanzo causal decision lineage."
         />
       </Head>
 
@@ -125,22 +131,23 @@ export default function WorkWorkspace() {
         <ZooAppChrome minimal={false} />
 
         {/* ─── Subheader: Mission Switcher & View Mode ─── */}
-        <header className="h-12 border-b border-white/[0.08] bg-[#090c12] px-4 flex items-center justify-between shrink-0 z-40 text-xs">
-          <div className="flex items-center gap-3">
+        <header className="h-12 border-b border-white/[0.08] bg-[#090c12] px-3 sm:px-4 flex items-center justify-between shrink-0 z-40 text-xs">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-1 rounded text-zinc-400 hover:text-white transition-colors"
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors shrink-0"
+              title="Toggle Missions Sidebar"
             >
               {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
             </button>
 
             {/* Mission Selector Dropdown */}
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-white">Mission:</span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="hidden sm:inline font-semibold text-white">Mission:</span>
               <select
                 value={activeMission.id}
                 onChange={(e) => setActiveMissionId(e.target.value)}
-                className="bg-zinc-900 border border-white/15 text-cyan-300 font-semibold px-2.5 py-1 rounded-lg text-xs outline-none cursor-pointer"
+                className="bg-zinc-900 border border-white/15 text-cyan-300 font-semibold px-2 py-1 rounded-lg text-xs outline-none cursor-pointer max-w-[150px] sm:max-w-xs truncate"
               >
                 {missions.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -151,60 +158,69 @@ export default function WorkWorkspace() {
             </div>
 
             {/* View Switcher: Board, List, Decisions */}
-            <div className="hidden sm:flex items-center bg-zinc-900 border border-white/10 rounded-lg p-0.5 text-[11px]">
+            <div className="flex items-center bg-zinc-900 border border-white/10 rounded-lg p-0.5 text-[11px] shrink-0">
               <button
                 onClick={() => setActiveView('board')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-all cursor-pointer ${
+                className={`flex items-center gap-1 px-2 sm:px-3 py-1 rounded-md transition-all cursor-pointer ${
                   activeView === 'board' ? 'bg-zinc-800 text-white shadow-sm font-semibold' : 'text-zinc-400 hover:text-white'
                 }`}
               >
                 <Kanban className="h-3.5 w-3.5 text-cyan-400" />
-                <span>Board</span>
+                <span className="hidden sm:inline">Board</span>
               </button>
               <button
                 onClick={() => setActiveView('list')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-all cursor-pointer ${
+                className={`flex items-center gap-1 px-2 sm:px-3 py-1 rounded-md transition-all cursor-pointer ${
                   activeView === 'list' ? 'bg-zinc-800 text-white shadow-sm font-semibold' : 'text-zinc-400 hover:text-white'
                 }`}
               >
                 <ListTodo className="h-3.5 w-3.5 text-blue-400" />
-                <span>List ({activeMission.tasks.length})</span>
+                <span className="hidden sm:inline">List</span>
+                <span className="text-[10px] text-zinc-500 font-mono">({activeMission.tasks.length})</span>
               </button>
               <button
                 onClick={() => setActiveView('decisions')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-all cursor-pointer ${
+                className={`flex items-center gap-1 px-2 sm:px-3 py-1 rounded-md transition-all cursor-pointer ${
                   activeView === 'decisions' ? 'bg-zinc-800 text-white shadow-sm font-semibold' : 'text-zinc-400 hover:text-white'
                 }`}
               >
                 <Network className="h-3.5 w-3.5 text-purple-400" />
-                <span>Decisions ({activeMission.decisions.length})</span>
+                <span className="hidden sm:inline">Decisions</span>
               </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={() => setNewTaskModal(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1 text-xs font-semibold active:scale-95 transition-all shadow-md cursor-pointer"
+              className="flex items-center gap-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white px-2.5 sm:px-3 py-1 text-xs font-semibold active:scale-95 transition-all shadow-md cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span>New Mission Task</span>
+              <span className="hidden sm:inline">New Task</span>
             </button>
             <Link
               href="/vibe"
-              className="inline-flex items-center gap-1 rounded-lg bg-white/[0.06] border border-white/10 hover:bg-white/10 px-3 py-1 text-xs text-white/80 transition-all"
+              className="inline-flex items-center gap-1 rounded-lg bg-white/[0.06] border border-white/10 hover:bg-white/10 px-2 sm:px-3 py-1 text-xs text-white/80 transition-all"
             >
               <Users className="h-3.5 w-3.5 text-cyan-400" />
-              <span>/vibe Studio</span>
+              <span className="hidden sm:inline">/vibe</span>
             </Link>
           </div>
         </header>
 
         {/* ─── Main Workspace ─── */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden relative">
+          {/* Mobile Backdrop */}
+          {sidebarOpen && (
+            <div
+              className="md:hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-30"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+
           {/* Left Sidebar: Missions List & Evidence Datasets */}
           {sidebarOpen && (
-            <aside className="w-64 border-r border-white/[0.08] bg-[#07090e] flex flex-col justify-between p-3 shrink-0 text-xs">
+            <aside className="w-64 border-r border-white/[0.08] bg-[#07090e] flex flex-col justify-between p-3 shrink-0 text-xs z-40 fixed md:static inset-y-0 left-0 shadow-2xl md:shadow-none">
               <div className="space-y-4 overflow-y-auto">
                 {/* Missions List */}
                 <div className="space-y-1">
@@ -286,7 +302,7 @@ export default function WorkWorkspace() {
 
             {/* VIEW 1: KANBAN BOARD WITH DRAG & DROP */}
             {activeView === 'board' && (
-              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 overflow-x-auto pb-4">
+              <div className="flex-1 flex md:grid md:grid-cols-2 xl:grid-cols-4 gap-3.5 overflow-x-auto pb-4">
                 {[
                   { key: 'backlog', title: 'Backlog', color: 'text-zinc-400', border: 'border-zinc-800' },
                   { key: 'todo', title: 'To Do', color: 'text-blue-400', border: 'border-blue-500/30' },
@@ -300,7 +316,7 @@ export default function WorkWorkspace() {
                       key={col.key}
                       onDragOver={(e) => handleDragOver(e, col.key)}
                       onDrop={(e) => handleDrop(e, col.key as any)}
-                      className={`flex flex-col rounded-2xl bg-zinc-950/70 border ${
+                      className={`flex flex-col rounded-2xl bg-zinc-950/70 border min-w-[270px] md:min-w-0 shrink-0 md:shrink ${
                         dragOverColumn === col.key ? 'border-cyan-400 ring-2 ring-cyan-500/30 bg-zinc-900/90' : 'border-white/10'
                       } p-3 transition-all`}
                     >
@@ -391,13 +407,13 @@ export default function WorkWorkspace() {
               </div>
             )}
 
-            {/* VIEW 3: SEMANTICA DECISIONS & PROVENANCE */}
+            {/* VIEW 3: HANZO CAUSAL DECISIONS & PROVENANCE */}
             {activeView === 'decisions' && (
               <div className="flex-1 overflow-y-auto space-y-4 p-4 rounded-2xl border border-white/10 bg-zinc-950/80">
                 <div className="border-b border-white/10 pb-3">
                   <h3 className="font-bold text-white text-sm flex items-center gap-2">
                     <Network className="h-4 w-4 text-purple-400" />
-                    <span>Semantica Decision Intelligence & Provenance Lineage</span>
+                    <span>Hanzo Decision Intelligence & Provenance Lineage</span>
                   </h3>
                   <p className="text-xs text-zinc-400 mt-0.5">
                     Immutable bi-temporal decision log linked to W3C PROV-O agents and datasets.

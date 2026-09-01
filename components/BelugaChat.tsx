@@ -13,6 +13,7 @@ import {
   Plus,
   Trash2,
   ArrowUp,
+  ArrowLeft,
   Terminal as TerminalIcon,
   FolderOpen,
   Activity,
@@ -152,7 +153,7 @@ export function BelugaChat({
   const [activeConvId, setActiveConvId] = useState<string>('conv_default')
   const [selectedModel, setSelectedModel] = useState<string>('zen-nano-instruct')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [rightPanelOpen, setRightPanelOpen] = useState(true)
+  const [rightPanelOpen, setRightPanelOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'chat' | 'terminal' | 'files' | 'tasks'>('chat')
   const [oceanMode, setOceanMode] = useState(true)
   const [emotionPopoverOpen, setEmotionPopoverOpen] = useState(false)
@@ -535,8 +536,8 @@ where <mood> is one of: happy, playful, love, curiosity, calm, surprise, thought
 
       {/* ─── Left Liquid Glass Session Sidebar ───────────────────────────── */}
       <aside
-        className={`fixed md:relative inset-y-0 left-0 z-50 md:z-30 flex flex-col justify-between border-r border-white/[0.08] bg-black/75 backdrop-blur-3xl transition-all duration-300 ease-out ${
-          sidebarOpen ? 'w-64 sm:w-72 translate-x-0' : 'w-0 -translate-x-full border-r-0 overflow-hidden pointer-events-none md:pointer-events-auto'
+        className={`fixed md:relative inset-y-0 left-0 z-50 md:z-30 flex flex-col justify-between border-r border-white/[0.08] bg-black/85 backdrop-blur-3xl transition-all duration-300 ease-out ${
+          sidebarOpen ? 'w-64 sm:w-72 translate-x-0' : 'hidden'
         }`}
       >
         <div className="p-3.5 space-y-3">
@@ -630,6 +631,16 @@ where <mood> is one of: happy, playful, love, curiosity, calm, surprise, thought
           {/* Micro Top Floating Capsule */}
           <div className="flex items-center justify-between z-30 pointer-events-auto">
             <div className="flex items-center gap-2">
+              {fullscreen && (
+                <Link
+                  href="/"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 border border-white/15 backdrop-blur-2xl text-xs font-semibold text-white hover:bg-white/15 transition-all shadow-lg cursor-pointer"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <span>Zoo</span>
+                </Link>
+              )}
+
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="rounded-full p-2 text-white/70 hover:bg-white/15 hover:text-white active:scale-90 transition-all cursor-pointer border border-white/10 bg-black/40 backdrop-blur-2xl shadow-lg"

@@ -14,6 +14,7 @@ import {
   Building,
   CheckCircle2,
   ExternalLink,
+  Wallet,
 } from 'lucide-react'
 import ZooAppChrome from '../components/ZooAppChrome'
 
@@ -45,12 +46,12 @@ const PRICING_PLANS = [
     highlighted: true,
     cta: 'Upgrade to Plus',
     features: [
-      'Unlimited 4K AI Video & Bioacoustic Stems',
+      'Unlimited High-Definition AI Video & Bioacoustic Stems',
       'Unlimited 3D Mesh Generative Diffusion',
       'Priority GPU MicroVM execution in Zoo Cloud',
       'Private /vibe & /work encrypted rooms',
       '1 Animal Sanctuary sponsorship package included',
-      'Dedicated API access token via api.zoolabs.io',
+      'Dedicated API access token via api.hanzo.ai',
     ],
   },
   {
@@ -93,6 +94,7 @@ const PRICING_PLANS = [
 export default function PricingPage() {
   const router = useRouter()
   const [checkoutPlan, setCheckoutPlan] = useState<typeof PRICING_PLANS[0] | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'web3'>('card')
   const [isProcessing, setIsProcessing] = useState(false)
   const [checkoutSuccess, setCheckoutSuccess] = useState(false)
 
@@ -100,7 +102,6 @@ export default function PricingPage() {
   const [cardNumber, setCardNumber] = useState('')
   const [cardExpiry, setCardExpiry] = useState('')
   const [cardCvc, setCardCvc] = useState('')
-  const [cardZip, setCardZip] = useState('')
 
   const handleOpenCheckout = (plan: typeof PRICING_PLANS[0]) => {
     if (plan.id === 'plan_free') {
@@ -119,7 +120,7 @@ export default function PricingPage() {
     e.preventDefault()
     setIsProcessing(true)
 
-    const backendUrl = process.env.NEXT_PUBLIC_HANZO_API_URL || 'http://localhost:8000'
+    const backendUrl = process.env.NEXT_PUBLIC_HANZO_API_URL || 'https://api.hanzo.ai'
 
     try {
       await fetch(`${backendUrl}/v1/commerce/checkout`, {
@@ -128,6 +129,7 @@ export default function PricingPage() {
         body: JSON.stringify({
           planId: checkoutPlan?.id,
           amount: checkoutPlan?.price,
+          method: paymentMethod,
           org: 'zoo',
         }),
       })
@@ -140,8 +142,8 @@ export default function PricingPage() {
       setCheckoutSuccess(true)
 
       const user = {
-        name: 'Alex Rivera',
-        email: 'alex@zoolabs.id',
+        name: 'Richard Kaminsky',
+        email: 'richard@zoo.ngo',
         plan: checkoutPlan?.name || 'Plus Plan',
       }
       localStorage.setItem('zoo_user', JSON.stringify(user))
@@ -154,7 +156,7 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-white flex flex-col font-sans relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#07090e] text-white flex flex-col font-sans relative overflow-x-hidden">
       <Head>
         <title>Zoo Labs — Plans & Pricing ($0, $19, $99)</title>
         <meta
@@ -163,23 +165,22 @@ export default function PricingPage() {
         />
       </Head>
 
-      <div className="glow-backdrop" />
       <ZooAppChrome />
 
-      <main className="container py-12 md:py-16 space-y-12 relative z-10">
+      <main className="container max-w-7xl mx-auto px-4 py-12 md:py-16 space-y-12 relative z-10">
         {/* Header */}
         <div className="text-center space-y-4 max-w-2xl mx-auto">
-          <div className="pill">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-300">
             <Sparkles className="h-3.5 w-3.5 text-blue-400" />
             <span>Zoo Plans · Free, Plus & Pro</span>
           </div>
 
-          <h1 className="display-chrome text-4xl sm:text-6xl font-bold tracking-tight">
+          <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white">
             Simple, transparent wildlife AI.
           </h1>
 
-          <p className="text-secondary text-base md:text-lg leading-relaxed">
-            Unlock unlimited 4K video diffusion, bioacoustic music, and 3D modeling while directly funding real-world endangered species conservation.
+          <p className="text-zinc-400 text-base md:text-lg leading-relaxed">
+            Unlock high-definition video diffusion, bioacoustic music, and 3D modeling while directly funding real-world endangered species conservation.
           </p>
         </div>
 
@@ -188,13 +189,13 @@ export default function PricingPage() {
           {PRICING_PLANS.map((plan) => (
             <div
               key={plan.id}
-              className={`card p-6 flex flex-col justify-between relative transition-all ${
-                plan.highlighted ? 'border-strong' : ''
+              className={`p-6 rounded-3xl bg-white/[0.03] border flex flex-col justify-between relative transition-all ${
+                plan.highlighted ? 'border-blue-500/60 shadow-2xl shadow-blue-500/10' : 'border-white/10'
               }`}
             >
               {plan.highlighted && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <span className="badge badge-accent uppercase tracking-wide">
+                  <span className="px-3 py-1 rounded-full bg-blue-600 text-[10px] font-bold text-white uppercase tracking-wider shadow-md">
                     Most Popular
                   </span>
                 </div>
@@ -202,7 +203,7 @@ export default function PricingPage() {
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="pill text-xs">
+                  <span className="text-[11px] font-bold tracking-wider uppercase text-zinc-400 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10">
                     {plan.badge}
                   </span>
                 </div>
@@ -213,14 +214,14 @@ export default function PricingPage() {
                     <span className="text-3xl font-extrabold text-white">{plan.price}</span>
                     <span className="text-xs text-zinc-400 font-medium">/{plan.billing}</span>
                   </div>
-                  <p className="text-xs text-secondary mt-2 leading-relaxed">{plan.description}</p>
+                  <p className="text-xs text-zinc-400 mt-2 leading-relaxed">{plan.description}</p>
                 </div>
 
                 <div className="border-t border-white/10 pt-4">
-                  <ul className="space-y-2.5 text-xs text-secondary">
+                  <ul className="space-y-2.5 text-xs text-zinc-300">
                     {plan.features.map((feat, idx) => (
                       <li key={idx} className="flex items-start gap-2">
-                        <Check className="h-3.5 w-3.5 text-blue-400 shrink-0 mt-0.5" />
+                        <Check className="h-3.5 w-3.5 text-cyan-400 shrink-0 mt-0.5" />
                         <span>{feat}</span>
                       </li>
                     ))}
@@ -231,8 +232,11 @@ export default function PricingPage() {
               <div className="pt-6">
                 <button
                   onClick={() => handleOpenCheckout(plan)}
-                  className="action w-full"
-                  data-fill={plan.highlighted ? true : undefined}
+                  className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    plan.highlighted
+                      ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+                      : 'bg-white/[0.05] hover:bg-white/[0.1] text-white border border-white/10'
+                  }`}
                 >
                   <span>{plan.cta}</span>
                   <ArrowRight className="h-4 w-4" />
@@ -243,7 +247,7 @@ export default function PricingPage() {
         </div>
 
         {/* FAQ Section */}
-        <section className="card p-8 space-y-6 max-w-4xl mx-auto">
+        <section className="p-8 rounded-3xl bg-white/[0.02] border border-white/10 space-y-6 max-w-4xl mx-auto">
           <div className="flex items-center gap-2 border-b border-white/10 pb-4">
             <HelpCircle className="h-5 w-5 text-blue-400" />
             <h2 className="text-xl font-bold text-white">Frequently Asked Questions</h2>
@@ -252,28 +256,28 @@ export default function PricingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <h4 className="font-semibold text-white text-sm">How do donations to wildlife work?</h4>
-              <p className="text-xs text-secondary leading-relaxed">
+              <p className="text-xs text-zinc-400 leading-relaxed">
                 A portion of every paid tier is allocated directly to verified wildlife sanctuaries and anti-poaching sensor networks via Zoo Labs 501(c)(3).
               </p>
             </div>
 
             <div className="space-y-2">
               <h4 className="font-semibold text-white text-sm">Can I cancel anytime?</h4>
-              <p className="text-xs text-secondary leading-relaxed">
+              <p className="text-xs text-zinc-400 leading-relaxed">
                 Yes, you can cancel or switch tiers anytime in your Account Settings. Your access and saved familiars remain available through the billing period.
               </p>
             </div>
 
             <div className="space-y-2">
               <h4 className="font-semibold text-white text-sm">What models power Zoo Labs?</h4>
-              <p className="text-xs text-secondary leading-relaxed">
-                Zoo is powered by frontier multimodal foundation models (ZenLM, Qwen3, and specialized bioacoustic diffusion engines) hosted in Hanzo Cloud MicroVMs.
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Zoo is powered by frontier multimodal foundation models and specialized bioacoustic diffusion engines hosted in Hanzo Cloud MicroVMs via api.hanzo.ai.
               </p>
             </div>
 
             <div className="space-y-2">
               <h4 className="font-semibold text-white text-sm">Do I need a credit card for the Free Plan?</h4>
-              <p className="text-xs text-secondary leading-relaxed">
+              <p className="text-xs text-zinc-400 leading-relaxed">
                 No credit card is required. Blue the Beluga and public datasets are 100% free for everyone forever.
               </p>
             </div>
@@ -281,10 +285,10 @@ export default function PricingPage() {
         </section>
       </main>
 
-      {/* Checkout Modal */}
+      {/* Checkout Modal with Card, PayPal, and Web3 USDC */}
       {checkoutPlan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div className="card w-full max-w-md p-6 space-y-4">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-[#0d121f] border border-white/20 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-blue-400" />
@@ -300,7 +304,7 @@ export default function PricingPage() {
 
             {!checkoutSuccess ? (
               <form onSubmit={handleProcessPayment} className="space-y-4">
-                <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between">
+                <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-between">
                   <div>
                     <p className="font-bold text-white">{checkoutPlan.name}</p>
                     <p className="text-xs text-zinc-400">{checkoutPlan.billing}</p>
@@ -308,52 +312,121 @@ export default function PricingPage() {
                   <div className="text-2xl font-black text-white">{checkoutPlan.price}</div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-zinc-400">Card Number</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="4242 •••• •••• 4242"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value)}
-                    className="w-full rounded-xl bg-black/60 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-white/30"
-                  />
+                {/* Payment Method Selector */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-400">Payment Method</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('card')}
+                      className={`p-2.5 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all ${
+                        paymentMethod === 'card'
+                          ? 'bg-blue-600/20 border-blue-500 text-white'
+                          : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <CreditCard className="h-4 w-4" />
+                      <span>Card</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('paypal')}
+                      className={`p-2.5 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all ${
+                        paymentMethod === 'paypal'
+                          ? 'bg-blue-600/20 border-blue-500 text-white'
+                          : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="font-bold text-xs italic">PayPal</span>
+                      <span>Checkout</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('web3')}
+                      className={`p-2.5 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all ${
+                        paymentMethod === 'web3'
+                          ? 'bg-blue-600/20 border-blue-500 text-white'
+                          : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <Wallet className="h-4 w-4" />
+                      <span>Web3 USDC</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-zinc-400">MM / YY</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="12/28"
-                      value={cardExpiry}
-                      onChange={(e) => setCardExpiry(e.target.value)}
-                      className="w-full rounded-xl bg-black/60 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-white/30"
-                    />
+                {paymentMethod === 'card' && (
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-zinc-400">Card Number</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="4242 •••• •••• 4242"
+                        value={cardNumber}
+                        onChange={(e) => setCardNumber(e.target.value)}
+                        className="w-full rounded-xl bg-black/60 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-white/30"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-zinc-400">MM / YY</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="12/28"
+                          value={cardExpiry}
+                          onChange={(e) => setCardExpiry(e.target.value)}
+                          className="w-full rounded-xl bg-black/60 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-white/30"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-zinc-400">CVC</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="123"
+                          value={cardCvc}
+                          onChange={(e) => setCardCvc(e.target.value)}
+                          className="w-full rounded-xl bg-black/60 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-white/30"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-zinc-400">CVC</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="123"
-                      value={cardCvc}
-                      onChange={(e) => setCardCvc(e.target.value)}
-                      className="w-full rounded-xl bg-black/60 border border-white/10 px-3 py-2 text-xs text-white outline-none focus:border-white/30"
-                    />
+                )}
+
+                {paymentMethod === 'paypal' && (
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/10 text-center space-y-1">
+                    <p className="text-xs text-zinc-300">You will be redirected to PayPal Express for one-click checkout.</p>
+                    <p className="text-[10px] text-zinc-500 font-mono">Routed via commerce.hanzo.ai</p>
                   </div>
-                </div>
+                )}
+
+                {paymentMethod === 'web3' && (
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/10 text-center space-y-1">
+                    <p className="text-xs text-zinc-300">Pay using MetaMask, Coinbase Wallet, or Rainbow (USDC on Base/Polygon/Ethereum).</p>
+                    <p className="text-[10px] text-cyan-400 font-mono">Auto-stake & instant credits</p>
+                  </div>
+                )}
 
                 <button
                   type="submit"
                   disabled={isProcessing}
-                  className="action w-full"
-                  data-fill
-                  style={{ minHeight: '44px' }}
+                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <Lock className="h-4 w-4" />
-                  <span>{isProcessing ? 'Authorizing Secure Payment...' : `Pay ${checkoutPlan.price} & Activate`}</span>
+                  <span>
+                    {isProcessing
+                      ? 'Authorizing Secure Payment...'
+                      : paymentMethod === 'paypal'
+                      ? `Pay ${checkoutPlan.price} with PayPal`
+                      : paymentMethod === 'web3'
+                      ? `Pay ${checkoutPlan.price} with Crypto`
+                      : `Pay ${checkoutPlan.price} & Activate`}
+                  </span>
                 </button>
               </form>
             ) : (
@@ -363,7 +436,7 @@ export default function PricingPage() {
                 </div>
                 <div>
                   <h4 className="text-lg font-bold text-white">Payment Successful!</h4>
-                  <p className="text-xs text-secondary mt-1">
+                  <p className="text-xs text-zinc-400 mt-1">
                     Welcome to {checkoutPlan.name}. Redirecting to your workspace...
                   </p>
                 </div>

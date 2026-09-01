@@ -30,18 +30,30 @@ import {
   Code2,
   HardDrive,
   Users,
+  Maximize2,
+  Sliders,
+  Flame,
+  Globe,
+  Lock,
+  Compass,
 } from 'lucide-react'
 import ZooAppChrome from '../components/ZooAppChrome'
 import { zooAudio } from '../lib/audio-engine'
 import { useZooMissions, AnimalAgent } from '../lib/zoo-missions-context'
 
 export default function AnimalsPage() {
-  const { agents, activeMission, addAnimalAgent } = useZooMissions()
+  const { agents, activeMission, addAnimalAgent, updateAgentMemory, trainAgentSkill } = useZooMissions()
   const [selectedAgent, setSelectedAgent] = useState<AnimalAgent>(agents[0])
   const [activeTab, setActiveTab] = useState<'graph' | 'fleet' | 'builder'>('graph')
-  const [inspectorTab, setInspectorTab] = useState<'overview' | 'tools' | 'cloud' | 'logs'>('overview')
+  const [inspectorTab, setInspectorTab] = useState<'overview' | 'memory' | 'tools' | 'cloud' | 'logs'>('overview')
   const [filterRole, setFilterRole] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [mobileInspectorOpen, setMobileInspectorOpen] = useState(false)
+
+  // Interactive Memory & Skill training inputs
+  const [newMemoryText, setNewMemoryText] = useState('')
+  const [newSkillName, setNewSkillName] = useState('')
+  const [trainingStatus, setTrainingStatus] = useState<'idle' | 'training' | 'success'>('idle')
 
   // Character Creation Wizard State
   const [wizardStep, setWizardStep] = useState(1)
@@ -51,8 +63,13 @@ export default function AnimalsPage() {
   const [newName, setNewName] = useState('')
   const [newAbilities, setNewAbilities] = useState<string[]>(['Search scientific literature', 'Speak aloud'])
   const [newKnowledge, setNewKnowledge] = useState('Marine bioacoustics & Arctic cetacean datasets')
-  const [requireHumanApproval, setRequireHumanApproval] = useState(true)
   const [createdSuccess, setCreatedSuccess] = useState(false)
+
+  // Sync selected agent if agents list changes
+  useEffect(() => {
+    const found = agents.find((a) => a.id === selectedAgent.id)
+    if (found) setSelectedAgent(found)
+  }, [agents])
 
   // Filtered agent fleet
   const filteredAgents = agents.filter((a) => {
@@ -63,6 +80,34 @@ export default function AnimalsPage() {
     const matchesRole = filterRole === 'all' || a.role.toLowerCase().includes(filterRole.toLowerCase())
     return matchesSearch && matchesRole
   })
+
+  const handleTrainMemory = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newMemoryText.trim()) return
+    setTrainingStatus('training')
+    zooAudio.playCue('ping')
+
+    setTimeout(() => {
+      updateAgentMemory(selectedAgent.id, newMemoryText.trim())
+      setNewMemoryText('')
+      setTrainingStatus('success')
+      setTimeout(() => setTrainingStatus('idle'), 2000)
+    }, 900)
+  }
+
+  const handleTrainSkill = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newSkillName.trim()) return
+    setTrainingStatus('training')
+    zooAudio.playCue('ping')
+
+    setTimeout(() => {
+      trainAgentSkill(selectedAgent.id, newSkillName.trim())
+      setNewSkillName('')
+      setTrainingStatus('success')
+      setTimeout(() => setTrainingStatus('idle'), 2000)
+    }, 900)
+  }
 
   const handleCreateAnimal = (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,583 +123,848 @@ export default function AnimalsPage() {
       avatar: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&auto=format&fit=crop&q=80',
       brain: 'ZenLM 70B · BitDelta LoRA',
       status: 'active',
-      currentJob: 'Ready to join missions',
+      currentJob: 'Ready to join active missions',
       knows: [newKnowledge],
       tools: newAbilities,
       canTalk: true,
       canDelegateTo: ['blue'],
-      cloudMicroVm: `microvm-${newName.toLowerCase().replace(/\s+/g, '-')}.hanzo.cloud`,
+      cloudMicroVm: `microvm-${newName.toLowerCase().replace(/[^a-z0-9]/g, '-')}.hanzo.cloud`,
     })
 
     setCreatedSuccess(true)
+    zooAudio.playCue('join')
     setTimeout(() => {
       setCreatedSuccess(false)
       setActiveTab('graph')
       setWizardStep(1)
       setNewName('')
-    }, 1800)
+    }, 1500)
   }
 
   return (
     <>
       <Head>
-        <title>Animals — Living Agent Map & Fleet | Zoo Labs</title>
+        <title>Animals — Living Agent Map & Fleet | ZOO</title>
         <meta
           name="description"
-          content="Living agent map of what the organization is thinking about right now. Build and inspect autonomous AI animals."
+          content="Living agent map of what the organization is thinking about right now. Build, personalize, and inspect autonomous AI animals."
         />
       </Head>
 
-      <div className="min-h-screen bg-[#05070a] text-zinc-100 font-sans select-none flex flex-col">
-        {/* Top App Chrome */}
+      <div className="h-screen w-screen bg-[#06080d] text-zinc-100 font-sans select-none flex flex-col overflow-hidden">
+        {/* ─── 1. Top App Navigation Bar ─── */}
         <ZooAppChrome minimal={false} />
 
-        {/* ─── Subheader: Living World Summary & View Switcher ─── */}
-        <header className="border-b border-white/[0.08] bg-[#090c12] px-6 py-3 shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-cyan-950/80 border border-cyan-500/30 flex items-center justify-center text-lg">
-              🐾
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-sm font-bold text-white">The Living Agent Fleet</h1>
-                <span className="px-2 py-0.5 rounded-full bg-cyan-950 border border-cyan-500/30 text-[10px] font-mono text-cyan-300">
-                  {agents.length} Autonomous Creatures Live
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-400">
-                Active Mission: <span className="text-cyan-300 font-medium">{activeMission.title}</span>
-              </p>
+        {/* ─── 2. Subheader Bar ─── */}
+        <div className="h-12 border-b border-white/[0.08] bg-[#090d15] px-3 sm:px-6 flex items-center justify-between shrink-0 text-xs">
+          {/* Left: Section Brand & Active Mission */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <span className="text-base">🐾</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 truncate">
+              <span className="hidden sm:inline font-bold text-white tracking-wide">Living Fleet</span>
+              <span className="hidden sm:inline text-zinc-500">•</span>
+              <span className="hidden md:inline text-zinc-400 truncate">
+                Mission: <strong className="text-cyan-300 font-medium">{activeMission.title}</strong>
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-[10px] font-mono text-cyan-300">
+                {agents.length} active
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Tab Switcher */}
-            <div className="flex items-center rounded-xl bg-zinc-900 border border-white/10 p-1 text-xs">
+          {/* Right: Tab Switcher */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center rounded-full bg-white/[0.04] border border-white/[0.08] p-0.5 text-xs">
               <button
                 onClick={() => setActiveTab('graph')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all ${
+                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'graph'
-                    ? 'bg-zinc-800 text-white font-semibold shadow-sm'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                <Activity className="h-3.5 w-3.5 text-cyan-400" />
-                <span>Living Map</span>
+                <Activity className="h-3.5 w-3.5" />
+                <span className="hidden xs:inline sm:inline">Map</span>
               </button>
               <button
                 onClick={() => setActiveTab('fleet')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all ${
+                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'fleet'
-                    ? 'bg-zinc-800 text-white font-semibold shadow-sm'
+                    ? 'bg-blue-500/20 text-blue-300 border border-blue-400/40'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                <Users className="h-3.5 w-3.5 text-blue-400" />
-                <span>All Animals</span>
+                <Users className="h-3.5 w-3.5" />
+                <span className="hidden xs:inline sm:inline">Fleet</span>
               </button>
               <button
                 onClick={() => setActiveTab('builder')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all ${
+                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'builder'
-                    ? 'bg-cyan-600 text-white font-semibold shadow-sm'
-                    : 'text-cyan-300 hover:text-white'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40'
+                    : 'text-zinc-400 hover:text-white'
                 }`}
               >
                 <Plus className="h-3.5 w-3.5" />
-                <span>Create New Animal</span>
+                <span className="hidden sm:inline">Create</span>
               </button>
             </div>
-          </div>
-        </header>
 
-        {/* ─── Main Content ─── */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* TAB 1: THE LIVING AGENT MAP (Signature Living Graph) */}
+            {/* Mobile Inspector Toggle */}
+            <button
+              onClick={() => setMobileInspectorOpen(!mobileInspectorOpen)}
+              className="lg:hidden p-1.5 rounded-xl bg-white/[0.06] border border-white/10 text-zinc-300"
+              title="Toggle Agent Inspector"
+            >
+              <Sliders className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* ─── 3. Main Body Content ─── */}
+        <div className="flex-1 flex overflow-hidden relative" style={{ minHeight: 0 }}>
+          {/* ═══════════ TAB 1: LIVING MAP VIEW ═══════════ */}
           {activeTab === 'graph' && (
-            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
-              {/* Center Canvas: Interactive SVG Activity & Delegation Mesh */}
-              <div className="flex-1 bg-[#040609] p-6 flex flex-col items-center justify-center relative overflow-hidden">
-                <div className="absolute top-4 left-6 z-10 space-y-1">
-                  <h2 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-                    Living Activity Graph
-                  </h2>
-                  <p className="text-[11px] text-zinc-500">
-                    Live delegation flow and active data packet exchange across microVM nodes.
-                  </p>
+            <div className="flex-1 flex flex-col md:flex-row h-full w-full overflow-hidden" style={{ minHeight: 0 }}>
+              {/* Left/Center: Interactive Living Graph Canvas */}
+              <div
+                className="flex-1 bg-[#04060a] relative overflow-hidden flex flex-col justify-between p-4 sm:p-6"
+                style={{ flex: '1 1 0%', minHeight: 0 }}
+              >
+                {/* Canvas Background Grid Pattern */}
+                <div
+                  className="absolute inset-0 pointer-events-none opacity-[0.03]"
+                  style={{
+                    backgroundImage: `radial-gradient(circle at 1px 1px, #ffffff 1px, transparent 0)`,
+                    backgroundSize: '24px 24px',
+                  }}
+                />
+
+                {/* Top Canvas Legend */}
+                <div className="relative z-10 flex items-center justify-between shrink-0">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping" />
+                      <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                        Multi-Agent Coordination Mesh
+                      </h2>
+                    </div>
+                    <p className="text-[11px] text-zinc-500">
+                      Real-time packet exchange across sovereign microVMs & ClickHouse memory
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded-full bg-zinc-900 border border-white/10 text-[11px] text-zinc-400">
+                      ⚡ Sovereign LoRA Active
+                    </span>
+                  </div>
                 </div>
 
-                {/* Animated Activity Packets Canvas */}
-                <div className="relative w-full max-w-3xl h-[460px] flex items-center justify-center">
-                  {/* SVG Connection Lines */}
-                  <svg className="absolute inset-0 h-full w-full pointer-events-none">
-                    <defs>
-                      <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.8" />
-                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.2" />
-                      </linearGradient>
-                    </defs>
+                {/* Center Node Topology - Desktop 2D Mesh (md+) / Mobile Vertical Flow (<md) */}
+                <div className="relative flex-1 w-full my-4 flex items-center justify-center min-h-[440px]">
+                  {/* Desktop 2D Node Mesh */}
+                  <div className="hidden md:flex relative w-full h-full items-center justify-center">
+                    {/* Glowing Connection Splines (SVG) */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                      <defs>
+                        <linearGradient id="cyanLine" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.8" />
+                          <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.3" />
+                        </linearGradient>
+                        <linearGradient id="amberLine" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.8" />
+                          <stop offset="100%" stopColor="#ec4899" stopOpacity="0.3" />
+                        </linearGradient>
+                      </defs>
 
-                    {/* Center Mission to Blue */}
-                    <line x1="50%" y1="50%" x2="20%" y2="50%" stroke="url(#lineGrad)" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
-                    {/* Center Mission to Raven */}
-                    <line x1="50%" y1="50%" x2="50%" y2="18%" stroke="url(#lineGrad)" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
-                    {/* Center Mission to Giraffe */}
-                    <line x1="50%" y1="50%" x2="80%" y2="20%" stroke="url(#lineGrad)" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
-                    {/* Center Mission to Elephant */}
-                    <line x1="50%" y1="50%" x2="80%" y2="60%" stroke="url(#lineGrad)" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
-                    {/* Center Mission to Beaver */}
-                    <line x1="50%" y1="50%" x2="50%" y2="82%" stroke="url(#lineGrad)" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
-                  </svg>
+                      {/* Line Connectors */}
+                      <line x1="50%" y1="50%" x2="15%" y2="15%" stroke="url(#cyanLine)" strokeWidth="1.5" strokeDasharray="4 4" className="animate-pulse" />
+                      <line x1="50%" y1="50%" x2="85%" y2="15%" stroke="url(#amberLine)" strokeWidth="1.5" strokeDasharray="4 4" className="animate-pulse" />
+                      <line x1="50%" y1="50%" x2="15%" y2="85%" stroke="url(#cyanLine)" strokeWidth="1.5" strokeDasharray="4 4" className="animate-pulse" />
+                      <line x1="50%" y1="50%" x2="50%" y2="88%" stroke="url(#cyanLine)" strokeWidth="1.5" strokeDasharray="4 4" className="animate-pulse" />
+                      <line x1="50%" y1="50%" x2="85%" y2="85%" stroke="url(#cyanLine)" strokeWidth="1.5" strokeDasharray="4 4" className="animate-pulse" />
+                    </svg>
 
-                  {/* CENTER NODE: The Active Mission */}
-                  <div className="z-20 p-5 rounded-3xl bg-zinc-950 border-2 border-cyan-400/70 shadow-[0_0_50px_rgba(6,182,212,0.3)] text-center max-w-xs backdrop-blur-2xl">
-                    <span className="text-3xl">🎯</span>
-                    <h3 className="text-sm font-bold text-white mt-1">Mission: Arctic Belugas</h3>
-                    <p className="text-[10px] text-cyan-300 font-mono mt-0.5">Progress: 68% · 14.2k Audio Hrs</p>
-                    <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-center gap-2 text-[9px] text-zinc-400">
-                      <span>Elephant: 72%</span> • <span>Giraffe: Roadmap</span>
+                    {/* TOP-LEFT NODE: Wolf */}
+                    <div style={{ position: 'absolute', top: '8%', left: '6%', zIndex: 20 }}>
+                      <button
+                        onClick={() => {
+                          setSelectedAgent(agents.find((a) => a.id === 'wolf') || agents[0])
+                          setMobileInspectorOpen(true)
+                          zooAudio.playCue('click')
+                        }}
+                        className={`p-3 rounded-2xl bg-[#0e131f]/95 border transition-all hover:scale-105 cursor-pointer text-left shadow-xl backdrop-blur-md min-w-[130px] sm:min-w-[150px] ${
+                          selectedAgent.id === 'wolf'
+                            ? 'border-cyan-400 ring-2 ring-cyan-500/30'
+                            : 'border-white/10 hover:border-cyan-400/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">🐺</span>
+                          <div>
+                            <p className="text-xs font-bold text-white">Fenrir Wolf</p>
+                            <p className="text-[10px] text-cyan-400 font-mono">Literature Review</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-[10px] pt-1.5 border-t border-white/10">
+                          <span className="text-zinc-400">Papers</span>
+                          <span className="font-mono text-emerald-400">32 synthesized</span>
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* TOP-RIGHT NODE: Twiga the Giraffe */}
+                    <div style={{ position: 'absolute', top: '8%', right: '6%', zIndex: 20 }}>
+                      <button
+                        onClick={() => {
+                          setSelectedAgent(agents.find((a) => a.id === 'giraffe') || agents[0])
+                          setMobileInspectorOpen(true)
+                          zooAudio.playCue('click')
+                        }}
+                        className={`p-3 rounded-2xl bg-[#0e131f]/95 border transition-all hover:scale-105 cursor-pointer text-left shadow-xl backdrop-blur-md min-w-[130px] sm:min-w-[150px] ${
+                          selectedAgent.id === 'giraffe'
+                            ? 'border-amber-400 ring-2 ring-amber-500/30'
+                            : 'border-white/10 hover:border-amber-400/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">🦒</span>
+                          <div>
+                            <p className="text-xs font-bold text-white">Twiga Giraffe</p>
+                            <p className="text-[10px] text-amber-400 font-mono">Big-Picture Strategy</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-[10px] pt-1.5 border-t border-white/10">
+                          <span className="text-zinc-400">Horizon</span>
+                          <span className="font-mono text-amber-300">2030 Roadmap</span>
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* CENTER HUB NODE: Active Mission */}
+                    <div className="z-30 p-4 sm:p-5 rounded-3xl bg-[#0c101a] border-2 border-cyan-400/80 shadow-[0_0_60px_rgba(6,182,212,0.25)] text-center max-w-xs sm:max-w-sm backdrop-blur-2xl">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <span className="text-2xl">🎯</span>
+                        <span className="px-2 py-0.5 rounded-full bg-cyan-950 border border-cyan-500/40 text-[10px] font-mono text-cyan-300 animate-pulse">
+                          LIVE COORDINATION
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-bold text-white">{activeMission.title}</h3>
+                      <p className="text-[11px] text-zinc-400 mt-1">
+                        NOAA Hydrophone Bioacoustics • 14.2k Audio Hrs
+                      </p>
+                      <div className="mt-3 pt-2.5 border-t border-white/10 grid grid-cols-2 gap-2 text-[10px] font-mono text-zinc-300">
+                        <div className="p-1.5 rounded-lg bg-white/[0.04] text-center">
+                          <span className="text-zinc-500 block text-[9px]">PROGRESS</span>
+                          <span className="font-bold text-cyan-300">68% Complete</span>
+                        </div>
+                        <div className="p-1.5 rounded-lg bg-white/[0.04] text-center">
+                          <span className="text-zinc-500 block text-[9px]">DATAPOINTS</span>
+                          <span className="font-bold text-emerald-400">1.4 TB Cleaned</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* BOTTOM-LEFT NODE: Blue Beluga */}
+                    <div style={{ position: 'absolute', bottom: '8%', left: '6%', zIndex: 20 }}>
+                      <button
+                        onClick={() => {
+                          setSelectedAgent(agents.find((a) => a.id === 'blue') || agents[0])
+                          setMobileInspectorOpen(true)
+                          zooAudio.playCue('click')
+                        }}
+                        className={`p-3 rounded-2xl bg-[#0e131f]/95 border transition-all hover:scale-105 cursor-pointer text-left shadow-xl backdrop-blur-md min-w-[130px] sm:min-w-[150px] ${
+                          selectedAgent.id === 'blue'
+                            ? 'border-cyan-400 ring-2 ring-cyan-500/30'
+                            : 'border-white/10 hover:border-cyan-400/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">🐋</span>
+                          <div>
+                            <p className="text-xs font-bold text-white">Blue the Beluga</p>
+                            <p className="text-[10px] text-cyan-400 font-mono">Lead Scientist</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-[10px] pt-1.5 border-t border-white/10">
+                          <span className="text-zinc-400">Voice</span>
+                          <span className="font-mono text-cyan-300 animate-pulse">120 kHz Audio</span>
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* BOTTOM-CENTER NODE: Hippo */}
+                    <div style={{ position: 'absolute', bottom: '4%', left: '50%', transform: 'translateX(-50%)', zIndex: 20 }}>
+                      <button
+                        onClick={() => {
+                          setSelectedAgent(agents.find((a) => a.id === 'hippo') || agents[0])
+                          setMobileInspectorOpen(true)
+                          zooAudio.playCue('click')
+                        }}
+                        className={`p-3 rounded-2xl bg-[#0e131f]/95 border transition-all hover:scale-105 cursor-pointer text-left shadow-xl backdrop-blur-md min-w-[130px] sm:min-w-[150px] ${
+                          selectedAgent.id === 'hippo'
+                            ? 'border-cyan-400 ring-2 ring-cyan-500/30'
+                            : 'border-white/10 hover:border-cyan-400/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">🦛</span>
+                          <div>
+                            <p className="text-xs font-bold text-white">Kiboko Hippo</p>
+                            <p className="text-[10px] text-cyan-400 font-mono">Frontend & Canvas</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-[10px] pt-1.5 border-t border-white/10">
+                          <span className="text-zinc-400">Sandbox</span>
+                          <span className="font-mono text-blue-300">94% Done</span>
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* BOTTOM-RIGHT NODE: Elephant */}
+                    <div style={{ position: 'absolute', bottom: '8%', right: '6%', zIndex: 20 }}>
+                      <button
+                        onClick={() => {
+                          setSelectedAgent(agents.find((a) => a.id === 'elephant') || agents[0])
+                          setMobileInspectorOpen(true)
+                          zooAudio.playCue('click')
+                        }}
+                        className={`p-3 rounded-2xl bg-[#0e131f]/95 border transition-all hover:scale-105 cursor-pointer text-left shadow-xl backdrop-blur-md min-w-[130px] sm:min-w-[150px] ${
+                          selectedAgent.id === 'elephant'
+                            ? 'border-cyan-400 ring-2 ring-cyan-500/30'
+                            : 'border-white/10 hover:border-cyan-400/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">🐘</span>
+                          <div>
+                            <p className="text-xs font-bold text-white">Ganesha Elephant</p>
+                            <p className="text-[10px] text-cyan-400 font-mono">ClickHouse Memory</p>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-[10px] pt-1.5 border-t border-white/10">
+                          <span className="text-zinc-400">Telemetry</span>
+                          <span className="font-mono text-emerald-400">72% Indexed</span>
+                        </div>
+                      </button>
                     </div>
                   </div>
 
-                  {/* TOP-LEFT NODE: 🐦 Raven (Literature & Research) */}
-                  <button
-                    onClick={() => setSelectedAgent(agents.find((a) => a.id === 'raven') || agents[0])}
-                    className="absolute top-4 left-1/3 -translate-x-1/2 z-20 p-3 rounded-2xl bg-zinc-900/90 border border-white/15 hover:border-cyan-400 shadow-xl text-center transition-all hover:scale-105 cursor-pointer"
-                  >
-                    <span className="text-2xl">🐦</span>
-                    <h4 className="text-xs font-bold text-white">Raven</h4>
-                    <span className="text-[9px] text-cyan-400 font-mono">Literature Review</span>
-                    <div className="mt-1 px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 text-[9px] font-mono">
-                      ✓ 32 papers
+                  {/* Mobile Coordination Flow (<md) */}
+                  <div className="md:hidden flex flex-col items-center w-full space-y-3 overflow-y-auto max-h-full py-2">
+                    {/* Mission Hub Card */}
+                    <div className="w-full p-4 rounded-2xl bg-[#0c101a] border border-cyan-400/60 text-center shadow-lg">
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <span className="text-xl">🎯</span>
+                        <span className="px-2 py-0.5 rounded-full bg-cyan-950 border border-cyan-500/40 text-[9px] font-mono text-cyan-300">
+                          LIVE COORDINATION
+                        </span>
+                      </div>
+                      <h3 className="text-xs font-bold text-white">{activeMission.title}</h3>
+                      <div className="mt-2 pt-2 border-t border-white/10 flex justify-around text-[10px] font-mono text-zinc-300">
+                        <span>Progress: <strong className="text-cyan-300">68%</strong></span>
+                        <span>Data: <strong className="text-emerald-400">1.4 TB</strong></span>
+                      </div>
                     </div>
-                  </button>
 
-                  {/* TOP-RIGHT NODE: 🦒 Giraffe (Strategy & Synthesis) */}
-                  <button
-                    onClick={() => setSelectedAgent(agents.find((a) => a.id === 'giraffe') || agents[0])}
-                    className="absolute top-4 right-10 z-20 p-3 rounded-2xl bg-zinc-900/90 border border-amber-500/40 hover:border-amber-400 shadow-xl text-center transition-all hover:scale-105 cursor-pointer"
-                  >
-                    <span className="text-2xl">🦒</span>
-                    <h4 className="text-xs font-bold text-white">Twiga Giraffe</h4>
-                    <span className="text-[9px] text-amber-400 font-mono">Big-Picture Strategy</span>
-                    <div className="mt-1 px-1.5 py-0.5 rounded-full bg-amber-950 text-amber-300 text-[9px] font-mono">
-                      Horizon 2030
+                    {/* Connected Animal Nodes Grid */}
+                    <div className="w-full grid grid-cols-2 gap-2">
+                      {[
+                        { id: 'blue', name: 'Blue', role: 'Lead Scientist', emoji: '🐋', stat: '120 kHz Audio' },
+                        { id: 'wolf', name: 'Wolf', role: 'Literature', emoji: '🐺', stat: '32 papers' },
+                        { id: 'giraffe', name: 'Giraffe', role: 'Strategy', emoji: '🦒', stat: '2030 Roadmap' },
+                        { id: 'hippo', name: 'Hippo', role: 'Canvas UI', emoji: '🦛', stat: '94% Done' },
+                        { id: 'elephant', name: 'Elephant', role: 'ClickHouse', emoji: '🐘', stat: '72% Indexed' },
+                        { id: 'tiger', name: 'Tiger', role: 'Security', emoji: '🐅', stat: '100% Guarded' },
+                      ].map((ag) => (
+                        <button
+                          key={ag.id}
+                          onClick={() => {
+                            setSelectedAgent(agents.find((a) => a.id === ag.id) || agents[0])
+                            setMobileInspectorOpen(true)
+                            zooAudio.playCue('click')
+                          }}
+                          className={`p-2.5 rounded-xl bg-zinc-900/90 border text-left transition-all ${
+                            selectedAgent.id === ag.id ? 'border-cyan-400 bg-cyan-950/40' : 'border-white/10'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{ag.emoji}</span>
+                            <div className="min-w-0 truncate">
+                              <p className="text-xs font-bold text-white truncate">{ag.name}</p>
+                              <p className="text-[9px] text-cyan-400 font-mono truncate">{ag.role}</p>
+                            </div>
+                          </div>
+                          <p className="text-[9px] text-zinc-400 font-mono mt-1 pt-1 border-t border-white/5">{ag.stat}</p>
+                        </button>
+                      ))}
                     </div>
-                  </button>
+                  </div>
+                </div>
 
-                  {/* LEFT NODE: 🐋 Blue the Beluga (Voice & Scientist) */}
-                  <button
-                    onClick={() => setSelectedAgent(agents.find((a) => a.id === 'blue') || agents[0])}
-                    className="absolute left-6 top-1/2 -translate-y-1/2 z-20 p-3.5 rounded-2xl bg-zinc-900/90 border border-cyan-400 shadow-xl text-center transition-all hover:scale-105 cursor-pointer ring-2 ring-cyan-500/20"
-                  >
-                    <span className="text-2xl">🐋</span>
-                    <h4 className="text-xs font-bold text-white">Blue Beluga</h4>
-                    <span className="text-[9px] text-cyan-400 font-mono">Voice & Lead Host</span>
-                    <div className="mt-1 px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 text-[9px] font-mono animate-pulse">
-                      🔊 120 kHz Audio
-                    </div>
-                  </button>
-
-                  {/* RIGHT-BOTTOM NODE: 🐘 Elephant (Data & Memory) */}
-                  <button
-                    onClick={() => setSelectedAgent(agents.find((a) => a.id === 'elephant') || agents[0])}
-                    className="absolute right-6 bottom-16 z-20 p-3.5 rounded-2xl bg-zinc-900/90 border border-white/15 hover:border-cyan-400 shadow-xl text-center transition-all hover:scale-105 cursor-pointer"
-                  >
-                    <span className="text-2xl">🐘</span>
-                    <h4 className="text-xs font-bold text-white">Elephant</h4>
-                    <span className="text-[9px] text-cyan-400 font-mono">ClickHouse Memory</span>
-                    <div className="mt-1 px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 text-[9px] font-mono">
-                      Cleaning · 72%
-                    </div>
-                  </button>
-
-                  {/* BOTTOM NODE: 🦫 Beaver (App Builder & Frontend) */}
-                  <button
-                    onClick={() => setSelectedAgent(agents.find((a) => a.id === 'beaver') || agents[0])}
-                    className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 p-3.5 rounded-2xl bg-zinc-900/90 border border-white/15 hover:border-cyan-400 shadow-xl text-center transition-all hover:scale-105 cursor-pointer"
-                  >
-                    <span className="text-2xl">🦫</span>
-                    <h4 className="text-xs font-bold text-white">Beaver</h4>
-                    <span className="text-[9px] text-cyan-400 font-mono">Interactive Canvas</span>
-                    <div className="mt-1 px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 text-[9px] font-mono">
-                      Chart & App · 94%
-                    </div>
-                  </button>
+                {/* Bottom Canvas Toolbar */}
+                <div className="relative z-10 flex items-center justify-between text-xs pt-3 border-t border-white/[0.06]">
+                  <div className="flex items-center gap-2 text-zinc-400 text-[11px] truncate">
+                    <span className="truncate">Tap any animal to inspect neural weights or microVM.</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link
+                      href="/vibe"
+                      className="px-2.5 sm:px-3 py-1 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 text-xs font-semibold flex items-center gap-1.5 transition-all"
+                    >
+                      <span>💜 Vibe</span>
+                      <ArrowUpRight className="h-3 w-3" />
+                    </Link>
+                  </div>
                 </div>
               </div>
 
-              {/* Right Sidebar: Deep Agent Character & Cloud Telemetry Inspector */}
-              <aside className="w-full lg:w-96 bg-[#080b10] border-l border-white/[0.08] flex flex-col shrink-0 p-5 overflow-y-auto space-y-5">
-                {/* Header Card */}
-                <div className="p-4 rounded-2xl bg-zinc-900/80 border border-white/10 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-2xl bg-zinc-800 border border-white/15 flex items-center justify-center text-2xl">
-                        {selectedAgent.emoji}
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-white text-sm">{selectedAgent.name}</h3>
-                        <p className="text-xs text-cyan-400 font-mono">{selectedAgent.species}</p>
-                      </div>
+              {/* Mobile / Tablet Inspector Backdrop */}
+              {mobileInspectorOpen && (
+                <div
+                  className="lg:hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+                  onClick={() => setMobileInspectorOpen(false)}
+                />
+              )}
+
+              {/* ═══════════ RIGHT SIDEBAR: DEEP AGENT INSPECTOR ═══════════ */}
+              <aside
+                className={`bg-[#090d15] border-l border-white/[0.08] flex-col shrink-0 h-full overflow-hidden transition-all duration-300 z-50 w-full md:w-80 lg:w-96 ${
+                  mobileInspectorOpen
+                    ? 'fixed inset-y-0 right-0 max-w-sm w-full shadow-2xl flex'
+                    : 'hidden lg:flex'
+                }`}
+              >
+                {/* Inspector Header */}
+                <div className="p-4 border-b border-white/[0.08] flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-10 w-10 rounded-2xl bg-zinc-800 border border-white/15 flex items-center justify-center text-2xl shrink-0">
+                      {selectedAgent.emoji}
                     </div>
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-white text-sm truncate">{selectedAgent.name}</h3>
+                      <p className="text-[11px] text-cyan-400 font-mono truncate">{selectedAgent.species}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => {
-                        zooAudio.speakAgent(selectedAgent.id, `Hello! I am ${selectedAgent.name}. ${selectedAgent.description}`)
+                        zooAudio.speakAgent(selectedAgent.id, `Hello! I am ${selectedAgent.name}. Ready for our mission.`)
                       }}
-                      className="p-2 rounded-xl bg-cyan-950 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-900 text-xs transition-all flex items-center gap-1 cursor-pointer"
+                      className="px-2.5 py-1 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-all"
                     >
                       <Volume2 className="h-3.5 w-3.5" />
                       <span>Speak</span>
                     </button>
+                    {mobileInspectorOpen && (
+                      <button
+                        onClick={() => setMobileInspectorOpen(false)}
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-white"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
-
-                  <p className="text-xs text-zinc-300 leading-relaxed">{selectedAgent.description}</p>
                 </div>
 
-                {/* Inspector Sub-tabs */}
-                <div className="flex items-center rounded-xl bg-zinc-900 border border-white/10 p-1 text-xs">
-                  {(['overview', 'tools', 'cloud', 'logs'] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setInspectorTab(tab)}
-                      className={`flex-1 py-1 text-center rounded-lg capitalize transition-all ${
-                        inspectorTab === tab
-                          ? 'bg-zinc-800 text-white font-semibold shadow-sm'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
+                {/* Inspector Navigation Tabs */}
+                <div className="flex items-center border-b border-white/[0.08] px-3 py-1 bg-black/20 gap-1 overflow-x-auto text-[11px]">
+                  {[
+                    { id: 'overview', label: 'Overview', icon: Compass },
+                    { id: 'memory', label: 'Memory & LoRA', icon: Database },
+                    { id: 'tools', label: 'Tools & MCP', icon: Code2 },
+                    { id: 'cloud', label: 'microVM Telemetry', icon: Cpu },
+                    { id: 'logs', label: 'Logs', icon: Terminal },
+                  ].map((tab) => {
+                    const Icon = tab.icon
+                    const active = inspectorTab === tab.id
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setInspectorTab(tab.id as any)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg whitespace-nowrap font-medium transition-colors cursor-pointer ${
+                          active ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-zinc-200'
+                        }`}
+                      >
+                        <Icon className="h-3 w-3" />
+                        <span>{tab.label}</span>
+                      </button>
+                    )
+                  })}
                 </div>
 
-                {/* Sub-tab 1: Character Overview (Knows, Capabilities, Boundaries) */}
-                {inspectorTab === 'overview' && (
-                  <div className="space-y-4 text-xs">
-                    <div className="space-y-1.5">
-                      <h4 className="font-semibold text-zinc-300 uppercase tracking-wider text-[10px]">
-                        🧠 Brain & Sovereign Model
-                      </h4>
-                      <div className="p-2.5 rounded-xl bg-zinc-900/90 border border-white/5 font-mono text-cyan-300">
-                        {selectedAgent.brain}
+                {/* Inspector Content Body */}
+                <div className="flex-1 p-4 overflow-y-auto space-y-4 text-xs">
+                  {/* TAB: OVERVIEW */}
+                  {inspectorTab === 'overview' && (
+                    <div className="space-y-4">
+                      {/* Natural Role & Bio */}
+                      <div className="p-3.5 rounded-2xl bg-zinc-900/70 border border-white/5 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Natural Role</span>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 text-[9px] font-mono">
+                            Online
+                          </span>
+                        </div>
+                        <p className="text-zinc-200 text-xs font-medium">{selectedAgent.naturalRole}</p>
+                        <p className="text-zinc-400 text-[11px] leading-relaxed">{selectedAgent.description}</p>
+                      </div>
+
+                      {/* Sovereign Weights & Brain */}
+                      <div className="p-3.5 rounded-2xl bg-zinc-900/70 border border-white/5 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Brain & Weights</span>
+                          <span className="text-[10px] text-cyan-400 font-mono">BitDelta Personalization</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-white font-mono text-xs">
+                          <Cpu className="h-4 w-4 text-cyan-400" />
+                          <span>{selectedAgent.brain}</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400">
+                          Runs sovereign inference on Hanzo Cloud microVM with zero external telemetry leakage.
+                        </p>
+                      </div>
+
+                      {/* Current Job */}
+                      <div className="p-3.5 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 space-y-1.5">
+                        <span className="text-[10px] font-bold text-cyan-300 uppercase tracking-wider">Current Assignment</span>
+                        <p className="text-xs text-white font-medium">{selectedAgent.currentJob}</p>
                       </div>
                     </div>
+                  )}
 
-                    <div className="space-y-1.5">
+                  {/* TAB: MEMORY & PERSONALIZATION */}
+                  {inspectorTab === 'memory' && (
+                    <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-zinc-300 uppercase tracking-wider text-[10px]">
-                          📚 Personal Knowledge & Memory
-                        </h4>
-                        <span className="text-[10px] text-cyan-400 font-mono">{selectedAgent.knows.length} items</span>
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                          Personal Knowledge ({selectedAgent.knows.length})
+                        </span>
+                        <span className="text-[10px] text-zinc-500 font-mono">ClickHouse + Vector</span>
                       </div>
-                      <div className="space-y-1 max-h-36 overflow-y-auto">
+
+                      <div className="space-y-2">
                         {selectedAgent.knows.map((k, idx) => (
-                          <div key={idx} className="p-2 rounded-lg bg-zinc-900/60 border border-white/5 text-zinc-300 flex items-center gap-2">
-                            <span className="text-cyan-400">•</span>
-                            <span>{k}</span>
+                          <div key={idx} className="p-2.5 rounded-xl bg-zinc-900/80 border border-white/5 text-zinc-300 flex items-start gap-2">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-cyan-400 shrink-0 mt-0.5" />
+                            <span className="text-[11px] leading-snug">{k}</span>
                           </div>
                         ))}
                       </div>
-                    </div>
 
-                    {/* Personalize Memory Input Box */}
-                    <div className="p-3 rounded-xl bg-black/50 border border-cyan-500/20 space-y-2">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
-                        + Train Personal Context & Memory
-                      </p>
-                      <input
-                        type="text"
-                        id="memoryInput"
-                        placeholder="e.g. NOAA Station 47003 Beaufort Sea telemetry schema..."
-                        className="w-full p-2 rounded-lg bg-zinc-900 border border-white/10 text-xs text-white placeholder:text-zinc-500 outline-none"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            const val = (e.target as HTMLInputElement).value.trim()
-                            if (val) {
-                              selectedAgent.knows.push(val)
-                              ;(e.target as HTMLInputElement).value = ''
-                              zooAudio.playCue('join')
-                            }
-                          }
-                        }}
-                      />
-                      <p className="text-[9px] text-zinc-500">Press Enter to sync memory into sovereign microVM.</p>
+                      {/* Train New Memory Form */}
+                      <form onSubmit={handleTrainMemory} className="p-3.5 rounded-2xl bg-[#0e1320] border border-cyan-500/30 space-y-2">
+                        <span className="text-[10px] font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <Sparkles className="h-3 w-3" />
+                          Train Personal Knowledge & LoRA
+                        </span>
+                        <textarea
+                          value={newMemoryText}
+                          onChange={(e) => setNewMemoryText(e.target.value)}
+                          placeholder="e.g. NOAA Station 47003 Beaufort Sea seasonal acoustic telemetry schema..."
+                          rows={3}
+                          className="w-full rounded-xl bg-black/50 border border-white/10 p-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400 resize-none font-sans"
+                        />
+                        <button
+                          type="submit"
+                          disabled={trainingStatus === 'training' || !newMemoryText.trim()}
+                          className="w-full py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          {trainingStatus === 'training' ? (
+                            <span>Fine-tuning weights...</span>
+                          ) : trainingStatus === 'success' ? (
+                            <span>✓ Memory Ingested into LoRA!</span>
+                          ) : (
+                            <span>Inject Knowledge</span>
+                          )}
+                        </button>
+                      </form>
                     </div>
+                  )}
 
-                    <div className="space-y-1.5">
-                      <h4 className="font-semibold text-zinc-300 uppercase tracking-wider text-[10px]">
-                        🤝 Can Delegate To
-                      </h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {selectedAgent.canDelegateTo.map((target) => (
-                          <span key={target} className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-zinc-300 text-[11px] font-mono capitalize">
-                            @{target}
-                          </span>
+                  {/* TAB: TOOLS & MCP */}
+                  {inspectorTab === 'tools' && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                          Active Capabilities ({selectedAgent.tools.length})
+                        </span>
+                        <span className="text-[10px] text-zinc-500 font-mono">Model Context Protocol</span>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        {selectedAgent.tools.map((t, idx) => (
+                          <div key={idx} className="p-2.5 rounded-xl bg-zinc-900/80 border border-white/5 flex items-center justify-between">
+                            <span className="text-zinc-200 text-[11px] font-medium">{t}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-white/10 text-[9px] font-mono text-zinc-400">
+                              mcp://ready
+                            </span>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                  </div>
-                )}
 
-                {/* Sub-tab 2: Tools & Skills */}
-                {inspectorTab === 'tools' && (
-                  <div className="space-y-3 text-xs">
-                    <div className="space-y-1.5">
-                      {selectedAgent.tools.map((tool) => (
-                        <div key={tool} className="p-2.5 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-between">
-                          <span className="font-medium text-white">{tool}</span>
-                          <span className="text-[10px] font-mono text-emerald-400">Active Skill</span>
+                      {/* Connect New Skill Form */}
+                      <form onSubmit={handleTrainSkill} className="p-3.5 rounded-2xl bg-[#0e1320] border border-cyan-500/30 space-y-2">
+                        <span className="text-[10px] font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <Code2 className="h-3 w-3" />
+                          Connect New MCP Tool / Skill
+                        </span>
+                        <input
+                          type="text"
+                          value={newSkillName}
+                          onChange={(e) => setNewSkillName(e.target.value)}
+                          placeholder="e.g. S3 Parquet Analyzer, Web Scraper, Git Commit"
+                          className="w-full rounded-xl bg-black/50 border border-white/10 p-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400"
+                        />
+                        <button
+                          type="submit"
+                          disabled={trainingStatus === 'training' || !newSkillName.trim()}
+                          className="w-full py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <span>Connect Tool</span>
+                        </button>
+                      </form>
+                    </div>
+                  )}
+
+                  {/* TAB: CLOUD & TELEMETRY */}
+                  {inspectorTab === 'cloud' && (
+                    <div className="space-y-3 font-mono text-xs">
+                      <div className="p-3 rounded-2xl bg-zinc-900/80 border border-white/5 space-y-2">
+                        <div className="flex items-center justify-between text-zinc-400 text-[10px]">
+                          <span>MICROVM INSTANCE</span>
+                          <span className="text-emerald-400">HEALTHY</span>
                         </div>
-                      ))}
-                    </div>
+                        <p className="text-white text-[11px] font-bold">{selectedAgent.cloudMicroVm}</p>
+                      </div>
 
-                    {/* Add New Tool / Skill */}
-                    <div className="p-3 rounded-xl bg-black/50 border border-white/10 space-y-2">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-purple-400">
-                        + Connect New Skill / MCP Tool
-                      </p>
-                      <input
-                        type="text"
-                        placeholder="e.g. Hydrophone FFT Analyzer, BioRxiv Crawler..."
-                        className="w-full p-2 rounded-lg bg-zinc-900 border border-white/10 text-xs text-white placeholder:text-zinc-500 outline-none"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            const val = (e.target as HTMLInputElement).value.trim()
-                            if (val) {
-                              selectedAgent.tools.push(val)
-                              ;(e.target as HTMLInputElement).value = ''
-                              zooAudio.playCue('ping')
-                            }
-                          }
-                        }}
-                      />
-                      <p className="text-[9px] text-zinc-500">Press Enter to grant permissions to agent.</p>
-                    </div>
-                  </div>
-                )}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="p-2.5 rounded-xl bg-zinc-900/80 border border-white/5">
+                          <span className="text-[9px] text-zinc-500 block">CPU LOAD</span>
+                          <span className="text-cyan-300 font-bold text-sm">18.4%</span>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-zinc-900/80 border border-white/5">
+                          <span className="text-[9px] text-zinc-500 block">MEMORY</span>
+                          <span className="text-white font-bold text-sm">2.1 / 16 GB</span>
+                        </div>
+                      </div>
 
-                {/* Sub-tab 3: Cloud Infrastructure */}
-                {inspectorTab === 'cloud' && (
-                  <div className="space-y-3 text-xs">
-                    <div className="p-3 rounded-xl bg-zinc-900/90 border border-white/10 space-y-2 font-mono text-[11px]">
-                      <div className="flex justify-between">
-                        <span className="text-zinc-400">MicroVM:</span>
-                        <span className="text-cyan-400">{selectedAgent.cloudMicroVm}</span>
+                      <div className="p-3 rounded-2xl bg-zinc-900/80 border border-white/5 space-y-1 text-[11px]">
+                        <span className="text-[9px] text-zinc-500 block">S3 BUCKET PERSISTENCE</span>
+                        <p className="text-zinc-300">s3://zoo-research-datasets/{selectedAgent.id}/</p>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-zinc-400">Tokens Processed:</span>
-                        <span className="text-white">{selectedAgent.metrics.tokensUsed}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-zinc-400">P99 Latency:</span>
-                        <span className="text-emerald-400">{selectedAgent.metrics.latencyMs}ms</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-zinc-400">Cumulative Cost:</span>
-                        <span className="text-zinc-300">{selectedAgent.metrics.costUsd}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-zinc-400">Uptime:</span>
-                        <span className="text-emerald-400">{selectedAgent.metrics.uptime}</span>
+
+                      <div className="p-3 rounded-2xl bg-zinc-900/80 border border-white/5 space-y-1 text-[11px]">
+                        <span className="text-[9px] text-zinc-500 block">CLICKHOUSE DATASTORE</span>
+                        <p className="text-zinc-300">datastore.zoo.internal:9000 (12.4M records)</p>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Sub-tab 4: Execution Logs */}
-                {inspectorTab === 'logs' && (
-                  <div className="p-3 rounded-xl bg-black/80 border border-white/10 font-mono text-[10px] text-zinc-400 space-y-1 overflow-x-auto">
-                    <p className="text-cyan-400">[2026-09-01T07:30:12Z] microvm_init: booted in 12ms</p>
-                    <p className="text-emerald-400">[2026-09-01T07:31:00Z] task_recv: {selectedAgent.currentJob}</p>
-                    <p className="text-zinc-500">[2026-09-01T07:32:44Z] checkpoint: state saved to clickhouse</p>
-                  </div>
-                )}
+                  {/* TAB: LOGS */}
+                  {inspectorTab === 'logs' && (
+                    <div className="rounded-2xl bg-black/80 border border-white/10 p-3 font-mono text-[10px] text-emerald-400 space-y-1.5 h-64 overflow-y-auto">
+                      <p className="text-zinc-500">--- microVM sandbox boot sequence ---</p>
+                      <p>[0.02s] Mounted rootfs at /var/lib/sovereign/{selectedAgent.id}</p>
+                      <p>[0.05s] BitDelta LoRA adapter loaded (24MB weights)</p>
+                      <p>[0.11s] Connected to Datastore pool at datastore.zoo.internal</p>
+                      <p>[0.18s] MCP server registered 4 tools</p>
+                      <p className="text-cyan-400">[0.25s] Agent {selectedAgent.name} is listening on multi-agent bus</p>
+                      <p className="text-zinc-300">[1.42s] Executed task: Analyzing Cook Inlet population telemetry</p>
+                      <p className="text-emerald-300">[2.10s] Status 200 OK • Ready for next prompt</p>
+                    </div>
+                  )}
+                </div>
               </aside>
             </div>
           )}
 
-          {/* TAB 2: ALL ANIMALS FLEET GRID */}
+          {/* ═══════════ TAB 2: ALL ANIMALS FLEET ═══════════ */}
           {activeTab === 'fleet' && (
-            <div className="flex-1 p-6 overflow-y-auto space-y-6">
-              {/* Search & Filter Bar */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-6xl mx-auto">
-                <div className="relative w-full sm:w-80">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search animals by name or role..."
-                    className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder:text-zinc-500 outline-none"
-                  />
-                </div>
-              </div>
+            <div className="flex-1 bg-[#04060a] p-4 sm:p-8 overflow-y-auto">
+              <div className="max-w-6xl mx-auto space-y-6">
+                {/* Search & Filter Bar */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="relative w-full sm:w-80">
+                    <Search className="h-4 w-4 absolute left-3 top-2.5 text-zinc-500" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search creatures, skills, species..."
+                      className="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
 
-              {/* Grid of Animal Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl mx-auto">
-                {filteredAgents.map((a) => (
-                  <div
-                    key={a.id}
-                    className="p-5 rounded-2xl bg-zinc-900/80 border border-white/10 hover:border-cyan-500/50 transition-all space-y-3 shadow-xl group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl">{a.emoji}</span>
-                        <div>
-                          <h3 className="font-bold text-white text-sm">{a.name}</h3>
-                          <p className="text-xs text-cyan-400 font-mono">{a.role}</p>
+                  <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
+                    {['all', 'researcher', 'architect', 'memory', 'strategy'].map((role) => (
+                      <button
+                        key={role}
+                        onClick={() => setFilterRole(role)}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold capitalize transition-all cursor-pointer ${
+                          filterRole === role
+                            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40'
+                            : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
+                        }`}
+                      >
+                        {role}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Agents Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredAgents.map((agent) => (
+                    <div
+                      key={agent.id}
+                      className="p-5 rounded-2xl bg-[#090d15] border border-white/10 hover:border-cyan-500/40 transition-all space-y-3 flex flex-col justify-between"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-3xl">{agent.emoji}</span>
+                            <div>
+                              <h4 className="font-bold text-white text-sm">{agent.name}</h4>
+                              <p className="text-[11px] text-cyan-400 font-mono">{agent.species}</p>
+                            </div>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 text-[9px] font-mono">
+                            {agent.status}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-zinc-300 leading-relaxed line-clamp-2">{agent.description}</p>
+
+                        <div className="p-2 rounded-xl bg-black/40 border border-white/5 space-y-1 text-[10px]">
+                          <span className="text-zinc-500 block font-mono">CURRENT JOB</span>
+                          <span className="text-zinc-300">{agent.currentJob}</span>
                         </div>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono">
-                        {a.status}
-                      </span>
-                    </div>
 
-                    <p className="text-xs text-zinc-300 leading-relaxed line-clamp-2">
-                      {a.description}
-                    </p>
+                      <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+                        <button
+                          onClick={() => {
+                            setSelectedAgent(agent)
+                            setActiveTab('graph')
+                            zooAudio.playCue('click')
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/30 text-xs font-semibold transition-all cursor-pointer"
+                        >
+                          View in Graph →
+                        </button>
 
-                    <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 text-[11px] text-zinc-400">
-                      <span className="font-semibold text-zinc-200">Current Task: </span>
-                      {a.currentJob}
+                        <button
+                          onClick={() => {
+                            zooAudio.speakAgent(agent.id, `Hello! I am ${agent.name}.`)
+                          }}
+                          className="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                          <Volume2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
-
-                    <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
-                      <span className="font-mono text-[10px] text-zinc-500">{a.brain.split('·')[0]}</span>
-                      <button
-                        onClick={() => {
-                          setSelectedAgent(a)
-                          setActiveTab('graph')
-                        }}
-                        className="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>Inspect in Map</span>
-                        <ArrowUpRight className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
-          {/* TAB 3: CREATE A NEW ANIMAL (Character Creation Wizard) */}
+          {/* ═══════════ TAB 3: CREATE NEW ANIMAL BUILDER ═══════════ */}
           {activeTab === 'builder' && (
-            <div className="flex-1 p-6 overflow-y-auto flex flex-col items-center justify-center">
-              <div className="max-w-xl w-full rounded-3xl border border-white/15 bg-zinc-950 p-8 shadow-2xl space-y-6">
-                <div className="text-center space-y-1">
-                  <span className="text-4xl">✨ 🐾</span>
-                  <h2 className="text-xl font-bold text-white">Create a New Animal Creature</h2>
-                  <p className="text-xs text-zinc-400">
-                    Design an autonomous animal companion with personality, abilities, knowledge, and boundaries.
+            <div className="flex-1 bg-[#04060a] p-4 sm:p-8 overflow-y-auto flex items-center justify-center">
+              <div className="w-full max-w-xl p-6 sm:p-8 rounded-3xl bg-[#090d15] border border-white/10 shadow-2xl space-y-6">
+                <div>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-cyan-400" />
+                    Deploy Sovereign AI Animal
+                  </h2>
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Spawn an autonomous agent with personalized BitDelta weights, S3 persistence, and MCP tools.
                   </p>
                 </div>
 
                 {createdSuccess ? (
-                  <div className="p-6 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 text-center space-y-2">
-                    <CheckCircle2 className="h-8 w-8 text-emerald-400 mx-auto animate-bounce" />
-                    <h3 className="font-bold text-white text-base">New Creature Brought to Life!</h3>
-                    <p className="text-xs text-emerald-300">
-                      {newName} ({newSpecies}) has appeared in the habitat and is ready for missions.
-                    </p>
+                  <div className="p-6 rounded-2xl bg-emerald-950/50 border border-emerald-500/40 text-center space-y-2">
+                    <span className="text-4xl">🎉</span>
+                    <h3 className="text-sm font-bold text-white">Animal Spawned Successfully!</h3>
+                    <p className="text-xs text-emerald-300">Spinning up microVM and mounting Datastore...</p>
                   </div>
                 ) : (
-                  <form onSubmit={handleCreateAnimal} className="space-y-4">
-                    {/* Step 1: Role & Species */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-zinc-300">1. Role & Specialty</label>
-                      <select
-                        value={newRole}
-                        onChange={(e) => setNewRole(e.target.value)}
-                        className="w-full p-2.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white outline-none"
-                      >
-                        <option value="Researcher">Researcher & Literature Scholar</option>
-                        <option value="Builder">Builder & Frontend Engineer</option>
-                        <option value="Scientist">Bioacoustic Marine Scientist</option>
-                        <option value="Teacher">Educator & Storyteller</option>
-                        <option value="Guardian">Security & Threat Auditor</option>
-                      </select>
-                    </div>
-
-                    {/* Step 2: Animal Character Name & Species */}
+                  <form onSubmit={handleCreateAnimal} className="space-y-4 text-xs">
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-zinc-300">2. Animal Species</label>
-                        <select
-                          value={newSpecies}
-                          onChange={(e) => {
-                            setNewSpecies(e.target.value)
-                            const map: Record<string, string> = {
-                              Dolphin: '🐬',
-                              Otter: '🦦',
-                              Penguin: '🐧',
-                              Fox: '🦊',
-                              Narwhal: '🦄',
-                              Owl: '🦉',
-                            }
-                            setNewEmoji(map[e.target.value] || '🐾')
-                          }}
-                          className="w-full p-2.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white outline-none"
-                        >
-                          <option value="Dolphin">Dolphin 🐬</option>
-                          <option value="Otter">Sea Otter 🦦</option>
-                          <option value="Penguin">Penguin 🐧</option>
-                          <option value="Fox">Arctic Fox 🦊</option>
-                          <option value="Narwhal">Narwhal 🦄</option>
-                          <option value="Owl">Snowy Owl 🦉</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-zinc-300">Name</label>
+                      <div>
+                        <label className="block text-[11px] font-bold text-zinc-400 mb-1">Name</label>
                         <input
                           type="text"
                           required
                           value={newName}
                           onChange={(e) => setNewName(e.target.value)}
-                          placeholder="e.g. Echo the Dolphin"
-                          className="w-full p-2.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder:text-zinc-500 outline-none"
+                          placeholder="e.g. Maya the Seal"
+                          className="w-full p-2.5 rounded-xl bg-black/50 border border-white/10 text-white focus:outline-none focus:border-cyan-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-zinc-400 mb-1">Species</label>
+                        <input
+                          type="text"
+                          required
+                          value={newSpecies}
+                          onChange={(e) => setNewSpecies(e.target.value)}
+                          placeholder="e.g. Harbor Seal"
+                          className="w-full p-2.5 rounded-xl bg-black/50 border border-white/10 text-white focus:outline-none focus:border-cyan-400"
                         />
                       </div>
                     </div>
 
-                    {/* Step 3: Knowledge Sources */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-zinc-300">3. Knowledge Sources</label>
-                      <input
-                        type="text"
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-zinc-400 mb-1">Emoji Icon</label>
+                        <input
+                          type="text"
+                          required
+                          value={newEmoji}
+                          onChange={(e) => setNewEmoji(e.target.value)}
+                          placeholder="🦭"
+                          className="w-full p-2.5 rounded-xl bg-black/50 border border-white/10 text-white focus:outline-none focus:border-cyan-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-zinc-400 mb-1">Archetype / Role</label>
+                        <select
+                          value={newRole}
+                          onChange={(e) => setNewRole(e.target.value)}
+                          className="w-full p-2.5 rounded-xl bg-black/50 border border-white/10 text-white focus:outline-none focus:border-cyan-400"
+                        >
+                          <option value="Researcher">Researcher</option>
+                          <option value="Strategist">Strategist & Planner</option>
+                          <option value="Software Engineer">Software Engineer</option>
+                          <option value="Data Scientist">Data Scientist</option>
+                          <option value="Designer">Designer & 3D Artist</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-zinc-400 mb-1">Seed Knowledge & Memory</label>
+                      <textarea
                         value={newKnowledge}
                         onChange={(e) => setNewKnowledge(e.target.value)}
-                        placeholder="Connect docs, papers, or database URLs"
-                        className="w-full p-2.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white outline-none"
+                        rows={2}
+                        placeholder="Domain expertise to bake into BitDelta LoRA..."
+                        className="w-full p-2.5 rounded-xl bg-black/50 border border-white/10 text-white focus:outline-none focus:border-cyan-400 resize-none"
                       />
                     </div>
 
-                    {/* Step 4: Boundaries */}
-                    <div className="p-3 rounded-xl bg-zinc-900/60 border border-white/10 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-semibold text-white">Require Human Approval</p>
-                        <p className="text-[10px] text-zinc-400">Must ask before deploying live code or policy briefs.</p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={requireHumanApproval}
-                        onChange={(e) => setRequireHumanApproval(e.target.checked)}
-                        className="h-4 w-4 rounded accent-cyan-500"
-                      />
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-all shadow-lg shadow-cyan-600/30 cursor-pointer"
+                      >
+                        Deploy to MicroVM Fleet
+                      </button>
                     </div>
-
-                    {/* Submit Button */}
-                    <button
-                      type="submit"
-                      disabled={!newName.trim()}
-                      className="w-full py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white font-bold text-xs transition-all shadow-lg shadow-cyan-600/30 cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      <span>Bring {newName || 'Creature'} to Life</span>
-                      <span>✨</span>
-                    </button>
                   </form>
                 )}
               </div>

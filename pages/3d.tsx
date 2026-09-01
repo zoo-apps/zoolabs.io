@@ -19,10 +19,16 @@ import ZooAppChrome from '../components/ZooAppChrome'
 import { getBackendBaseUrl } from '../lib/hanzo-ai-service'
 
 const MODELS_CATALOG = [
-  { id: 'm1', name: 'Origin Crystalline Egg', poly: '48.2k polys', format: 'GLB / USDZ', thumb: '🥚' },
-  { id: 'm2', name: 'Beluga Whale Rig', poly: '86.4k polys', format: 'Rigged GLTF', thumb: '🐬' },
-  { id: 'm3', name: 'Siberian Tiger Avatar', poly: '112k polys', format: 'PBR Textures', thumb: '🐅' },
-  { id: 'm4', name: 'Sumatran Elephant Mesh', poly: '95k polys', format: 'LOD 0-3', thumb: '🐘' },
+  { id: 'wolf', name: 'Fenrir the Wolf Rig', poly: '84.2k polys', format: 'GLB / USDZ', thumb: '🐺', path: '/models/Wolf/WOLF_ADULT.glb' },
+  { id: 'elephant', name: 'Ganesha Elephant Mesh', poly: '95.0k polys', format: 'GLB / USDZ', thumb: '🐘', path: '/models/Elephant/ELEPHANT_ADULT.glb' },
+  { id: 'giraffe', name: 'Twiga Giraffe Rig', poly: '78.5k polys', format: 'GLB / USDZ', thumb: '🦒', path: '/models/Giraffe/GIRAFFE_ADULT.glb' },
+  { id: 'tiger', name: 'Sher Tiger Rig', poly: '112.0k polys', format: 'GLB / USDZ', thumb: '🐅', path: '/models/Tiger/TIGER_ADULT.glb' },
+  { id: 'leopard', name: 'Pardus Leopard Rig', poly: '92.4k polys', format: 'GLB / USDZ', thumb: '🐆', path: '/models/Leopard/LEOPARD_ADULT.glb' },
+  { id: 'rhino', name: 'Kifaru Rhino Mesh', poly: '88.0k polys', format: 'GLB / USDZ', thumb: '🦏', path: '/models/Rhino/RHINO_ADULT.glb' },
+  { id: 'hippo', name: 'Kiboko Hippo Mesh', poly: '76.0k polys', format: 'GLB / USDZ', thumb: '🦛', path: '/models/Hippo/HIPPO_ADULT.glb' },
+  { id: 'egg_fire', name: 'Fire Origin Egg', poly: '48.2k polys', format: 'GLB / USDZ', thumb: '🔥', path: '/models/Eggs/FireEgg.glb' },
+  { id: 'egg_earth', name: 'Earth Origin Egg', poly: '48.2k polys', format: 'GLB / USDZ', thumb: '🌍', path: '/models/Eggs/EarthEgg.glb' },
+  { id: 'egg_water', name: 'Water Origin Egg', poly: '48.2k polys', format: 'GLB / USDZ', thumb: '💧', path: '/models/Eggs/WaterEgg.glb' },
 ]
 
 export default function ThreeDEditorPage() {
@@ -218,6 +224,7 @@ export default function ThreeDEditorPage() {
         poly: '64.0k polys',
         format: 'GLB / USDZ',
         thumb: '✨',
+        path: '/models/Wolf/WOLF_ADULT.glb',
       }
       setSelectedModel(newModel)
     }, 1800)

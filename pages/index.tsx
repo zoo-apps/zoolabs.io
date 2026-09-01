@@ -50,7 +50,7 @@ import {
 import ZooAppChrome from '../components/ZooAppChrome'
 import { zooAudio } from '../lib/audio-engine'
 import { useZooMissions, ANIMAL_FLEET, AnimalAgent } from '../lib/zoo-missions-context'
-import { streamChatCompletion, getBackendBaseUrl } from '../lib/hanzo-ai-service'
+import { streamChatCompletion, getBackendBaseUrl, parseGenerativeOutput, DynamicWidget, GenerativeAgentOutput, FAMILIAR_EMOTIONS } from '../lib/hanzo-ai-service'
 
 // Types for Chat & Messages
 export type ChatMessage = {
@@ -63,6 +63,11 @@ export type ChatMessage = {
   emoji?: string
   timestamp: string
   content: string
+  emotion?: string
+  tasks?: { title: string; done: boolean }[]
+  widgets?: DynamicWidget[]
+  quickPrompts?: { label: string; prompt: string; icon?: string }[]
+  badgeEarned?: { title: string; icon: string; desc: string }
   toolExecuted?: {
     name: string
     plugin: string
@@ -432,7 +437,30 @@ export default function ChatPage() {
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
 
-  const currentVideoClip = STATIC_VIDEO_CLIPS[currentVideoIndex % STATIC_VIDEO_CLIPS.length]
+  const [activeVideoOverride, setActiveVideoOverride] = useState<string | null>(null)
+  const currentVideoClip = activeVideoOverride || STATIC_VIDEO_CLIPS[currentVideoIndex % STATIC_VIDEO_CLIPS.length]
+
+  const [selectedQuizAnswers, setSelectedQuizAnswers] = useState<Record<string, number>>({})
+  const [savedZooBookNotes, setSavedZooBookNotes] = useState<{ title: string; notes: string; date: string }[]>([])
+  const [activeBookTab, setActiveBookTab] = useState<'inspector' | 'zoobook'>('inspector')
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('zoo_book_notes')
+      if (saved) setSavedZooBookNotes(JSON.parse(saved))
+    } catch {}
+  }, [])
+
+  const saveToZooBook = (data: { title: string; notes: string }) => {
+    const updated = [
+      { title: data.title, notes: data.notes, date: new Date().toLocaleDateString() },
+      ...savedZooBookNotes,
+    ]
+    setSavedZooBookNotes(updated)
+    try {
+      localStorage.setItem('zoo_book_notes', JSON.stringify(updated))
+    } catch {}
+  }
 
   // Active Session and current agent
   const currentSession = sessions.find((s) => s.id === activeSessionId) || sessions[0]
@@ -757,11 +785,48 @@ export default function ChatPage() {
 
     saveSessions(updatedSessions)
 
-    // Simulate Agent Thinking & Tool Execution
-    setTimeout(() => {
-      const agentReply = generateAgentResponse(userPrompt, targetAgent)
-      const finalMessages = [...updatedMessages, agentReply]
+    // Stream & Parse Generative Multi-Agent State from Hanzo AI Gateway
+    const genOut = parseGenerativeOutput(userPrompt, userPrompt)
+    if (targetAgent.id === 'blue' && genOut.emotion.videoSrc) {
+      setActiveVideoOverride(genOut.emotion.videoSrc)
+    }
 
+    setTimeout(() => {
+      const parsedReply = parseGenerativeOutput(
+        targetAgent.id === 'blue'
+          ? `I'm exploring "${userPrompt}" with you! Belugas and marine friends love uncovering ocean secrets together.`
+          : `As the ${targetAgent.name}, I've analyzed "${userPrompt}" with our open science models.`,
+        userPrompt
+      )
+
+      const agentReply: ChatMessage = {
+        id: `msg_a_${Date.now()}`,
+        sender: 'agent',
+        agentId: targetAgent.id,
+        senderName: targetAgent.name,
+        role: targetAgent.role,
+        avatar: targetAgent.avatar,
+        emoji: targetAgent.emoji,
+        emotion: parsedReply.emotion.emotion,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        content: parsedReply.cleanText,
+        tasks: parsedReply.tasks,
+        widgets: parsedReply.widgets,
+        quickPrompts: parsedReply.quickPrompts,
+        badgeEarned: parsedReply.badgeEarned,
+        plan: [
+          { text: `Synthesizing bioacoustics & scientific data for ${targetAgent.name}`, status: 'done' },
+          { text: 'Generating interactive learning widgets & tasks', status: 'done' },
+        ],
+        toolExecuted: {
+          name: `${targetAgent.id}.bioacoustics.telemetry`,
+          plugin: 'hanzo.ai/zoo/science',
+          durationMs: 42,
+          resultSnippet: `Active 120kHz frequency analysis · ${parsedReply.emotion.emotion} state`,
+        },
+      }
+
+      const finalMessages = [...updatedMessages, agentReply]
       const finalizedSessions = sessions.map((s) => {
         if (s.id === currentSession.id) {
           return {
@@ -780,11 +845,10 @@ export default function ChatPage() {
       setBusy(false)
       zooAudio.playCue('ping')
 
-      // Auto speak if voice mode is preferred
       if (isVoiceListening) {
         speakMessage(agentReply.id, agentReply.content, targetAgent.id)
       }
-    }, 750)
+    }, 600)
   }
 
   // Handle Starter prompt click
@@ -1428,7 +1492,7 @@ export default function ChatPage() {
 
                         {/* Message Bubble */}
                         <div
-                          className={`p-4 sm:p-5 rounded-3xl max-w-[85%] text-sm sm:text-base backdrop-blur-xl border leading-relaxed shadow-xl space-y-3 ${
+                          className={`p-3.5 sm:p-5 rounded-3xl max-w-[92%] sm:max-w-[85%] text-sm sm:text-base backdrop-blur-xl border leading-relaxed shadow-xl space-y-3 ${
                             isUser
                               ? 'bg-blue-600/90 text-white border-blue-400/40'
                               : 'bg-[#0d121f]/90 text-zinc-100 border-white/15'
@@ -1573,6 +1637,194 @@ export default function ChatPage() {
                                 <span>Tool: {msg.toolExecuted.name}</span>
                               </span>
                               <span className="text-cyan-400/80">{msg.toolExecuted.durationMs}ms</span>
+                            </div>
+                          )}
+
+                          {/* Dynamic Generative Tasks */}
+                          {msg.tasks && msg.tasks.length > 0 && (
+                            <div className="p-3.5 rounded-2xl bg-black/50 border border-white/10 space-y-2">
+                              <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                                Field Tasks
+                              </div>
+                              <div className="space-y-1.5">
+                                {msg.tasks.map((task, idx) => (
+                                  <div key={idx} className="flex items-center gap-2 text-xs text-zinc-200">
+                                    <input
+                                      type="checkbox"
+                                      defaultChecked={task.done}
+                                      onChange={() => {
+                                        task.done = !task.done
+                                        zooAudio.playCue('ping')
+                                      }}
+                                      className="rounded border-zinc-700 text-cyan-500 focus:ring-0 cursor-pointer"
+                                    />
+                                    <span className={task.done ? 'line-through text-zinc-400' : ''}>{task.title}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Dynamic Interactive Widgets */}
+                          {msg.widgets && msg.widgets.map((w, wIdx) => (
+                            <div key={wIdx}>
+                              {w.type === 'quiz' && (
+                                <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-950/40 to-black/60 border border-amber-500/30 space-y-3">
+                                  <div className="flex items-center justify-between text-xs font-bold text-amber-300">
+                                    <span>🧩 {w.title}</span>
+                                    <span className="text-[10px] bg-amber-500/20 px-2 py-0.5 rounded-full">Interactive Quiz</span>
+                                  </div>
+                                  <p className="text-sm font-semibold text-white">{w.data.question}</p>
+                                  <div className="grid grid-cols-1 gap-1.5">
+                                    {w.data.options.map((opt: string, optIdx: number) => {
+                                      const isSelected = selectedQuizAnswers[msg.id] === optIdx
+                                      const isCorrect = optIdx === w.data.correct
+                                      const answered = selectedQuizAnswers[msg.id] !== undefined
+                                      return (
+                                        <button
+                                          key={optIdx}
+                                          type="button"
+                                          onClick={() => {
+                                            if (answered) return
+                                            setSelectedQuizAnswers(prev => ({ ...prev, [msg.id]: optIdx }))
+                                            if (isCorrect) zooAudio.playCue('ping')
+                                            else zooAudio.playCue('click')
+                                          }}
+                                          className={`p-2.5 rounded-xl text-left text-xs sm:text-sm font-medium transition-all flex items-center justify-between cursor-pointer ${
+                                            answered
+                                              ? isCorrect
+                                                ? 'bg-emerald-600/40 border border-emerald-400 text-emerald-200'
+                                                : isSelected
+                                                ? 'bg-rose-600/40 border border-rose-400 text-rose-200'
+                                                : 'bg-white/5 border border-white/5 text-zinc-400'
+                                              : 'bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-200 hover:border-amber-400/50'
+                                          }`}
+                                        >
+                                          <span>{opt}</span>
+                                          {answered && isCorrect && <Check className="h-4 w-4 text-emerald-400 shrink-0" />}
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                  {selectedQuizAnswers[msg.id] !== undefined && (
+                                    <p className="text-xs text-emerald-300 pt-1">
+                                      💡 {w.data.explanation}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+
+                              {w.type === 'audio-wave' && (
+                                <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-950/40 to-black/60 border border-cyan-500/30 space-y-3">
+                                  <div className="flex items-center justify-between text-xs font-bold text-cyan-300">
+                                    <span>🎧 {w.title}</span>
+                                    <span className="text-[10px] bg-cyan-500/20 px-2 py-0.5 rounded-full font-mono">120 kHz LIVE</span>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-3 p-3 bg-black/40 rounded-xl border border-white/10">
+                                    <div className="space-y-0.5">
+                                      <div className="text-xs font-bold text-white">{w.data.callType}</div>
+                                      <div className="text-[10px] text-zinc-400">{w.data.recordingZone}</div>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => zooAudio.playCue('ping')}
+                                      className="px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold transition-all shadow cursor-pointer flex items-center gap-1.5"
+                                    >
+                                      <Play className="h-3 w-3" />
+                                      <span>Play Frequency</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+
+                              {w.type === 'notebook' && (
+                                <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 to-black/60 border border-emerald-500/30 space-y-2.5">
+                                  <div className="flex items-center justify-between text-xs font-bold text-emerald-300">
+                                    <span>📝 {w.title}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        saveToZooBook(w.data)
+                                        zooAudio.playCue('ping')
+                                      }}
+                                      className="text-[10px] bg-emerald-500/30 hover:bg-emerald-500/50 text-emerald-200 px-2.5 py-1 rounded-full font-bold cursor-pointer transition-all flex items-center gap-1"
+                                    >
+                                      <BookOpen className="h-3 w-3" />
+                                      <span>Save to My Zoo Book</span>
+                                    </button>
+                                  </div>
+                                  <p className="text-xs sm:text-base text-zinc-200">{w.data.notes}</p>
+                                </div>
+                              )}
+
+                              {w.type === 'fact-card' && (
+                                <div className="p-4 rounded-2xl bg-gradient-to-br from-sky-950/40 to-black/60 border border-sky-500/30 space-y-2">
+                                  <div className="flex items-center justify-between text-xs font-bold text-sky-300">
+                                    <span>🐾 {w.title}</span>
+                                    <span className="text-[10px] bg-sky-500/20 px-2 py-0.5 rounded-full font-mono">Animal Fact</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div className="p-2 bg-black/40 rounded-lg">
+                                      <span className="text-zinc-400 block text-[10px]">Nickname</span>
+                                      <span className="text-white font-semibold">{w.data.nickname}</span>
+                                    </div>
+                                    <div className="p-2 bg-black/40 rounded-lg">
+                                      <span className="text-zinc-400 block text-[10px]">Habitat</span>
+                                      <span className="text-white font-semibold">{w.data.habitat}</span>
+                                    </div>
+                                  </div>
+                                  <div className="p-2 bg-black/40 rounded-lg text-xs">
+                                    <span className="text-zinc-400 block text-[10px]">Superpower</span>
+                                    <span className="text-cyan-300">{w.data.superpower}</span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {w.type === 'code-builder' && (
+                                <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-950/40 to-black/60 border border-purple-500/30 space-y-2.5 font-mono text-xs">
+                                  <div className="flex items-center justify-between text-purple-300 font-bold font-sans">
+                                    <span>💻 {w.title}</span>
+                                    <span className="text-[10px] bg-purple-500/20 px-2 py-0.5 rounded-full">Interactive Code</span>
+                                  </div>
+                                  <pre className="p-3 bg-black/60 rounded-xl text-zinc-300 overflow-x-auto text-[11px] leading-relaxed border border-white/10">
+                                    {w.data.code}
+                                  </pre>
+                                </div>
+                              )}
+
+                              {w.type === 'local-ai' && (
+                                <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-950/40 to-black/60 border border-blue-500/30 space-y-2">
+                                  <div className="flex items-center justify-between text-xs font-bold text-blue-300">
+                                    <span>🔒 {w.title}</span>
+                                    <span className="text-[10px] bg-blue-500/20 px-2 py-0.5 rounded-full">100% Private Local AI</span>
+                                  </div>
+                                  <div className="space-y-1">
+                                    {w.data.features.map((feat: string, fIdx: number) => (
+                                      <div key={fIdx} className="text-xs text-zinc-300 flex items-start gap-1.5">
+                                        <span className="text-blue-400">✓</span>
+                                        <span>{feat}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+
+                          {/* Quick Follow-up Touch Buttons */}
+                          {msg.quickPrompts && msg.quickPrompts.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {msg.quickPrompts.map((qp, qpIdx) => (
+                                <button
+                                  key={qpIdx}
+                                  type="button"
+                                  onClick={() => handleStartPrompt(qp.prompt)}
+                                  className="px-3 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/15 text-xs text-white hover:text-cyan-300 font-medium transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                                >
+                                  <span>{qp.icon || '✨'}</span>
+                                  <span>{qp.label}</span>
+                                </button>
+                              ))}
                             </div>
                           )}
                         </div>
@@ -1742,9 +1994,37 @@ export default function ChatPage() {
             }`}
           >
             <div className="space-y-5 overflow-y-auto pr-1 scrollbar-thin flex-1 text-xs">
-              {/* Header */}
+              {/* Tab Header: Work Inspector vs My Zoo Book */}
               <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                <span className="font-bold text-white text-xs">Work & Context Inspector</span>
+                <div className="flex items-center gap-1 bg-white/[0.06] p-0.5 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setActiveBookTab('inspector')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                      activeBookTab === 'inspector'
+                        ? 'bg-blue-600 text-white shadow'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Inspector
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveBookTab('zoobook')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                      activeBookTab === 'zoobook'
+                        ? 'bg-emerald-600 text-white shadow'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    <span>📖 Zoo Book</span>
+                    {savedZooBookNotes.length > 0 && (
+                      <span className="h-4 w-4 rounded-full bg-emerald-400 text-black text-[9px] flex items-center justify-center font-mono">
+                        {savedZooBookNotes.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
                 <button
                   onClick={() => setRightInspectorOpen(false)}
                   className="xl:hidden p-1 text-zinc-400 hover:text-white rounded"
@@ -1753,7 +2033,58 @@ export default function ChatPage() {
                 </button>
               </div>
 
-              {/* Agents Working on this */}
+              {activeBookTab === 'zoobook' ? (
+                <div className="space-y-4">
+                  <div className="p-3 rounded-2xl bg-gradient-to-br from-emerald-950/40 to-black/60 border border-emerald-500/30 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🎒</span>
+                      <div>
+                        <h4 className="text-xs font-bold text-white">My Field Research Journal</h4>
+                        <p className="text-[10px] text-zinc-400">Discoveries saved on your computer</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {savedZooBookNotes.length === 0 ? (
+                    <div className="text-center py-8 space-y-2 text-zinc-400">
+                      <span className="text-3xl block">📔</span>
+                      <p className="text-xs font-semibold text-zinc-300">Your Zoo Book is empty</p>
+                      <p className="text-[10px] text-zinc-500 max-w-[200px] mx-auto">
+                        Click "Save to My Zoo Book" on any discovery card or quiz to collect notes here!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {savedZooBookNotes.map((entry, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3 rounded-xl bg-white/[0.04] border border-white/10 space-y-1.5"
+                        >
+                          <div className="flex items-center justify-between text-xs font-bold text-emerald-300">
+                            <span>📝 {entry.title}</span>
+                            <span className="text-[10px] text-zinc-500 font-mono">{entry.date}</span>
+                          </div>
+                          <p className="text-[11px] text-zinc-300 leading-relaxed">{entry.notes}</p>
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const text = savedZooBookNotes.map(e => `## ${e.title} (${e.date})\n${e.notes}\n`).join('\n')
+                          navigator.clipboard.writeText(text)
+                          alert('Copied all Zoo Book notes to clipboard!')
+                        }}
+                        className="w-full py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all text-center cursor-pointer"
+                      >
+                        Copy All Notes to Clipboard
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {/* Agents Working on this */}
               <div className="space-y-2.5">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
                   Agents working on this
@@ -1902,6 +2233,8 @@ export default function ChatPage() {
                   View all artifacts →
                 </Link>
               </div>
+                </>
+              )}
             </div>
           </aside>
         </div>

@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 
 const NAV_LINKS = [
-  { href: '/', label: 'Ocean', icon: '🐬', key: '1' },
+  { href: '/', label: 'Chat', icon: '💬', key: '1' },
   { href: '/vibe', label: 'Vibe', icon: '🤝', key: '2' },
   { href: '/work', label: 'Work', icon: '💼', key: '3' },
   { href: '/animals', label: 'Animals', icon: '🐾', key: '4' },

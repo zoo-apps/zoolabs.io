@@ -55,7 +55,7 @@ const EGG_TIERS: EggTier[] = [
     title: 'Endangered Species Egg',
     price: '$15 / one-time',
     speciesCount: '1,500+ Species Pool',
-    conservationShare: '82% to Real Wildlife',
+    conservationShare: 'Donation to Wildlife Included',
     tierName: 'RARE TIER',
     emoji: '🥚',
     bgGradient: 'radial-gradient(circle at 50% 0%, rgba(234, 88, 12, 0.15), transparent 70%), #121214',
@@ -63,7 +63,7 @@ const EGG_TIERS: EggTier[] = [
     features: [
       'Hatch Siberian Tiger, Amur Leopard, or Rhino',
       'Deterministic DNA traits & animal voice',
-      '82% directly funds sanctuary acoustic sensors',
+      'Directly funds sanctuary acoustic sensors',
       'Animated habitat background video in /vibe',
     ],
   },
@@ -72,7 +72,7 @@ const EGG_TIERS: EggTier[] = [
     title: 'Sublime Origin Egg',
     price: '$49 / one-time',
     speciesCount: 'Apex & Mythic Familiars',
-    conservationShare: '82% to Real Wildlife',
+    conservationShare: 'Donation to Wildlife Included',
     tierName: 'SUBLIME TIER',
     emoji: '✨',
     bgGradient: 'radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.15), transparent 70%), #121214',
@@ -89,7 +89,7 @@ const EGG_TIERS: EggTier[] = [
     title: 'Sanctuary Master Sponsor',
     price: '$199 / one-time',
     speciesCount: 'Sanctuary Node Sponsor',
-    conservationShare: '82% to Real Wildlife',
+    conservationShare: 'Donation to Wildlife Included',
     tierName: 'MASTER TIER',
     emoji: '👑',
     bgGradient: 'radial-gradient(circle at 50% 0%, rgba(234, 179, 8, 0.15), transparent 70%), #121214',
@@ -361,7 +361,7 @@ export default function MintPage() {
               <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-1 text-xs">
                 <div className="flex justify-between text-zinc-400"><span>Animal:</span><span className="text-white font-bold">{checkoutModal.title}</span></div>
                 <div className="flex justify-between text-zinc-400"><span>Price:</span><span className="text-blue-400 font-bold">{checkoutModal.price}</span></div>
-                <div className="flex justify-between text-emerald-400 pt-1 border-t border-white/5 font-semibold"><span>82% Wildlife Allocation:</span><span>Included</span></div>
+                <div className="flex justify-between text-emerald-400 pt-1 border-t border-white/5 font-semibold"><span>Wildlife Conservation Donation:</span><span>Included (zoo.ngo)</span></div>
               </div>
 
               <form onSubmit={handleSquareCheckout} className="space-y-3">

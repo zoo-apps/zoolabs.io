@@ -13,6 +13,7 @@ import {
   HelpCircle,
   Building,
   CheckCircle2,
+  ExternalLink,
 } from 'lucide-react'
 import ZooAppChrome from '../components/ZooAppChrome'
 
@@ -65,7 +66,7 @@ const PRICING_PLANS = [
       '10 Team Seats with shared Slack/Linear workboard',
       'Direct hydrophone 120kHz raw telemetry stream',
       'Shared persistent Zoo Cloud code sandbox',
-      '82% of subscription revenue to sanctuary fund',
+      'Donations directly supporting wildlife sanctuaries',
       '5 Custom animal familiar avatar models',
       'Dedicated Slack & priority email support',
     ],
@@ -249,22 +250,33 @@ export default function PricingPage() {
           {/* Conservation Commitment Banner */}
           <div className="rounded-3xl border border-white/10 bg-gradient-to-r from-[#18181B] via-blue-950/20 to-[#18181B] p-8 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-2 max-w-xl">
-              <div className="flex items-center gap-2 text-xs font-bold text-blue-400 uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 uppercase tracking-wider">
                 <Shield className="h-4 w-4" />
-                <span>82% Real Wildlife Conservation Allocation</span>
+                <span>Direct Wildlife Conservation Donations</span>
               </div>
               <h3 className="text-xl font-extrabold text-white">Direct Wildlife Sanctuary Impact</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                82% of all Zoo Labs subscription revenues fund real-time acoustic sensors, GPS tracking collars, and anti-poaching camera arrays in IUCN protected zones worldwide.
+                We donate proceeds directly to real-time acoustic sensors, GPS tracking collars, and anti-poaching camera arrays in protected wildlife reserves worldwide.
               </p>
             </div>
 
-            <button
-              onClick={() => handleStartCheckout(PRICING_PLANS[1])}
-              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 active:scale-95 transition-all cursor-pointer"
-            >
-              Buy Plus Plan ($19)
-            </button>
+            <div className="flex items-center gap-3">
+              <a
+                href="https://zoo.ngo"
+                target="_blank"
+                rel="noreferrer"
+                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold text-xs active:scale-95 transition-all flex items-center gap-1.5"
+              >
+                <span>Donate at zoo.ngo</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+              <button
+                onClick={() => handleStartCheckout(PRICING_PLANS[1])}
+                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 active:scale-95 transition-all cursor-pointer"
+              >
+                Buy Plus Plan ($19)
+              </button>
+            </div>
           </div>
         </main>
 
@@ -295,8 +307,8 @@ export default function PricingPage() {
                   <span className="text-lg font-black text-blue-400">{checkoutPlan.price} / month</span>
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-zinc-500 pt-1 border-t border-white/5">
-                  <span>Wildlife Fund Donation (82%):</span>
-                  <span className="text-emerald-400 font-semibold">Included</span>
+                  <span>Wildlife Sanctuary Donation:</span>
+                  <span className="text-emerald-400 font-semibold">Included (zoo.ngo)</span>
                 </div>
               </div>
 

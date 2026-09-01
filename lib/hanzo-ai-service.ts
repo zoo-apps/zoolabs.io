@@ -166,8 +166,8 @@ function generateIntelligentResponse(messages: ChatMessage[]): string {
   if (lastMsg.includes('3d') || lastMsg.includes('mesh') || lastMsg.includes('model')) {
     return "Zoo 3D generates rigged GLTF/GLB models and Gaussian splats with procedural PBR materials ready for WebGL viewport rendering and game engines."
   }
-  if (lastMsg.includes('501c3') || lastMsg.includes('foundation') || lastMsg.includes('nonprofit')) {
-    return "Zoo Labs Foundation Inc. is a registered 501(c)(3) scientific research organization (EIN: 88-3538992). 82% of all subscription and sponsorship proceeds directly fund physical anti-poaching acoustic sensors and GPS tracking collars in IUCN Red List protected reserves."
+  if (lastMsg.includes('501c3') || lastMsg.includes('foundation') || lastMsg.includes('nonprofit') || lastMsg.includes('donate')) {
+    return "Zoo Labs Foundation Inc. is a registered 501(c)(3) scientific research organization (EIN: 88-3538992). We donate proceeds directly to physical anti-poaching acoustic sensors, GPS tracking collars, and wildlife reserves. You can also make direct tax-deductible donations at https://zoo.ngo."
   }
 
   return `I have processed "${messages[messages.length - 1]?.content}" across the Zoo AI gateway. Everything is operational: our 24/7 MicroVM bots are active, your /vibe workspace is live, and all bioacoustic telemetry streams are verified at 120kHz.`

@@ -83,7 +83,7 @@ const INITIAL_ISSUES: Issue[] = [
   },
   {
     id: 'ZOO-103',
-    title: 'Build quadratic voting module for 82% wildlife conservation fund',
+    title: 'Build quadratic voting module for wildlife conservation grant fund',
     status: 'todo',
     priority: 'high',
     assignee: { name: 'You (Host)', avatar: '🧑‍💻', type: 'human' },
@@ -127,7 +127,7 @@ const CHANNELS = [
   { id: 'general', name: 'general', desc: 'Pod announcements and general collaboration' },
   { id: 'ocean-telemetry', name: 'ocean-telemetry', desc: 'Live hydrophone & bioacoustics stream' },
   { id: 'origin-eggs', name: 'origin-eggs', desc: 'NFT genetic traits and smart contract minting' },
-  { id: 'dao-governance', name: 'dao-governance', desc: '82% conservation proposals & quadratic votes' },
+  { id: 'dao-governance', name: 'dao-governance', desc: 'Conservation proposals & quadratic voting' },
   { id: 'sandbox-dev', name: 'sandbox-dev', desc: 'Durable microVM task dispatch and debugging' },
 ]
 

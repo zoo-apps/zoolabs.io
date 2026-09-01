@@ -12,9 +12,12 @@ const TABS = [
   { href: '/research', label: 'Research' },
 ]
 
+// Resources, all of them live and all of them ours.
 const LINKS = [
+  ['Docs', 'https://docs.zoo.ngo'],
   ['Papers', 'https://papers.zoo.ngo'],
   ['Proposals', 'https://zips.zoo.ngo'],
+  ['Gym', 'https://gym.zoo.ngo'],
   ['Code', 'https://github.com/zooai'],
   ['Foundation', 'https://zoo.ngo'],
 ]

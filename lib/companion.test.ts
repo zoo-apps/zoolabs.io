@@ -40,3 +40,11 @@ test('a half-arrived tag stays hidden while streaming', () => {
   assert.equal(visible('Sound moves faster in water.\n\n[feeli'), 'Sound moves faster in water.')
   assert.equal(visible('Sound moves faster in water.'), 'Sound moves faster in water.')
 })
+
+test('what gets read aloud drops the scaffolding, not the sentence', async () => {
+  const { sayable } = await import('./voice.ts')
+  assert.equal(sayable('**Calves** are grey.'), 'Calves are grey.')
+  assert.equal(sayable('See https://zoo.ngo for more.'), 'See for more.')
+  assert.equal(sayable('Try this:\n```js\nconst a = 1\n```\nDone.'), 'Try this: Done.')
+  assert.equal(sayable('   '), '')
+})

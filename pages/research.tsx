@@ -82,13 +82,13 @@ export default function Research() {
           />
         </XStack>
 
-        {problem && (
+        {problem ? (
           <div role="alert">
             <Panel borderColor={BRAND.red}>
               <Paragraph>{problem}</Paragraph>
             </Panel>
           </div>
-        )}
+        ) : null}
 
         {!corpus && !problem && <Paragraph>Loading the corpus…</Paragraph>}
 

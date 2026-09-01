@@ -1,11 +1,12 @@
 import Head from 'next/head'
 import { useEffect, useRef, useState } from 'react'
-import { H1, Paragraph, XStack, YStack } from '@hanzo/ui'
+import { H1, Paragraph, Strong, XStack, YStack } from '@hanzo/ui'
 import Chrome from '../components/Chrome'
 import Companion from '../components/Companion'
 import { BRAND, Label, Panel, Press } from '../components/kit'
 import { reply, type Message } from '../lib/chat'
 import { OPENERS, read, systemPrompt, visible, type Feeling } from '../lib/companion'
+import { hush, say } from '../lib/voice'
 
 type Turn = { role: 'user' | 'assistant'; text: string }
 
@@ -32,6 +33,7 @@ export default function Ask() {
   const [thinking, setThinking] = useState(false)
   const [feeling, setFeeling] = useState<Feeling | null>(null)
   const [problem, setProblem] = useState('')
+  const [voice, setVoice] = useState(false)
   const tail = useRef<HTMLDivElement>(null)
 
   // Follow the conversation as it grows — but not on first paint, or the page
@@ -55,6 +57,7 @@ export default function Ask() {
     setDraft('')
     setProblem('')
     setThinking(true)
+    hush()
 
     let buffer = ''
     try {
@@ -65,6 +68,7 @@ export default function Ask() {
       const { text, feeling: felt } = read(buffer)
       setTurns((t) => [...t, { role: 'assistant', text }])
       if (felt) setFeeling(felt)
+      if (voice) say(text)
     } catch (err) {
       setProblem(err instanceof Error ? err.message : String(err))
     } finally {
@@ -85,9 +89,18 @@ export default function Ask() {
 
       <XStack flexWrap="wrap" gap="$6" maxW={1120} width="100%" mx="auto" px="$4" py="$5" items="flex-start">
         <YStack width="100%" $sm={{ width: 300 }} gap="$3">
-          <Companion feeling={feeling} thinking={thinking} />
+          <Companion
+            feeling={feeling}
+            thinking={thinking}
+            voice={voice}
+            onVoice={(on) => {
+              setVoice(on)
+              if (!on) hush()
+              else if (turns.length) say(turns[turns.length - 1].text)
+            }}
+          />
           <Paragraph fontSize={14}>
-            <Paragraph fontWeight="800">Blue</Paragraph> is a beluga whale and a marine
+            <Strong>Blue</Strong> is a beluga whale and a marine
             scientist. Blue answers in plain words, says when something is uncertain, and
             never makes up a number.
           </Paragraph>
@@ -142,16 +155,16 @@ export default function Ask() {
             </article>
           ))}
 
-          {streaming && (
+          {streaming ? (
             <article>
               <Panel gap="$2">
                 <Label color={BRAND.magenta}>Blue</Label>
                 <Paragraph whiteSpace="pre-wrap">{streaming}</Paragraph>
               </Panel>
             </article>
-          )}
+          ) : null}
 
-          {problem && (
+          {problem ? (
             <div role="alert">
               <Panel borderColor={BRAND.red} gap="$2">
                 <Label color={BRAND.red}>Blue could not answer</Label>
@@ -161,7 +174,7 @@ export default function Ask() {
                 </Paragraph>
               </Panel>
             </div>
-          )}
+          ) : null}
 
           <div ref={tail} />
 

@@ -4,9 +4,11 @@
    copy of the semantic block is how two sites drift a shade apart with nobody
    editing anything.
 
-   Zen comes with them: `tokens/fonts.css` ships the variable woff2 files and
-   declares the faces, so there is no font loader and nothing to bind. */
-@import '@hanzo/design/tokens/fonts.css';
+   Zen comes from `@hanzo/font`, which is where the family is authored. It is
+   the FIRST rule in the file on purpose: CSS drops an @import that does not
+   precede every other rule, so a face declared later in a flattened sheet never
+   loads. */
+@import '@hanzo/font/css';
 @import '@hanzo/design/tokens/colors.css';
 @import '@hanzo/design/tokens/typography.css';
 @import '@hanzo/design/tokens/spacing.css';

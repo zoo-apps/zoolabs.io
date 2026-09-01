@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import {
@@ -22,19 +22,94 @@ import ZooAppChrome from '../components/ZooAppChrome'
 import { getBackendBaseUrl } from '../lib/hanzo-ai-service'
 
 const STEM_TRACKS = [
-  { id: 't1', name: 'Beluga Bioacoustic 120kHz', color: '#3B82F6', level: 85, muted: false, solo: false },
-  { id: 't2', name: 'Arctic Ocean Sub-Bass', color: '#8B5CF6', level: 70, muted: false, solo: false },
-  { id: 't3', name: 'Glacier Resonant Pad', color: '#EC4899', level: 60, muted: false, solo: false },
-  { id: 't4', name: 'Hydrophone Click Percussion', color: '#10B981', level: 75, muted: false, solo: false },
-  { id: 't5', name: 'Whale Call Harmonics', color: '#F59E0B', level: 90, muted: false, solo: false },
+  { id: 't1', name: 'Neural Ambient Pad', color: '#3B82F6', level: 85, freq: 220, muted: false },
+  { id: 't2', name: 'Sub-Bass Oscillator', color: '#8B5CF6', level: 70, freq: 55, muted: false },
+  { id: 't3', name: 'Generative Chord Drone', color: '#EC4899', level: 60, freq: 330, muted: false },
+  { id: 't4', name: 'Algorithmic Pulse Arp', color: '#10B981', level: 75, freq: 440, muted: false },
+  { id: 't5', name: 'High Harmonics Shimmer', color: '#F59E0B', level: 90, freq: 880, muted: false },
 ]
 
 export default function MusicStudioPage() {
-  const [prompt, setPrompt] = useState('Deep ocean ambient meditation with authentic Beluga whale echolocation chirps and sub-bass hydrophone pulses')
+  const [prompt, setPrompt] = useState('Atmospheric generative ambient soundscape with warm analog sub-bass, neural pads, and evolving spatial shimmer')
   const [bpm, setBpm] = useState(110)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [tracks, setTracks] = useState(STEM_TRACKS)
+  const [waveformTick, setWaveformTick] = useState(0)
+
+  // Web Audio Context & Oscillators
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const nodesRef = useRef<Map<string, { osc: OscillatorNode; gain: GainNode }>>(new Map())
+
+  // Waveform animation loop
+  useEffect(() => {
+    if (!isPlaying) return
+    const interval = setInterval(() => {
+      setWaveformTick((t) => (t + 1) % 1000)
+    }, 80)
+    return () => clearInterval(interval)
+  }, [isPlaying])
+
+  const stopAudio = () => {
+    try {
+      nodesRef.current.forEach(({ osc }) => {
+        try { osc.stop() } catch {}
+      })
+      nodesRef.current.clear()
+      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+        audioCtxRef.current.suspend()
+      }
+    } catch {}
+  }
+
+  const startAudio = () => {
+    try {
+      if (!audioCtxRef.current) {
+        const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+        audioCtxRef.current = new AudioCtx()
+      }
+      if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume()
+      }
+
+      stopAudio()
+
+      const ctx = audioCtxRef.current
+      tracks.forEach((track) => {
+        if (track.muted) return
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+
+        osc.type = track.id === 't2' ? 'triangle' : track.id === 't4' ? 'sawtooth' : 'sine'
+        osc.frequency.setValueAtTime(track.freq, ctx.currentTime)
+
+        // Low volume ambient mixing
+        gain.gain.setValueAtTime((track.level / 100) * 0.05, ctx.currentTime)
+
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start()
+
+        nodesRef.current.set(track.id, { osc, gain })
+      })
+    } catch {}
+  }
+
+  const togglePlayback = () => {
+    if (isPlaying) {
+      stopAudio()
+      setIsPlaying(false)
+    } else {
+      startAudio()
+      setIsPlaying(true)
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      stopAudio()
+    }
+  }, [])
 
   const handleGenerateMusic = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,8 +125,8 @@ export default function MusicStudioPage() {
         body: JSON.stringify({
           model: 'zen-musicfx',
           messages: [
-            { role: 'system', content: 'You are Hanzo MusicFX Bioacoustics audio generator.' },
-            { role: 'user', content: `Generate stems for: ${prompt}, BPM: ${bpm}` },
+            { role: 'system', content: 'You are Hanzo MusicFX audio generator.' },
+            { role: 'user', content: `Generate audio stems for: ${prompt}, BPM: ${bpm}` },
           ],
         }),
       })
@@ -61,21 +136,34 @@ export default function MusicStudioPage() {
 
     setTimeout(() => {
       setIsGenerating(false)
-      setIsPlaying(true)
-    }, 1600)
+      if (!isPlaying) {
+        startAudio()
+        setIsPlaying(true)
+      }
+    }, 1500)
   }
 
   const toggleMute = (id: string) => {
     setTracks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, muted: !t.muted } : t))
+      prev.map((t) => {
+        if (t.id === id) {
+          const newMuted = !t.muted
+          const existing = nodesRef.current.get(id)
+          if (existing && audioCtxRef.current) {
+            existing.gain.gain.setValueAtTime(newMuted ? 0 : (t.level / 100) * 0.05, audioCtxRef.current.currentTime)
+          }
+          return { ...t, muted: newMuted }
+        }
+        return t
+      })
     )
   }
 
   return (
     <>
       <Head>
-        <title>Zoo Flow — AI Music & Bioacoustics DAW</title>
-        <meta name="description" content="Generate multi-track bioacoustic wildlife audio and music stems powered by Hanzo AI." />
+        <title>Zoo Flow — AI Music & Generative Audio DAW</title>
+        <meta name="description" content="Generate multi-track neural audio stems and soundscapes powered by Hanzo AI." />
       </Head>
 
       <div className="relative h-screen w-screen overflow-hidden bg-[#0A0A0C] text-white font-sans flex flex-col select-none">
@@ -88,13 +176,13 @@ export default function MusicStudioPage() {
               <div className="space-y-1.5">
                 <span className="font-bold flex items-center gap-1 text-blue-400 uppercase tracking-wider text-[10px]">
                   <Sparkles className="h-3 w-3" />
-                  <span>Bioacoustic Prompt</span>
+                  <span>Neural Audio Prompt</span>
                 </span>
                 <textarea
                   rows={4}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe your musical vibe, instruments, and bioacoustic elements..."
+                  placeholder="Describe your musical vibe, instruments, chords, and sound design..."
                   className="w-full rounded-2xl bg-black/60 border border-white/10 p-3 text-xs text-white outline-none focus:border-blue-500 placeholder:text-zinc-600 resize-none leading-relaxed"
                 />
               </div>
@@ -127,16 +215,16 @@ export default function MusicStudioPage() {
                 ) : (
                   <>
                     <Wand2 className="h-3.5 w-3.5" />
-                    <span>Generate Bioacoustic Track</span>
+                    <span>Generate Audio Stems</span>
                   </>
                 )}
               </button>
             </form>
 
             <div className="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-1 text-[11px]">
-              <span className="text-zinc-400 font-semibold">120kHz Hydrophone Stream</span>
+              <span className="text-zinc-400 font-semibold">Web Audio Neural Synthesizer</span>
               <p className="text-zinc-500 text-[10px] leading-relaxed">
-                Raw ultrasonic acoustic telemetry integrated into neural audio synthesis.
+                Real-time Web Audio API multi-oscillator synthesis running in your browser.
               </p>
             </div>
           </aside>
@@ -147,47 +235,55 @@ export default function MusicStudioPage() {
             <div className="p-4 rounded-2xl bg-[#121214] border border-white/10 flex items-center justify-between text-xs">
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setIsPlaying(!isPlaying)}
-                  className="h-10 w-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+                  onClick={togglePlayback}
+                  className="h-10 w-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-lg shadow-white/10"
                 >
                   {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
                 </button>
                 <div className="font-mono">
-                  <p className="text-sm font-bold text-white">01:24.8 / 03:40.0</p>
-                  <p className="text-[10px] text-zinc-400">44.1 kHz • 24-bit Lossless FLAC</p>
+                  <p className="text-sm font-bold text-white">
+                    {isPlaying ? 'LIVE SYNTHESIS ACTIVE' : 'TRANSPORT PAUSED'}
+                  </p>
+                  <p className="text-[10px] text-zinc-400">48.0 kHz • 32-bit Float • Web Audio Engine</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-mono font-bold">
-                  ● 5 STEMS SYNCED
+                <span className={`text-[10px] px-2.5 py-1 rounded-full font-mono font-bold ${
+                  isPlaying ? 'bg-emerald-500/20 text-emerald-300 animate-pulse' : 'bg-zinc-800 text-zinc-400'
+                }`}>
+                  ● {tracks.filter((t) => !t.muted).length} / {tracks.length} STEMS AUDIBLE
                 </span>
               </div>
             </div>
 
             {/* Stems Tracks List */}
             <div className="flex-1 space-y-3 overflow-y-auto pr-2">
-              {tracks.map((track) => (
+              {tracks.map((track, trackIdx) => (
                 <div
                   key={track.id}
-                  className="p-4 rounded-2xl bg-[#121214] border border-white/10 flex items-center justify-between gap-4"
+                  className="p-4 rounded-2xl bg-[#121214] border border-white/10 flex items-center justify-between gap-4 transition-colors hover:border-white/20"
                 >
                   <div className="w-56 shrink-0">
-                    <h4 className="text-xs font-bold text-white truncate">{track.name}</h4>
-                    <p className="text-[10px] text-zinc-500 font-mono">Channel {track.id.toUpperCase()}</p>
+                    <h4 className="text-xs font-bold text-white truncate flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: track.color }} />
+                      <span>{track.name}</span>
+                    </h4>
+                    <p className="text-[10px] text-zinc-500 font-mono">{track.freq} Hz • Channel {track.id.toUpperCase()}</p>
                   </div>
 
                   {/* Waveform Simulator Bars */}
                   <div className="flex-1 flex items-center gap-1 h-8 overflow-hidden">
                     {Array.from({ length: 48 }).map((_, i) => {
-                      const h = isPlaying && !track.muted ? Math.max(15, (Math.sin(i * 0.4 + Date.now() * 0.005) * 50 + 50)) : 20
+                      const wave = Math.sin((i + waveformTick + trackIdx * 10) * 0.3) * 0.5 + 0.5
+                      const h = isPlaying && !track.muted ? Math.max(15, Math.round(wave * 90)) : 15
                       return (
                         <div
                           key={i}
                           style={{
                             height: `${h}%`,
                             backgroundColor: track.muted ? '#27272A' : track.color,
-                            opacity: track.muted ? 0.3 : 0.8,
+                            opacity: track.muted ? 0.2 : 0.85,
                           }}
                           className="flex-1 rounded-full transition-all duration-75"
                         />
@@ -199,9 +295,10 @@ export default function MusicStudioPage() {
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => toggleMute(track.id)}
-                      className={`p-2 rounded-xl text-xs font-bold transition-colors ${
-                        track.muted ? 'bg-red-500/20 text-red-400' : 'bg-white/5 text-zinc-300 hover:text-white'
+                      className={`p-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        track.muted ? 'bg-red-500/20 text-red-400' : 'bg-white/5 text-zinc-300 hover:text-white hover:bg-white/15'
                       }`}
+                      title={track.muted ? 'Unmute Track' : 'Mute Track'}
                     >
                       {track.muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                     </button>

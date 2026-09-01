@@ -27,7 +27,7 @@ const NAV_LINKS = [
   { href: '/', label: 'Ocean', icon: '🐬', key: '1' },
   { href: '/vibe', label: 'Vibe', icon: '🤝', key: '2' },
   { href: '/work', label: 'Work', icon: '💼', key: '3' },
-  { href: '/mint', label: 'Animals & Eggs', icon: '🥚', key: '4' },
+  { href: '/animals', label: 'Animals', icon: '🐾', key: '4' },
   { href: '/video', label: 'Video', icon: '🎬', key: '5' },
   { href: '/music', label: 'Music', icon: '🎵', key: '6' },
   { href: '/design', label: 'Design', icon: '🎨', key: '7' },

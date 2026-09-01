@@ -29,8 +29,6 @@ type AnimalModelTier = {
   conservationShare: string
   tierName: string
   emoji: string
-  bgGradient: string
-  borderColor: string
   features: string[]
   isFree?: boolean
 }
@@ -46,8 +44,6 @@ const MODEL_TIERS: AnimalModelTier[] = [
     conservationShare: '100% Free Open Source',
     tierName: 'FREE TIER',
     emoji: '🐬',
-    bgGradient: 'radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.15), transparent 70%), #121214',
-    borderColor: '#3B82F6',
     features: [
       'Instant unlock of Blue the Beluga',
       'Emotionally intelligent bioacoustics model',
@@ -61,11 +57,9 @@ const MODEL_TIERS: AnimalModelTier[] = [
     modelTag: 'Zen4-Omni 32B Multimodal',
     price: '$15 / one-time',
     speciesCount: '1,500+ Species Pool',
-    conservationShare: 'Donation to Wildlife Included',
+    conservationShare: 'Direct Wildlife Allocation',
     tierName: 'RARE TIER',
     emoji: '🐅',
-    bgGradient: 'radial-gradient(circle at 50% 0%, rgba(234, 88, 12, 0.15), transparent 70%), #121214',
-    borderColor: '#EA580C',
     features: [
       'Siberian Tiger, Amur Leopard, or Sumatran Rhino',
       'Vocalization synthesis & species neural voice',
@@ -79,11 +73,9 @@ const MODEL_TIERS: AnimalModelTier[] = [
     modelTag: 'Zen4-Ultra 480B MoE',
     price: '$49 / one-time',
     speciesCount: 'Apex & Deep Ocean Familiars',
-    conservationShare: 'Donation to Wildlife Included',
+    conservationShare: 'Direct Wildlife Allocation',
     tierName: 'SUBLIME TIER',
     emoji: '✨',
-    bgGradient: 'radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.15), transparent 70%), #121214',
-    borderColor: '#A855F7',
     features: [
       'Apex predators & deep ocean leviathans',
       'Autonomous multi-agent research & reasoning',
@@ -97,11 +89,9 @@ const MODEL_TIERS: AnimalModelTier[] = [
     modelTag: 'Edge Sensor Mesh + Telemetry',
     price: '$199 / one-time',
     speciesCount: 'Sanctuary Hardware Node Sponsor',
-    conservationShare: 'Donation to Wildlife Included',
+    conservationShare: 'Direct Wildlife Allocation',
     tierName: 'MASTER TIER',
     emoji: '👑',
-    bgGradient: 'radial-gradient(circle at 50% 0%, rgba(234, 179, 8, 0.15), transparent 70%), #121214',
-    borderColor: '#EAB308',
     features: [
       'Name & sponsor a real hydrophone/GPS node',
       'Direct 120kHz live acoustic telemetry feed',
@@ -118,9 +108,10 @@ export default function AnimalsPage() {
 
   const handleActivate = (tier: AnimalModelTier) => {
     setSelectedTier(tier)
-  }
-
-  const confirmActivation = () => {
+    if (tier.isFree) {
+      setSuccess(true)
+      return
+    }
     setIsProcessing(true)
     setTimeout(() => {
       setIsProcessing(false)
@@ -129,7 +120,7 @@ export default function AnimalsPage() {
   }
 
   return (
-    <div style={{ backgroundColor: '#0A0A0C', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-sans, "Zen", system-ui, sans-serif)' }}>
+    <div className="bg-background text-white min-h-screen flex flex-col font-sans relative overflow-x-hidden">
       <Head>
         <title>Frontier AI Animal Familiars & Conservation Models — Zoo Labs</title>
         <meta
@@ -138,441 +129,233 @@ export default function AnimalsPage() {
         />
       </Head>
 
+      <div className="glow-backdrop" />
       <ZooAppChrome />
 
-      <main style={{ maxWidth: '1280px', width: '100%', margin: '0 auto', padding: '40px 24px 80px', display: 'flex', flexDirection: 'column', gap: '48px' }}>
-        {/* Header Banner */}
-        <section style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '6px 14px',
-              borderRadius: '9999px',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              fontSize: '12px',
-              color: 'rgba(255, 255, 255, 0.8)',
-              letterSpacing: '0.02em',
-            }}
-          >
-            <Radio style={{ width: '14px', height: '14px', color: '#3B82F6' }} />
-            <span>Frontier Bioacoustic AI Ecosystem &middot; 1,500+ Endangered Species</span>
+      <main className="container py-12 flex flex-col gap-12 relative z-10">
+        {/* Header Hero */}
+        <section className="text-center flex flex-col items-center gap-4 max-w-3xl mx-auto">
+          <div className="pill">
+            <Radio className="h-3.5 w-3.5 text-blue-400" />
+            <span>Frontier Bioacoustic AI Ecosystem · 1,500+ Endangered Species</span>
           </div>
 
-          <h1
-            style={{
-              fontSize: 'clamp(28px, 4.5vw, 48px)',
-              fontWeight: 800,
-              lineHeight: 1.15,
-              letterSpacing: '-0.03em',
-              maxWidth: '850px',
-              margin: '0',
-            }}
-          >
+          <h1 className="display-chrome text-4xl md:text-6xl font-bold tracking-tight">
             Unlock Animal Familiars & Sponsor Wildlife Sanctuaries
           </h1>
 
-          <p
-            style={{
-              fontSize: '16px',
-              color: 'rgba(255, 255, 255, 0.65)',
-              maxWidth: '680px',
-              lineHeight: 1.6,
-              margin: '0',
-            }}
-          >
+          <p className="text-secondary text-base md:text-lg leading-relaxed max-w-2xl">
             Blue the Beluga is 100% free for everyone. Unlock rare endangered species companions with deterministic
             bioacoustic models and directly support anti-poaching hydrophone arrays worldwide.
           </p>
 
-          <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+          <div className="flex flex-wrap gap-3 mt-2 justify-center">
             <Link
               href="https://zoo.ngo/donation"
               target="_blank"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 20px',
-                borderRadius: '12px',
-                background: '#10B981',
-                color: '#000',
-                fontWeight: 600,
-                fontSize: '13px',
-                textDecoration: 'none',
-              }}
+              className="action"
+              data-fill
             >
-              <Heart style={{ width: '14px', height: '14px' }} />
+              <Heart className="h-4 w-4 text-emerald-600" />
               <span>Donate Directly at zoo.ngo ↗</span>
             </Link>
             <Link
               href="/vibe"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 20px',
-                borderRadius: '12px',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                color: '#fff',
-                fontWeight: 600,
-                fontSize: '13px',
-                textDecoration: 'none',
-              }}
+              className="action"
             >
-              <Sparkles style={{ width: '14px', height: '14px' }} />
-              <span>Launch /vibe Playground</span>
+              <span>Launch 3-Column Vibe Room &rarr;</span>
             </Link>
           </div>
         </section>
 
-        {/* 4 Model Tiers in CSS Grid */}
-        <section
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-            gap: '24px',
-            width: '100%',
-          }}
-        >
-          {MODEL_TIERS.map((tier) => (
-            <div
-              key={tier.id}
-              style={{
-                background: tier.bgGradient,
-                border: `1px solid ${tier.borderColor}40`,
-                borderRadius: '24px',
-                padding: '28px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                gap: '24px',
-                boxShadow: '0px 16px 32px rgba(0, 0, 0, 0.5)',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '32px' }}>{tier.emoji}</span>
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      padding: '4px 8px',
-                      borderRadius: '6px',
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: `1px solid ${tier.borderColor}60`,
-                      color: tier.borderColor,
-                    }}
-                  >
-                    {tier.tierName}
-                  </span>
-                </div>
+        {/* 4-Tier Grid */}
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {MODEL_TIERS.map((tier) => {
+            const isFeatured = tier.id === 'model_endangered'
 
-                <div>
-                  <h3 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 4px 0' }}>{tier.title}</h3>
-                  <div style={{ fontSize: '12px', color: '#3B82F6', fontWeight: 600, marginBottom: '8px' }}>
-                    {tier.modelTag}
-                  </div>
-                  <div style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-0.02em' }}>{tier.price}</div>
-                </div>
-
-                {/* Pool & Impact Details */}
-                <div
-                  style={{
-                    background: 'rgba(0, 0, 0, 0.35)',
-                    padding: '12px',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px',
-                    fontSize: '12px',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>Pool:</span>
-                    <span style={{ fontWeight: 600 }}>{tier.speciesCount}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>Impact:</span>
-                    <span style={{ color: '#10B981', fontWeight: 600 }}>{tier.conservationShare}</span>
-                  </div>
-                </div>
-
-                {/* Features */}
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {tier.features.map((feat, idx) => (
-                    <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'rgba(255, 255, 255, 0.85)' }}>
-                      <Check style={{ width: '15px', height: '15px', color: tier.borderColor, flexShrink: 0, marginTop: '2px' }} />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <button
-                onClick={() => handleActivate(tier)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  background: tier.isFree ? 'rgba(255, 255, 255, 0.1)' : tier.borderColor,
-                  color: tier.isFree ? '#FFFFFF' : '#000000',
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  transition: 'opacity 0.2s',
-                }}
+            return (
+              <div
+                key={tier.id}
+                className={`card p-6 flex flex-col justify-between relative transition-all ${
+                  isFeatured ? 'border-strong' : ''
+                }`}
               >
-                <span>{tier.isFree ? 'Activated (Included)' : `Activate ${tier.title}`}</span>
-                <ArrowRight style={{ width: '16px', height: '16px' }} />
-              </button>
-            </div>
-          ))}
+                {isFeatured && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <span className="badge badge-warm uppercase tracking-wide">
+                      Most Popular
+                    </span>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-3xl">{tier.emoji}</span>
+                    <span className="pill text-xs">
+                      {tier.tierName}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-white mb-1">{tier.title}</h3>
+                    <p className="text-xs font-mono text-zinc-400">{tier.modelTag}</p>
+                  </div>
+
+                  <div className="border-b border-white/10 pb-4">
+                    <div className="text-2xl font-black text-white">{tier.price}</div>
+                    <div className="text-xs text-secondary mt-1 flex items-center gap-1">
+                      <Heart className="h-3 w-3 text-emerald-400" />
+                      <span>{tier.conservationShare}</span>
+                    </div>
+                  </div>
+
+                  <ul className="space-y-2.5 text-xs text-secondary">
+                    {tier.features.map((feat, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <Check className="h-3.5 w-3.5 text-blue-400 shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="pt-6">
+                  <button
+                    onClick={() => handleActivate(tier)}
+                    className="action w-full"
+                    data-fill={isFeatured ? true : undefined}
+                  >
+                    <span>{tier.isFree ? 'Adopt Free in /vibe' : `Activate ${tier.title.split(' ')[0]}`}</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
         </section>
 
-        {/* Real Wildlife Conservation Sensor Stream Section */}
-        <section
-          style={{
-            background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(18, 18, 20, 0.6) 100%)',
-            border: '1px solid rgba(16, 185, 129, 0.25)',
-            borderRadius: '24px',
-            padding: '36px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '32px',
-            alignItems: 'center',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10B981', fontSize: '13px', fontWeight: 700 }}>
-              <Globe style={{ width: '18px', height: '18px' }} />
-              <span>Real-World 501(c)(3) Conservation Deployment</span>
+        {/* Live Bioacoustic Sensor Mesh Status */}
+        <section className="card p-8 space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
+            <div>
+              <div className="pill mb-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                <span>Sanctuary Mesh Telemetry</span>
+              </div>
+              <h2 className="text-2xl font-bold text-white">Live Bioacoustic Sensor Arrays</h2>
+              <p className="text-sm text-secondary mt-1">
+                Funded by Zoo Labs and autonomous community familiars across marine & terrestrial sanctuaries.
+              </p>
             </div>
-            <h2 style={{ fontSize: '24px', fontWeight: 800, margin: 0 }}>
-              Every Model Unlock Directly Sponsors Sanctuary Telemetry
-            </h2>
-            <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.6, margin: 0 }}>
-              Zoo Labs donates proceeds directly to the Zoo Foundation 501(c)(3) to deploy bioacoustic hydrophones,
-              high-frequency camera traps, and GPS telemetry nodes in protected reserves across the Arctic, Farallon Islands,
-              and Sumatra.
-            </p>
-            <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
-              <div>
-                <div style={{ fontSize: '24px', fontWeight: 800, color: '#10B981' }}>847+</div>
-                <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)' }}>Species Monitored</div>
+            <div className="flex gap-4">
+              <div className="p-3 rounded-2xl bg-black/40 border border-white/5 text-center">
+                <div className="text-xl font-bold text-white">48 Nodes</div>
+                <div className="text-xs text-zinc-500">Live Active</div>
               </div>
-              <div style={{ width: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
-              <div>
-                <div style={{ fontSize: '24px', fontWeight: 800, color: '#3B82F6' }}>120 kHz</div>
-                <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)' }}>Raw Hydrophone Audio</div>
-              </div>
-              <div style={{ width: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
-              <div>
-                <div style={{ fontSize: '24px', fontWeight: 800, color: '#EAB308' }}>100%</div>
-                <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)' }}>Open Bioacoustics Data</div>
+              <div className="p-3 rounded-2xl bg-black/40 border border-white/5 text-center">
+                <div className="text-xl font-bold text-emerald-400">120 kHz</div>
+                <div className="text-xs text-zinc-500">Sampling Rate</div>
               </div>
             </div>
           </div>
 
-          <div
-            style={{
-              background: '#09090B',
-              borderRadius: '16px',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              padding: '24px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <div style={{ fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Radio style={{ width: '16px', height: '16px', color: '#10B981' }} />
-              <span>Live Sanctuary Sensor Telemetry</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-white text-sm">Arctic Cetacean Hydrophones</span>
+                <span className="badge badge-online">99.8% Uptime</span>
+              </div>
+              <p className="text-xs text-secondary leading-relaxed">
+                Detecting beluga echolocation & bowhead whale acoustic vocalizations in real-time.
+              </p>
             </div>
-            <div style={{ fontFamily: 'var(--font-mono, "Zen Mono", monospace)', fontSize: '12px', color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.7 }}>
-              <div>&gt; NODE_ARCTIC_04: 120kHz Hydrophone Online</div>
-              <div>&gt; SPECIES_DETECT: Delphinapterus leucas (Confidence 99.4%)</div>
-              <div>&gt; LAT/LON: 71.2906&deg; N, 156.7886&deg; W</div>
-              <div>&gt; NEURAL_INFERENCE: Zen4-Bioacoustic-Edge v1.4</div>
-              <div style={{ color: '#10B981' }}>&gt; STATUS: Live stream active &bull; 0 packet loss</div>
+
+            <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-white text-sm">Sumatran Rainforest Canopy</span>
+                <span className="badge badge-online">99.4% Uptime</span>
+              </div>
+              <p className="text-xs text-secondary leading-relaxed">
+                Anti-poaching microphone arrays triangulating tiger calls and chainsaw acoustics.
+              </p>
             </div>
-            <Link
-              href="https://zoo.ngo/impact"
-              target="_blank"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '10px',
-                borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.08)',
-                color: '#fff',
-                fontSize: '12px',
-                fontWeight: 600,
-                textDecoration: 'none',
-              }}
-            >
-              <span>Explore All Sanctuary Nodes on zoo.ngo ↗</span>
-            </Link>
+
+            <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-white text-sm">Galapagos Marine Sanctuary</span>
+                <span className="badge badge-online">100% Uptime</span>
+              </div>
+              <p className="text-xs text-secondary leading-relaxed">
+                Tracking hammerhead shark migration rhythms and commercial vessel acoustics.
+              </p>
+            </div>
           </div>
         </section>
       </main>
 
-      {/* Activation Checkout Modal */}
+      {/* Activation Modal */}
       {selectedTier && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.8)',
-            backdropFilter: 'blur(12px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
-          }}
-          onClick={() => {
-            setSelectedTier(null)
-            setSuccess(false)
-          }}
-        >
-          <div
-            style={{
-              background: '#121214',
-              border: `1px solid ${selectedTier.borderColor}`,
-              borderRadius: '24px',
-              maxWidth: '480px',
-              width: '100%',
-              padding: '32px',
-              boxShadow: '0 24px 48px rgba(0, 0, 0, 0.8)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '20px',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {success ? (
-              <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                <div style={{ fontSize: '48px' }}>🎉</div>
-                <h3 style={{ fontSize: '22px', fontWeight: 800 }}>Model Activated Successfully!</h3>
-                <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.7)', margin: 0 }}>
-                  <strong>{selectedTier.title}</strong> is now available in your active agent roster and /vibe multi-agent sandbox.
-                </p>
-                <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '12px' }}>
-                  <Link
-                    href="/vibe"
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      borderRadius: '12px',
-                      background: '#3B82F6',
-                      color: '#fff',
-                      fontWeight: 700,
-                      fontSize: '14px',
-                      textAlign: 'center',
-                      textDecoration: 'none',
-                    }}
-                  >
-                    Open /vibe
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setSelectedTier(null)
-                      setSuccess(false)
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      borderRadius: '12px',
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      color: '#fff',
-                      fontWeight: 700,
-                      fontSize: '14px',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Close
-                  </button>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="card w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{selectedTier.emoji}</span>
+                <h3 className="text-base font-bold text-white">{selectedTier.title}</h3>
               </div>
-            ) : (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '32px' }}>{selectedTier.emoji}</span>
-                    <div>
-                      <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>{selectedTier.title}</h3>
-                      <div style={{ fontSize: '12px', color: '#3B82F6' }}>{selectedTier.modelTag}</div>
-                    </div>
-                  </div>
-                  <div style={{ fontSize: '22px', fontWeight: 800 }}>{selectedTier.price}</div>
-                </div>
+              <button
+                onClick={() => {
+                  setSelectedTier(null)
+                  setSuccess(false)
+                }}
+                className="text-zinc-400 hover:text-white cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
 
-                <div
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    fontSize: '13px',
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Model Activation:</span>
-                    <span style={{ fontWeight: 600 }}>{selectedTier.title}</span>
+            {!success ? (
+              <div className="space-y-4">
+                <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-zinc-400">Model:</span>
+                    <span className="font-mono text-white">{selectedTier.modelTag}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Wildlife Conservation Donation:</span>
-                    <span style={{ color: '#10B981', fontWeight: 600 }}>Included (zoo.ngo)</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Compute Infrastructure:</span>
-                    <span style={{ fontWeight: 600 }}>Hanzo Cloud GPU MicroVM</span>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-zinc-400">Contribution:</span>
+                    <span className="font-bold text-emerald-400">{selectedTier.price}</span>
                   </div>
                 </div>
 
                 <button
-                  onClick={confirmActivation}
+                  onClick={() => handleActivate(selectedTier)}
                   disabled={isProcessing}
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    borderRadius: '12px',
-                    background: selectedTier.borderColor,
-                    color: '#000000',
-                    fontWeight: 700,
-                    fontSize: '15px',
-                    border: 'none',
-                    cursor: isProcessing ? 'wait' : 'pointer',
-                    opacity: isProcessing ? 0.7 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                  }}
+                  className="action w-full"
+                  data-fill
+                  style={{ minHeight: '44px' }}
                 >
-                  {isProcessing ? 'Activating Neural Weights...' : selectedTier.isFree ? 'Activate Free Model' : `Complete Activation (${selectedTier.price})`}
+                  {isProcessing ? 'Connecting to Zoo Cloud...' : `Confirm & Activate`}
                 </button>
-              </>
+              </div>
+            ) : (
+              <div className="space-y-4 text-center py-4">
+                <div className="h-12 w-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-xl">
+                  ✓
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-white">{selectedTier.title} Activated!</h4>
+                  <p className="text-xs text-secondary mt-1">
+                    Your companion is now active in your /vibe workspace and telemetry streams.
+                  </p>
+                </div>
+                <Link
+                  href="/vibe"
+                  className="action w-full"
+                  data-fill
+                  style={{ minHeight: '44px' }}
+                >
+                  Enter /vibe Workspace &rarr;
+                </Link>
+              </div>
             )}
           </div>
         </div>

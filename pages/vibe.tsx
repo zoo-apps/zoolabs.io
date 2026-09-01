@@ -3,43 +3,32 @@ import Head from 'next/head'
 import Link from 'next/link'
 import {
   ArrowLeft,
-  Edit2,
-  Square,
-  Play,
-  Share2,
   Users,
-  Tv,
-  BookOpen,
-  Folder,
-  MessageCircle,
-  Settings,
-  PanelRight,
-  PanelLeft,
-  Plus,
-  ArrowUp,
-  RotateCw,
-  X,
-  Copy,
-  Check,
-  Smile,
   Terminal as TerminalIcon,
   ChevronDown,
-  ExternalLink,
-  Code2,
-  Sparkles,
-  Heart,
-  ThumbsUp,
-  Box,
-  Rotate3d,
-  Layers,
+  Check,
+  Send,
+  MessageSquare,
   Activity,
+  Box,
+  RotateCcw,
+  Sliders,
+  Share2,
+  Cpu,
+  Monitor,
   Maximize2,
-  Eye,
-  Wand2,
+  Play,
+  Pause,
+  Rotate3d,
+  PanelLeft,
+  PanelRight,
+  Filter,
+  Copy,
+  Bot,
 } from 'lucide-react'
 import ZooAppChrome from '../components/ZooAppChrome'
 import ZooLogo from '../components/ZooLogo'
-import { getBackendBaseUrl, streamChatCompletion, ChatMessage } from '../lib/hanzo-ai-service'
+import { streamChatCompletion, ChatMessage, getBackendBaseUrl } from '../lib/hanzo-ai-service'
 
 type VibeRoom = {
   id: string
@@ -58,21 +47,21 @@ const VIBE_ROOMS: VibeRoom[] = [
     id: 'ocean-genesis-room',
     name: 'Ocean Deep Dive (Genesis Pod)',
     icon: '🐬',
-    desc: '120kHz underwater acoustics & Blue the Beluga familiar',
+    desc: 'Sovereign frontier AI research & Blue the Beluga familiar',
     habitatVideo: '/bg_video/static/relactation0.mp4',
     familiar: 'Blue the Beluga',
-    model3D: 'Beluga Whale Avatar Rig',
+    model3D: 'Beluga Whale Rig',
     activeUsers: 3,
     activeBots: 2,
   },
   {
     id: 'arctic-tundra-sanctuary',
-    name: 'Arctic Tundra & Forest Sanctuary',
+    name: 'Arctic Tundra Sanctuary',
     icon: '🐅',
-    desc: 'Siberian Tiger pod & wildlife telemetry sensors',
+    desc: 'Siberian Tiger pod & high-throughput neural inference',
     habitatVideo: '/bg_video/static/relactation2.mp4',
     familiar: 'Siberian Tiger',
-    model3D: 'Siberian Tiger Companion',
+    model3D: 'Siberian Tiger Avatar',
     activeUsers: 5,
     activeBots: 3,
   },
@@ -80,10 +69,10 @@ const VIBE_ROOMS: VibeRoom[] = [
     id: 'sumatra-rainforest-lab',
     name: 'Sumatran Rainforest Research Lab',
     icon: '🐘',
-    desc: 'Bioacoustic species tracking & acoustic AI models',
+    desc: 'Zoo Gym reinforcement learning & vision diffusion models',
     habitatVideo: '/bg_video/static/relactation3.mp4',
     familiar: 'Sumatran Elephant',
-    model3D: 'Sumatran Elephant Sensor Node',
+    model3D: 'Sumatran Elephant Mesh',
     activeUsers: 8,
     activeBots: 4,
   },
@@ -91,38 +80,53 @@ const VIBE_ROOMS: VibeRoom[] = [
     id: 'amur-leopard-station',
     name: 'Amur Leopard Mountain Station',
     icon: '🐆',
-    desc: 'Anti-poaching camera traps & vision diffusion models',
+    desc: 'PoUW AI mining clusters & real-time reasoning models',
     habitatVideo: '/bg_video/emotion/Playful.mp4',
     familiar: 'Amur Leopard',
-    model3D: 'Origin Endangered Egg 3D',
+    model3D: 'Origin Crystalline Egg',
     activeUsers: 4,
     activeBots: 2,
   },
 ]
 
-type TeammateMessage = {
+type CollaborativeFeedItem = {
   id: string
-  sender: string
-  avatar: string
-  time: string
-  content: string
+  kind: 'teammate_message' | 'agent_turn'
+  timestamp: string
+  sender?: {
+    name: string
+    avatar: string
+    color: string
+    isBot?: boolean
+  }
+  content?: string
   reactions?: { emoji: string; count: number }[]
   poll?: {
     question: string
     options: { text: string; votes: number }[]
     voted?: number
   }
-}
-
-type AgentTurn = {
-  id: string
-  user: { name: string; handle: string; time: string; avatar: string; model: string }
-  prompt: string
-  agent: { name: string; time: string; avatar: string }
+  user?: {
+    name: string
+    avatar: string
+    model: string
+  }
+  prompt?: string
+  agent?: {
+    name: string
+    avatar: string
+  }
   thought?: string
-  toolCalls?: { type: 'Bash' | 'Write' | 'Edit' | 'AskUserQuestion'; cmd?: string; target?: string; duration?: string }[]
-  response: string
-  stats?: { model: string; totalTime: string; modelTime: string; cost: string; files: string; lines: string }
+  toolCalls?: { type: 'Bash' | 'Write' | 'Edit' | 'Search'; cmd?: string; target?: string; duration?: string }[]
+  response?: string
+  stats?: {
+    model: string
+    totalTime: string
+    modelTime: string
+    cost: string
+    files: string
+    lines: string
+  }
 }
 
 export default function VibeRoomPage() {
@@ -133,69 +137,72 @@ export default function VibeRoomPage() {
   const [copiedLink, setCopiedLink] = useState(false)
   const [agentStatus, setAgentStatus] = useState<'idle' | 'working'>('idle')
   const [busy, setBusy] = useState(false)
-  const [previewKey, setPreviewKey] = useState(0)
   const [previewUpdated, setPreviewUpdated] = useState(false)
-  const [mobileTab, setMobileTab] = useState<'stream' | 'stage' | 'chat'>('stage')
+  const [filterMode, setFilterMode] = useState<'all' | 'agents' | 'chat'>('all')
 
   const [showLeftSidebar, setShowLeftSidebar] = useState(true)
-  const [showRightSidebar, setShowRightSidebar] = useState(true)
+  const [showRightSidebar, setShowRightSidebar] = useState(false)
 
-  // 3D Metaverse Controls
   const [mesh3DRotation, setMesh3DRotation] = useState(1)
   const [wireframe3D, setWireframe3D] = useState(false)
 
-  // Agent Conversation turns
-  const [agentInput, setAgentInput] = useState('')
-  const [agentTurns, setAgentTurns] = useState<AgentTurn[]>([
+  const [feedInput, setFeedInput] = useState('')
+  const [feedItems, setFeedItems] = useState<CollaborativeFeedItem[]>([
     {
-      id: 'turn_0',
+      id: 'f_1',
+      kind: 'teammate_message',
+      timestamp: '6:39 PM',
+      sender: { name: 'Richard Kaminsky', avatar: 'R', color: '#3B82F6' },
+      content: "Hey team! I'm in the Genesis Pod room. Let's build out the new sovereign AI interface.",
+      reactions: [{ emoji: '🔥', count: 2 }],
+    },
+    {
+      id: 'f_2',
+      kind: 'agent_turn',
+      timestamp: '6:40 PM',
       user: {
         name: 'demo-user',
-        handle: '@demo-user',
-        time: '6:40 PM',
         avatar: 'D',
-        model: 'ZenLM 3',
+        model: 'Zen 5',
       },
-      prompt: 'Hey Blue, can you build us a landing page with the swimming whale in the center and Origin Eggs metadata?',
+      prompt: 'Hey Blue, can you inspect the repository and build us a responsive habitat preview with real-time audio controls?',
       agent: {
-        name: 'Blue (ZenLM)',
-        time: '6:40 PM',
+        name: 'Blue (Zen 5)',
         avatar: '🐬',
       },
-      thought: "I'll take a quick look at the repository to see what files and video assets we have available.",
+      thought: "Analyzing repository architecture and audio stem synthesizers in Zoo Cloud microVM...",
       toolCalls: [
-        { type: 'Bash', cmd: 'ls -la && find . -maxdepth 2 -not -path "./.git*" | head -50', duration: '' },
-        { type: 'Write', target: 'index.html', duration: '66s' },
-        { type: 'Edit', target: 'pages/index.tsx', duration: '12s' },
+        { type: 'Bash', cmd: 'ls -la && find . -maxdepth 2 | head -30', duration: '0.4s' },
+        { type: 'Write', target: 'pages/index.tsx', duration: '1.2s' },
       ],
-      response: "I've structured the responsive full-viewport canvas with double-buffered video players and monochrome glass controls. Press Preview to see it in your browser!",
+      response: "I've wired the Web Audio synthesizer and Canvas 3D projection engine directly to the stage. You can now toggle between 2D live habitat and 3D metaverse in real-time!",
       stats: {
-        model: 'ZenLM 3',
-        totalTime: '146.0s total',
-        modelTime: '120.0s model',
-        cost: '$0.0485',
-        files: '4 files',
-        lines: '+293 -3',
+        model: 'Zen 5',
+        totalTime: '1.8s',
+        modelTime: '1.4s',
+        cost: '$0.00',
+        files: '2 files',
+        lines: '+48 -2',
       },
     },
-  ])
-
-  // Group chat for human teammates
-  const [groupInput, setGroupInput] = useState('')
-  const [groupMessages, setGroupMessages] = useState<TeammateMessage[]>([
-    { id: 'gm_1', sender: 'Richard Kaminsky', avatar: 'R', time: '6:39 PM', content: "Hey what's up team!" },
-    { id: 'gm_2', sender: 'demo-user', avatar: 'D', time: '6:39 PM', content: "Let's get some work done! Check out the ocean preview on the center canvas.", reactions: [{ emoji: '❤️', count: 1 }] },
-    { id: 'gm_3', sender: 'Richard Kaminsky', avatar: 'R', time: '6:44 PM', content: 'Dude, awesome preview! The whale swimming in the center looks super clean.', reactions: [{ emoji: '🔥', count: 2 }] },
     {
-      id: 'gm_4',
-      sender: 'Richard Kaminsky',
-      avatar: 'R',
-      time: '6:45 PM',
-      content: 'Should we add the 120kHz bioacoustic telemetry graph too?',
+      id: 'f_3',
+      kind: 'teammate_message',
+      timestamp: '6:42 PM',
+      sender: { name: 'Sarah Chen', avatar: 'S', color: '#10B981' },
+      content: 'The 3D Canvas orbit engine is working super smoothly now!',
+      reactions: [{ emoji: '❤️', count: 3 }],
+    },
+    {
+      id: 'f_4',
+      kind: 'teammate_message',
+      timestamp: '6:44 PM',
+      sender: { name: 'Richard Kaminsky', avatar: 'R', color: '#3B82F6' },
+      content: 'Quick poll: should we add live GPU cluster telemetry to the right inspector pane?',
       poll: {
-        question: 'Should we add the 120kHz bioacoustic telemetry graph too?',
+        question: 'Should we add live GPU cluster telemetry to the right inspector pane?',
         options: [
-          { text: 'Yes, full sensor array', votes: 3 },
+          { text: 'Yes, full cluster metrics', votes: 4 },
           { text: 'No, keep it minimal', votes: 0 },
         ],
         voted: 0,
@@ -203,112 +210,122 @@ export default function VibeRoomPage() {
     },
   ])
 
-  const agentScrollerRef = useRef<HTMLDivElement>(null)
-  const groupScrollerRef = useRef<HTMLDivElement>(null)
+  const feedScrollerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    agentScrollerRef.current?.scrollTo({ top: agentScrollerRef.current.scrollHeight, behavior: 'smooth' })
-  }, [agentTurns])
+    feedScrollerRef.current?.scrollTo({ top: feedScrollerRef.current.scrollHeight, behavior: 'smooth' })
+  }, [feedItems])
 
-  useEffect(() => {
-    groupScrollerRef.current?.scrollTo({ top: groupScrollerRef.current.scrollHeight, behavior: 'smooth' })
-  }, [groupMessages])
-
-  const handleSendAgentPrompt = async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!agentInput.trim() || busy) return
+    if (!feedInput.trim() || busy) return
 
-    const text = agentInput.trim()
-    setAgentInput('')
-    setBusy(true)
-    setAgentStatus('working')
+    const text = feedInput.trim()
+    setFeedInput('')
 
-    const newTurn: AgentTurn = {
-      id: `turn_${Date.now()}`,
-      user: {
-        name: 'demo-user',
-        handle: '@demo-user',
-        time: 'Just now',
-        avatar: 'D',
-        model: 'ZenLM 3',
-      },
-      prompt: text,
-      agent: {
-        name: `${activeRoom.familiar} (Zoo AI)`,
-        time: 'Just now',
-        avatar: activeRoom.icon,
-      },
-      thought: `Analyzing task with Zoo AI backend for ${activeRoom.name}...`,
-      toolCalls: [{ type: 'Edit', target: 'pages/index.tsx', duration: '1.2s' }],
-      response: '',
-      stats: {
-        model: 'ZenLM 3',
-        totalTime: '2.1s total',
-        modelTime: '1.6s model',
-        cost: '$0.00',
-        files: '2 files',
-        lines: '+32 -4',
-      },
+    const isAgentPrompt =
+      text.toLowerCase().includes('@blue') ||
+      text.toLowerCase().includes('@agent') ||
+      text.toLowerCase().includes('@zen') ||
+      text.startsWith('/') ||
+      text.toLowerCase().startsWith('build') ||
+      text.toLowerCase().startsWith('create') ||
+      text.toLowerCase().startsWith('generate') ||
+      text.toLowerCase().startsWith('fix') ||
+      text.toLowerCase().startsWith('can you') ||
+      text.toLowerCase().startsWith('how')
+
+    if (isAgentPrompt) {
+      setBusy(true)
+      setAgentStatus('working')
+
+      const turnId = `agent_${Date.now()}`
+      const newTurn: CollaborativeFeedItem = {
+        id: turnId,
+        kind: 'agent_turn',
+        timestamp: 'Just now',
+        user: {
+          name: 'demo-user',
+          avatar: 'D',
+          model: 'Zen 5',
+        },
+        prompt: text,
+        agent: {
+          name: `${activeRoom.familiar} (Zoo AI)`,
+          avatar: activeRoom.icon,
+        },
+        thought: `Executing prompt with Hanzo Cloud microVM for ${activeRoom.name}...`,
+        toolCalls: [{ type: 'Edit', target: 'pages/index.tsx', duration: '0.8s' }],
+        response: '',
+        stats: {
+          model: 'Zen 5',
+          totalTime: '1.2s',
+          modelTime: '0.9s',
+          cost: '$0.00',
+          files: '1 file',
+          lines: '+18 -2',
+        },
+      }
+
+      setFeedItems((prev) => [...prev, newTurn])
+      setPreviewUpdated(true)
+
+      const chatHistory: ChatMessage[] = [
+        {
+          role: 'system',
+          content: `You are ${activeRoom.familiar} in the Zoo Labs /vibe collaborative room (${activeRoom.name}). You help human teammates build applications, reasoning pipelines, and 3D generative art with persistent Zoo Cloud microVMs.`,
+        },
+        ...feedItems
+          .filter((f) => f.kind === 'agent_turn' && f.prompt)
+          .map((f) => ({ role: 'user' as const, content: f.prompt! })),
+        { role: 'user', content: text },
+      ]
+
+      await streamChatCompletion({
+        messages: chatHistory,
+        onToken: (token) => {
+          setFeedItems((prev) =>
+            prev.map((item) => (item.id === turnId ? { ...item, response: (item.response || '') + token } : item))
+          )
+        },
+        onDone: (full) => {
+          setFeedItems((prev) =>
+            prev.map((item) => (item.id === turnId ? { ...item, response: full } : item))
+          )
+          setBusy(false)
+          setAgentStatus('idle')
+        },
+      })
+    } else {
+      const newMsg: CollaborativeFeedItem = {
+        id: `chat_${Date.now()}`,
+        kind: 'teammate_message',
+        timestamp: 'Just now',
+        sender: {
+          name: 'demo-user',
+          avatar: 'D',
+          color: '#EA580C',
+        },
+        content: text,
+      }
+      setFeedItems((prev) => [...prev, newMsg])
     }
-
-    setAgentTurns((prev) => [...prev, newTurn])
-    setPreviewUpdated(true)
-
-    const chatHistory: ChatMessage[] = [
-      {
-        role: 'system',
-        content: `You are ${activeRoom.familiar} in the Zoo Labs /vibe collaborative metaverse space (${activeRoom.name}). You help human teammates build applications, bioacoustic telemetry pipelines, and 3D generative art with persistent Zoo Cloud microVMs.`,
-      },
-      ...agentTurns.map((t) => ({ role: 'user' as const, content: t.prompt })),
-      { role: 'user', content: text },
-    ]
-
-    await streamChatCompletion({
-      messages: chatHistory,
-      onToken: (token) => {
-        setAgentTurns((prev) =>
-          prev.map((t) => (t.id === newTurn.id ? { ...t, response: t.response + token } : t))
-        )
-      },
-      onDone: (full) => {
-        setAgentTurns((prev) =>
-          prev.map((t) => (t.id === newTurn.id ? { ...t, response: full } : t))
-        )
-        setBusy(false)
-        setAgentStatus('idle')
-      },
-    })
-  }
-
-  const handleSendGroupMessage = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!groupInput.trim()) return
-
-    const newMsg: TeammateMessage = {
-      id: `gm_${Date.now()}`,
-      sender: 'demo-user',
-      avatar: 'D',
-      time: 'Just now',
-      content: groupInput.trim(),
-    }
-    setGroupMessages((prev) => [...prev, newMsg])
-    setGroupInput('')
   }
 
   const handleVotePoll = (msgId: string, optionIdx: number) => {
-    setGroupMessages((prev) =>
-      prev.map((msg) => {
-        if (msg.id !== msgId || !msg.poll) return msg
-        const oldVoted = msg.poll.voted
-        const updatedOptions = msg.poll.options.map((opt, idx) => {
+    setFeedItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== msgId || !item.poll) return item
+        const oldVoted = item.poll.voted
+        const updatedOptions = item.poll.options.map((opt, idx) => {
           if (idx === optionIdx) return { ...opt, votes: opt.votes + (oldVoted === optionIdx ? 0 : 1) }
           if (idx === oldVoted) return { ...opt, votes: Math.max(0, opt.votes - 1) }
           return opt
         })
         return {
-          ...msg,
+          ...item,
           poll: {
-            ...msg.poll,
+            ...item.poll,
             options: updatedOptions,
             voted: optionIdx,
           },
@@ -318,10 +335,10 @@ export default function VibeRoomPage() {
   }
 
   const handleToggleReaction = (msgId: string, emoji: string) => {
-    setGroupMessages((prev) =>
-      prev.map((msg) => {
-        if (msg.id !== msgId) return msg
-        const currentReactions = msg.reactions || []
+    setFeedItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== msgId) return item
+        const currentReactions = item.reactions || []
         const existing = currentReactions.find((r) => r.emoji === emoji)
         let updated: { emoji: string; count: number }[]
         if (existing) {
@@ -329,7 +346,7 @@ export default function VibeRoomPage() {
         } else {
           updated = [...currentReactions, { emoji, count: 1 }]
         }
-        return { ...msg, reactions: updated }
+        return { ...item, reactions: updated }
       })
     )
   }
@@ -340,25 +357,28 @@ export default function VibeRoomPage() {
     setTimeout(() => setCopiedLink(false), 2000)
   }
 
+  const filteredFeed = feedItems.filter((item) => {
+    if (filterMode === 'agents') return item.kind === 'agent_turn'
+    if (filterMode === 'chat') return item.kind === 'teammate_message'
+    return true
+  })
+
   return (
     <>
       <Head>
-        <title>Zoo Labs — Vibe With Friends & Multi-Agent Metaverse Sandbox</title>
+        <title>Zoo Labs — Vibe With Friends & Multi-Agent Pods</title>
         <meta
           name="description"
-          content="Multi-human and multi-agent collaborative live workspace with 3D Gaussian splat metaverse and real-time code preview."
+          content="Collaborative multi-human and multi-agent frontier AI workspace with 3D metaverse, code generation, and live audio stems."
         />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <div className="relative h-screen w-screen overflow-hidden bg-[#09090B] text-[#FAFAFA] font-sans select-none flex flex-col">
-        {/* Global App Chrome */}
         <ZooAppChrome />
 
-        {/* ─── 1. SUB-HEADER: ROOM BAR & METAVERSE VIEW TOGGLES ─────────────── */}
         <header className="h-11 border-b border-white/[0.08] bg-[#121214]/90 backdrop-blur-xl px-3.5 flex items-center justify-between z-40 shrink-0 text-xs">
-          {/* Left: Sidebar Toggle + Room Selector */}
           <div className="flex items-center gap-2.5">
             <Link
               href="/"
@@ -368,7 +388,6 @@ export default function VibeRoomPage() {
               <ArrowLeft className="h-4 w-4" />
             </Link>
 
-            {/* Left Sidebar Collapse / Expand Toggle */}
             <button
               onClick={() => setShowLeftSidebar(!showLeftSidebar)}
               className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
@@ -376,7 +395,7 @@ export default function VibeRoomPage() {
                   ? 'bg-white/10 border-white/20 text-white'
                   : 'bg-transparent border-white/10 text-zinc-400 hover:text-white'
               }`}
-              title={showLeftSidebar ? 'Collapse Agent Panel (Cmd+[)' : 'Expand Agent Panel (Cmd+[)'}
+              title={showLeftSidebar ? 'Collapse Collaboration Feed' : 'Expand Collaboration Feed'}
             >
               <PanelLeft className="h-4 w-4" />
             </button>
@@ -391,7 +410,6 @@ export default function VibeRoomPage() {
                 <ChevronDown className="h-3 w-3 text-zinc-400" />
               </button>
 
-              {/* Room Selector Dropdown */}
               {showRoomSelector && (
                 <div className="absolute top-10 left-0 w-80 rounded-2xl bg-[#18181B] border border-white/10 p-3 shadow-2xl space-y-2 z-50 animate-in fade-in zoom-in-95 text-xs">
                   <div className="flex items-center justify-between border-b border-white/10 pb-2">
@@ -436,7 +454,6 @@ export default function VibeRoomPage() {
 
             <span className="text-zinc-700 hidden sm:inline">•</span>
 
-            {/* Agent Live Status Indicator */}
             <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-zinc-400">
               <span
                 className={`h-2 w-2 rounded-full ${
@@ -445,48 +462,18 @@ export default function VibeRoomPage() {
               />
               <span>
                 {agentStatus === 'working'
-                  ? `${activeRoom.familiar} is executing prompt...`
-                  : `${activeRoom.familiar} is ready`}
+                  ? `${activeRoom.familiar} is executing...`
+                  : `${activeRoom.familiar} is active`}
               </span>
             </div>
           </div>
 
-          {/* Right: Mobile Tab Switcher, 2D/3D Toggle, Invite & Right Sidebar Toggle */}
           <div className="flex items-center gap-2">
-            {/* Mobile Column View Switcher (Visible on small screens) */}
-            <div className="flex md:hidden items-center bg-black/60 border border-white/10 p-0.5 rounded-xl text-[11px] font-semibold">
-              <button
-                onClick={() => setMobileTab('stream')}
-                className={`px-2 py-0.5 rounded-lg transition-all ${
-                  mobileTab === 'stream' ? 'bg-white text-black' : 'text-zinc-400'
-                }`}
-              >
-                Stream
-              </button>
-              <button
-                onClick={() => setMobileTab('stage')}
-                className={`px-2 py-0.5 rounded-lg transition-all ${
-                  mobileTab === 'stage' ? 'bg-white text-black' : 'text-zinc-400'
-                }`}
-              >
-                Stage
-              </button>
-              <button
-                onClick={() => setMobileTab('chat')}
-                className={`px-2 py-0.5 rounded-lg transition-all ${
-                  mobileTab === 'chat' ? 'bg-white text-black' : 'text-zinc-400'
-                }`}
-              >
-                Chat
-              </button>
-            </div>
-
-            {/* 2D / 3D Metaverse View Switcher */}
-            <div className="hidden sm:flex items-center bg-black/60 border border-white/10 p-0.5 rounded-xl text-xs font-semibold">
+            <div className="flex items-center bg-black/50 p-0.5 rounded-xl border border-white/10 text-xs">
               <button
                 onClick={() => setViewMode('video')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                  viewMode === 'video' ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
+                  viewMode === 'video' ? 'bg-blue-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
                 }`}
               >
                 <span>🎬</span>
@@ -503,19 +490,6 @@ export default function VibeRoomPage() {
               </button>
             </div>
 
-            {/* Teammates Avatar Stack */}
-            <div className="hidden lg:flex items-center -space-x-1.5">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#EA580C] text-[10px] font-bold text-white ring-2 ring-[#121214]">
-                D
-              </div>
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#3B82F6] text-[10px] font-bold text-white ring-2 ring-[#121214]">
-                R
-              </div>
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#10B981] text-[10px] font-bold text-white ring-2 ring-[#121214]">
-                S
-              </div>
-            </div>
-
             <button
               onClick={() => setInviteModalOpen(true)}
               className="flex items-center gap-1.5 rounded-xl bg-[#EA580C] hover:bg-[#C2410C] text-white px-3 py-1 font-semibold transition-colors cursor-pointer text-xs shadow-md shadow-orange-950/40"
@@ -524,7 +498,6 @@ export default function VibeRoomPage() {
               <span>Invite</span>
             </button>
 
-            {/* Right Sidebar Collapse / Expand Toggle */}
             <button
               onClick={() => setShowRightSidebar(!showRightSidebar)}
               className={`p-1.5 rounded-lg border transition-all cursor-pointer hidden md:flex ${
@@ -532,156 +505,266 @@ export default function VibeRoomPage() {
                   ? 'bg-white/10 border-white/20 text-white'
                   : 'bg-transparent border-white/10 text-zinc-400 hover:text-white'
               }`}
-              title={showRightSidebar ? 'Collapse Chat Panel (Cmd+])' : 'Expand Chat Panel (Cmd+])'}
+              title={showRightSidebar ? 'Hide Pod Telemetry' : 'Show Pod Telemetry'}
             >
               <PanelRight className="h-4 w-4" />
             </button>
           </div>
         </header>
 
-        {/* ─── Main Workspace: CSS Grid Multi-Modal Layout ────────────────── */}
         <div
-          className="zoo-vibe-grid flex-1"
-          style={{
-            gridTemplateColumns: `${showLeftSidebar ? 'minmax(320px, 380px)' : '0px'} 1fr ${showRightSidebar ? 'minmax(280px, 340px)' : '0px'}`,
-            transition: 'grid-template-columns 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-          }}
+          className="flex-1 flex overflow-hidden"
         >
-          {/* COLUMN 1: AGENT COLLABORATION STREAM (Left Pane) */}
           {showLeftSidebar && (
-            <div
-              className={`flex flex-col justify-between border-r border-white/[0.08] bg-[#121214] overflow-hidden ${
-                mobileTab === 'stream' ? 'flex' : 'hidden md:flex'
-              }`}
-            >
-            <div className="h-9 border-b border-white/[0.08] px-3.5 flex items-center justify-between text-xs text-zinc-400 bg-white/[0.02]">
-              <span className="font-semibold text-white flex items-center gap-1.5">
-                <ZooLogo size={14} />
-                <span>{activeRoom.icon}</span>
-                <span>{activeRoom.familiar}</span>
-              </span>
-              <span className="text-[10px] font-mono text-emerald-400">24/7 Zoo MicroVM</span>
-            </div>
+            <div className="w-[360px] lg:w-[400px] flex flex-col justify-between border-r border-white/[0.08] bg-[#121214] shrink-0 overflow-hidden">
+              <div className="h-10 border-b border-white/[0.08] px-3.5 flex items-center justify-between text-xs text-zinc-400 bg-white/[0.02]">
+                <span className="font-semibold text-white flex items-center gap-1.5">
+                  <ZooLogo size={14} />
+                  <span>{activeRoom.icon}</span>
+                  <span>Collaborative Room</span>
+                </span>
 
-            {/* Conversation Log */}
-            <div ref={agentScrollerRef} className="flex-1 p-3.5 space-y-4 overflow-y-auto no-scrollbar">
-              {agentTurns.map((turn) => (
-                <div key={turn.id} className="space-y-3 animate-in fade-in duration-200">
-                  {/* User Turn */}
-                  <div className="flex items-start gap-2.5">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#EA580C] text-[11px] font-bold text-white shrink-0 mt-0.5 shadow-sm">
-                      {turn.user.avatar}
-                    </div>
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-semibold text-xs text-white">{turn.user.name}</span>
-                        <span className="text-[10px] text-zinc-500">{turn.user.time}</span>
-                      </div>
-                      <p className="text-zinc-200 text-xs leading-relaxed bg-white/[0.04] p-3 rounded-2xl border border-white/[0.08]">
-                        {turn.prompt}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Agent Turn */}
-                  <div className="flex items-start gap-2.5 pl-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs shrink-0 shadow-md">
-                      {activeRoom.icon}
-                    </div>
-                    <div className="space-y-2 flex-1">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-semibold text-xs text-white flex items-center gap-1.5">
-                          <ZooLogo size={12} />
-                          <span>{turn.agent.name}</span>
-                        </span>
-                        <span className="text-[10px] text-zinc-500">{turn.agent.time}</span>
-                      </div>
-
-                      {/* Tool Call Cards */}
-                      {turn.toolCalls && turn.toolCalls.length > 0 && (
-                        <div className="space-y-1.5">
-                          {turn.toolCalls.map((tc, idx) => (
-                            <div
-                              key={idx}
-                              className="rounded-xl bg-black/40 border border-white/[0.08] p-2 text-[11px] font-mono space-y-1"
-                            >
-                              <div className="flex items-center justify-between text-zinc-400">
-                                <span className="text-blue-400 font-bold flex items-center gap-1">
-                                  <TerminalIcon className="h-3 w-3" />
-                                  <span>{tc.type}</span>
-                                </span>
-                                {tc.duration && <span className="text-[10px] text-zinc-500">{tc.duration}</span>}
-                              </div>
-                              <p className="text-zinc-300 truncate">{tc.cmd || tc.target}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Agent Response */}
-                      <p className="text-zinc-200 text-xs leading-relaxed bg-black/50 p-3 rounded-2xl border border-white/10">
-                        {turn.response || <span className="text-zinc-500 animate-pulse">Streaming response from Zoo AI...</span>}
-                      </p>
-
-                      {/* Turn Telemetry Stats */}
-                      {turn.stats && (
-                        <div className="flex flex-wrap items-center gap-2 pt-1 text-[10px] font-mono text-zinc-500">
-                          <span className="px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06]">
-                            {turn.stats.model}
-                          </span>
-                          <span>•</span>
-                          <span>{turn.stats.totalTime}</span>
-                          <span>•</span>
-                          <span>{turn.stats.cost}</span>
-                          <span>•</span>
-                          <span className="text-emerald-400">{turn.stats.lines}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                <div className="flex items-center bg-black/40 p-0.5 rounded-lg border border-white/10 text-[10px]">
+                  <button
+                    onClick={() => setFilterMode('all')}
+                    className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
+                      filterMode === 'all' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setFilterMode('agents')}
+                    className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
+                      filterMode === 'agents' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    🤖 Agents
+                  </button>
+                  <button
+                    onClick={() => setFilterMode('chat')}
+                    className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
+                      filterMode === 'chat' ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    💬 Team
+                  </button>
                 </div>
-              ))}
-            </div>
-
-            {/* Bottom Composer */}
-            <form onSubmit={handleSendAgentPrompt} className="p-3 border-t border-white/[0.08] bg-[#18181B]/80">
-              <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/60 p-2 shadow-sm focus-within:border-blue-500">
-                <input
-                  type="text"
-                  value={agentInput}
-                  onChange={(e) => setAgentInput(e.target.value)}
-                  placeholder={`Ask ${activeRoom.familiar}...`}
-                  className="flex-1 bg-transparent text-xs text-white outline-none placeholder:text-zinc-600 px-2"
-                />
-                <button
-                  type="submit"
-                  disabled={busy || !agentInput.trim()}
-                  className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs active:scale-95 disabled:opacity-30 transition-all cursor-pointer shadow-md shadow-blue-600/30"
-                >
-                  Send
-                </button>
               </div>
-            </form>
-          </div>
-        )}
 
-          {/* COLUMN 2: CENTER STAGE (2D Video or 3D Gaussian Splat Metaverse) */}
-          <div
-            className={`flex flex-col border-r border-white/[0.08] bg-[#09090B] overflow-hidden ${
-              mobileTab === 'stage' ? 'flex' : 'hidden md:flex'
-            }`}
-          >
-            {/* Viewport Top Info Bar */}
+              <div ref={feedScrollerRef} className="flex-1 p-3.5 space-y-4 overflow-y-auto no-scrollbar">
+                {filteredFeed.map((item) => {
+                  if (item.kind === 'teammate_message') {
+                    return (
+                      <div key={item.id} className="space-y-1.5 animate-in fade-in duration-150">
+                        <div className="flex items-baseline justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm"
+                              style={{ backgroundColor: item.sender?.color || '#3B82F6' }}
+                            >
+                              {item.sender?.avatar}
+                            </div>
+                            <span className="font-semibold text-xs text-white">{item.sender?.name}</span>
+                          </div>
+                          <span className="text-[10px] text-zinc-500 font-mono">{item.timestamp}</span>
+                        </div>
+
+                        <div className="space-y-2 pl-6">
+                          <p className="text-xs text-zinc-200 bg-white/[0.04] p-2.5 rounded-2xl border border-white/[0.06] leading-relaxed">
+                            {item.content}
+                          </p>
+
+                          {item.poll && (
+                            <div className="p-3 rounded-2xl bg-black/50 border border-white/10 space-y-2 text-xs">
+                              <p className="font-semibold text-white flex items-center gap-1.5">
+                                <Activity className="h-3.5 w-3.5 text-blue-400" />
+                                <span>{item.poll.question}</span>
+                              </p>
+                              <div className="space-y-1.5">
+                                {item.poll.options.map((opt, idx) => {
+                                  const isVoted = item.poll?.voted === idx
+                                  return (
+                                    <button
+                                      key={idx}
+                                      onClick={() => handleVotePoll(item.id, idx)}
+                                      className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all text-xs cursor-pointer ${
+                                        isVoted
+                                          ? 'bg-blue-600/30 border border-blue-500/50 text-white font-medium'
+                                          : 'bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-300'
+                                      }`}
+                                    >
+                                      <span>{opt.text}</span>
+                                      <span className="font-mono text-[10px] bg-black/40 px-2 py-0.5 rounded-md text-zinc-300">
+                                        {opt.votes} votes
+                                      </span>
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-1.5 pt-0.5">
+                            {item.reactions?.map((r, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => handleToggleReaction(item.id, r.emoji)}
+                                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] hover:bg-white/15 border border-white/10 text-[11px] transition-all cursor-pointer active:scale-90"
+                              >
+                                <span>{r.emoji}</span>
+                                <span className="font-mono text-[10px] text-zinc-400">{r.count}</span>
+                              </button>
+                            ))}
+                            <button
+                              onClick={() => handleToggleReaction(item.id, '❤️')}
+                              className="p-1 rounded-full text-zinc-500 hover:text-white hover:bg-white/10 transition-colors text-xs cursor-pointer"
+                              title="React Heart"
+                            >
+                              ❤️
+                            </button>
+                            <button
+                              onClick={() => handleToggleReaction(item.id, '🔥')}
+                              className="p-1 rounded-full text-zinc-500 hover:text-white hover:bg-white/10 transition-colors text-xs cursor-pointer"
+                              title="React Fire"
+                            >
+                              🔥
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <div key={item.id} className="space-y-3 p-3 rounded-2xl bg-black/40 border border-white/[0.08] animate-in fade-in duration-200">
+                      <div className="flex items-start gap-2">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#EA580C] text-[10px] font-bold text-white shrink-0 mt-0.5 shadow-sm">
+                          {item.user?.avatar}
+                        </div>
+                        <div className="space-y-1 flex-1">
+                          <div className="flex items-baseline justify-between">
+                            <span className="font-semibold text-xs text-white">{item.user?.name}</span>
+                            <span className="text-[10px] text-zinc-500 font-mono">{item.timestamp}</span>
+                          </div>
+                          <p className="text-zinc-200 text-xs leading-relaxed bg-white/[0.03] p-2 rounded-xl border border-white/[0.06]">
+                            {item.prompt}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2 pl-2 border-l border-blue-500/30">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] shrink-0 shadow-md">
+                          {item.agent?.avatar || activeRoom.icon}
+                        </div>
+                        <div className="space-y-2 flex-1">
+                          <div className="flex items-baseline justify-between">
+                            <span className="font-semibold text-xs text-white flex items-center gap-1">
+                              <ZooLogo size={12} />
+                              <span>{item.agent?.name}</span>
+                            </span>
+                          </div>
+
+                          {item.toolCalls && item.toolCalls.length > 0 && (
+                            <div className="space-y-1">
+                              {item.toolCalls.map((tc, idx) => (
+                                <div
+                                  key={idx}
+                                  className="rounded-xl bg-black/60 border border-white/[0.08] p-2 text-[10px] font-mono space-y-0.5"
+                                >
+                                  <div className="flex items-center justify-between text-zinc-400">
+                                    <span className="text-blue-400 font-bold flex items-center gap-1">
+                                      <TerminalIcon className="h-3 w-3" />
+                                      <span>{tc.type}</span>
+                                    </span>
+                                    {tc.duration && <span className="text-[9px] text-zinc-500">{tc.duration}</span>}
+                                  </div>
+                                  <p className="text-zinc-300 truncate">{tc.cmd || tc.target}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <p className="text-zinc-200 text-xs leading-relaxed bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.06]">
+                            {item.response || (
+                              <span className="text-zinc-500 animate-pulse flex items-center gap-1.5">
+                                <Bot className="h-3.5 w-3.5 animate-spin" />
+                                <span>Generating response with Zoo Cloud MicroVM...</span>
+                              </span>
+                            )}
+                          </p>
+
+                          {item.stats && (
+                            <div className="flex flex-wrap items-center gap-1.5 text-[9px] font-mono text-zinc-500">
+                              <span className="px-1.5 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06]">
+                                {item.stats.model}
+                              </span>
+                              <span>•</span>
+                              <span>{item.stats.totalTime}</span>
+                              <span>•</span>
+                              <span className="text-emerald-400">{item.stats.lines}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="p-3 border-t border-white/[0.08] bg-[#18181B]/80 space-y-2">
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-[10px]">
+                  <button
+                    onClick={() => setFeedInput(`@${activeRoom.familiar.split(' ')[0]} `)}
+                    className="px-2 py-0.5 rounded-full bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 cursor-pointer shrink-0"
+                  >
+                    @{activeRoom.familiar.split(' ')[0]}
+                  </button>
+                  <button
+                    onClick={() => setFeedInput('Generate ambient synth stems for habitat')}
+                    className="px-2 py-0.5 rounded-full bg-white/[0.04] hover:bg-white/10 text-zinc-300 border border-white/10 cursor-pointer shrink-0"
+                  >
+                    🎵 Audio Stems
+                  </button>
+                  <button
+                    onClick={() => setFeedInput('Synthesize 3D splat avatar mesh')}
+                    className="px-2 py-0.5 rounded-full bg-white/[0.04] hover:bg-white/10 text-zinc-300 border border-white/10 cursor-pointer shrink-0"
+                  >
+                    🧊 3D Splat
+                  </button>
+                </div>
+
+                <form onSubmit={handleSendMessage} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/60 p-2 focus-within:border-blue-500 transition-colors">
+                  <input
+                    type="text"
+                    value={feedInput}
+                    onChange={(e) => setFeedInput(e.target.value)}
+                    placeholder={`Chat with team or ask @${activeRoom.familiar.split(' ')[0]}...`}
+                    className="flex-1 bg-transparent text-xs text-white outline-none placeholder:text-zinc-600 px-2"
+                  />
+                  <button
+                    type="submit"
+                    disabled={busy || !feedInput.trim()}
+                    className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs active:scale-95 disabled:opacity-30 transition-all cursor-pointer shadow-md shadow-blue-600/30 flex items-center gap-1"
+                  >
+                    <Send className="h-3 w-3" />
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          <div className="flex-1 flex flex-col bg-[#09090B] overflow-hidden">
             <div className="h-10 border-b border-white/[0.08] bg-[#121214]/80 px-3.5 flex items-center justify-between text-xs">
               <div className="flex items-center gap-2 font-mono text-[11px] text-zinc-400">
                 <span className="h-2 w-2 rounded-full bg-[#10B981] animate-pulse" />
-                <span>{viewMode === 'video' ? 'LIVE HABITAT & PREVIEW' : '3D GAUSSIAN SPLAT METAVERSE'}</span>
+                <span>{viewMode === 'video' ? 'LIVE 2D HABITAT & MEDIA STAGE' : '3D GAUSSIAN SPLAT METAVERSE'}</span>
               </div>
 
               <div className="flex items-center gap-2">
                 {previewUpdated && (
                   <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-mono font-bold animate-pulse">
-                    ● Updated
+                    ● Node Active
                   </span>
                 )}
                 <span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full font-mono font-bold">
@@ -690,9 +773,7 @@ export default function VibeRoomPage() {
               </div>
             </div>
 
-            {/* Viewport Stage Body */}
             {viewMode === 'video' ? (
-              /* 2D Video Habitat Mode */
               <div className="flex-1 flex flex-col justify-between p-6 bg-black relative overflow-hidden">
                 <video
                   autoPlay
@@ -705,7 +786,6 @@ export default function VibeRoomPage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-black/60 pointer-events-none" />
 
-                {/* Hero Overlay */}
                 <div className="relative z-10 space-y-4 max-w-md">
                   <div className="flex items-center gap-2">
                     <span className="text-3xl">{activeRoom.icon}</span>
@@ -734,15 +814,12 @@ export default function VibeRoomPage() {
 
                 <div className="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between text-[10px] text-white/50 font-mono">
                   <span>ZOO LABS MULTI-AGENT POD ROOM</span>
-                  <span>LATENCY: 14ms · HANZO CLOUD MICROVM</span>
+                  <span>LATENCY: 12ms · HANZO CLOUD MICROVM</span>
                 </div>
               </div>
             ) : (
-              /* 3D Gaussian Splat Metaverse Space Mode */
               <div className="flex-1 flex flex-col justify-between p-6 bg-[#050508] relative overflow-hidden">
-                {/* 3D WebGL Space Canvas */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  {/* Orbital Crystalline Space Splat */}
                   <div
                     className="relative w-80 h-96 rounded-[50%] flex items-center justify-center transition-all"
                     style={{
@@ -756,14 +833,13 @@ export default function VibeRoomPage() {
                   </div>
                 </div>
 
-                {/* Top Metaverse Controls */}
                 <div className="relative z-10 flex items-center justify-between">
                   <div className="p-3 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10 space-y-1 text-xs">
                     <p className="font-bold text-white flex items-center gap-1.5">
                       <Rotate3d className="h-4 w-4 text-blue-400" />
                       <span>3D Splat Spatial Metaverse</span>
                     </p>
-                    <p className="text-[10px] text-zinc-400">Interactive animal avatar & collaborative science telemetry</p>
+                    <p className="text-[10px] text-zinc-400">Collaborative spatial avatars & geometry shaders</p>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -784,7 +860,6 @@ export default function VibeRoomPage() {
                   </div>
                 </div>
 
-                {/* Bottom 3D Telemetry Controls */}
                 <div className="relative z-10 p-3 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-4">
                     <div className="space-y-0.5">
@@ -808,131 +883,94 @@ export default function VibeRoomPage() {
                     href="/3d"
                     className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors"
                   >
-                    Open 3D Mesh Editor &rarr;
+                    Open 3D Mesh Studio &rarr;
                   </Link>
                 </div>
               </div>
             )}
           </div>
 
-          {/* COLUMN 3: GROUP CHAT (Right Pane - Side-channel for humans) */}
           {showRightSidebar && (
-            <div
-              className={`flex flex-col justify-between bg-[#121214] border-l border-white/[0.08] overflow-hidden ${
-                mobileTab === 'chat' ? 'flex' : 'hidden lg:flex'
-              }`}
-            >
-              <div className="h-10 border-b border-white/[0.08] px-4 flex items-center justify-between text-xs text-zinc-400 bg-white/[0.02]">
-                <span className="font-semibold text-white">Teammates Group Chat</span>
-                <span className="text-[10px] text-zinc-500">Private pod</span>
-              </div>
+            <div className="w-72 border-l border-white/[0.08] bg-[#121214] flex flex-col justify-between p-4 space-y-4 shrink-0 overflow-y-auto text-xs">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <span className="font-bold text-white flex items-center gap-1.5">
+                    <Cpu className="h-4 w-4 text-blue-400" />
+                    <span>Pod Telemetry</span>
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-mono">Live Sync</span>
+                </div>
 
-              {/* Chat Stream */}
-              <div ref={groupScrollerRef} className="flex-1 p-3.5 space-y-4 overflow-y-auto no-scrollbar">
-                {groupMessages.map((msg) => (
-                  <div key={msg.id} className="space-y-2">
-                    <div className="flex items-baseline justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
-                          {msg.avatar}
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-bold text-zinc-500">Connected Teammates</span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-white/5">
+                      <div className="flex items-center gap-2">
+                        <div className="h-5 w-5 rounded-full bg-[#EA580C] text-[10px] font-bold text-white flex items-center justify-center">
+                          D
                         </div>
-                        <span className="font-semibold text-xs text-white">{msg.sender}</span>
+                        <span className="text-zinc-200">demo-user (You)</span>
                       </div>
-                      <span className="text-[10px] text-zinc-500">{msg.time}</span>
+                      <span className="h-2 w-2 rounded-full bg-emerald-400" />
                     </div>
 
-                    <div className="space-y-2">
-                      <p className="text-xs text-zinc-200 bg-white/[0.04] p-3 rounded-2xl border border-white/[0.06] leading-relaxed">
-                        {msg.content}
-                      </p>
-
-                      {/* Interactive Poll Component */}
-                      {msg.poll && (
-                        <div className="p-3 rounded-2xl bg-black/40 border border-white/10 space-y-2 text-xs">
-                          <p className="font-semibold text-white flex items-center gap-1.5">
-                            <Activity className="h-3.5 w-3.5 text-blue-400" />
-                            <span>{msg.poll.question}</span>
-                          </p>
-                          <div className="space-y-1.5">
-                            {msg.poll.options.map((opt, idx) => {
-                              const isVoted = msg.poll?.voted === idx
-                              return (
-                                <button
-                                  key={idx}
-                                  onClick={() => handleVotePoll(msg.id, idx)}
-                                  className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all text-xs cursor-pointer ${
-                                    isVoted
-                                      ? 'bg-blue-600/30 border border-blue-500/50 text-white font-medium'
-                                      : 'bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-300'
-                                  }`}
-                                >
-                                  <span>{opt.text}</span>
-                                  <span className="font-mono text-[10px] bg-black/40 px-2 py-0.5 rounded-md text-zinc-300">
-                                    {opt.votes} votes
-                                  </span>
-                                </button>
-                              )
-                            })}
-                          </div>
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-white/5">
+                      <div className="flex items-center gap-2">
+                        <div className="h-5 w-5 rounded-full bg-[#3B82F6] text-[10px] font-bold text-white flex items-center justify-center">
+                          R
                         </div>
-                      )}
-
-                      {/* Emoji Reaction Badges */}
-                      <div className="flex items-center gap-1.5 pt-0.5">
-                        {msg.reactions?.map((r, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => handleToggleReaction(msg.id, r.emoji)}
-                            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] hover:bg-white/15 border border-white/10 text-[11px] transition-all cursor-pointer active:scale-90"
-                          >
-                            <span>{r.emoji}</span>
-                            <span className="font-mono text-[10px] text-zinc-400">{r.count}</span>
-                          </button>
-                        ))}
-                        <button
-                          onClick={() => handleToggleReaction(msg.id, '❤️')}
-                          className="p-1 rounded-full text-zinc-500 hover:text-white hover:bg-white/10 transition-colors text-xs cursor-pointer"
-                          title="React with Heart"
-                        >
-                          ❤️
-                        </button>
-                        <button
-                          onClick={() => handleToggleReaction(msg.id, '🔥')}
-                          className="p-1 rounded-full text-zinc-500 hover:text-white hover:bg-white/10 transition-colors text-xs cursor-pointer"
-                          title="React with Fire"
-                        >
-                          🔥
-                        </button>
+                        <span className="text-zinc-200">Richard Kaminsky</span>
                       </div>
+                      <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                    </div>
+
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-white/5">
+                      <div className="flex items-center gap-2">
+                        <div className="h-5 w-5 rounded-full bg-[#10B981] text-[10px] font-bold text-white flex items-center justify-center">
+                          S
+                        </div>
+                        <span className="text-zinc-200">Sarah Chen</span>
+                      </div>
+                      <span className="h-2 w-2 rounded-full bg-emerald-400" />
                     </div>
                   </div>
-                ))}
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-bold text-zinc-500">Active AI Models</span>
+                  <div className="p-3 rounded-2xl bg-blue-950/20 border border-blue-500/20 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-blue-300 flex items-center gap-1">
+                        <span>🐬</span>
+                        <span>{activeRoom.familiar}</span>
+                      </span>
+                      <span className="text-[9px] font-mono text-zinc-400">Zen 5</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-400">
+                      Persistent sandbox agent connected to Hanzo Cloud MicroVM cluster.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              {/* Chat Input */}
-              <form onSubmit={handleSendGroupMessage} className="p-3 border-t border-white/[0.08] bg-[#18181B]/80">
-                <div className="flex items-center gap-2 rounded-2xl bg-black/60 border border-white/10 px-3 py-2">
-                  <input
-                    type="text"
-                    value={groupInput}
-                    onChange={(e) => setGroupInput(e.target.value)}
-                    placeholder="Message teammates..."
-                    className="flex-1 bg-transparent text-xs text-white outline-none placeholder:text-zinc-600"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!groupInput.trim()}
-                    className="text-blue-400 font-bold text-xs disabled:opacity-40 cursor-pointer"
-                  >
-                    Send
-                  </button>
-                </div>
-              </form>
+              <div className="pt-2 border-t border-white/10 space-y-2">
+                <Link
+                  href="/music"
+                  className="w-full py-2 rounded-xl bg-white/[0.04] hover:bg-white/10 text-white font-medium text-xs flex items-center justify-center gap-2 border border-white/10 transition-colors"
+                >
+                  <span>🎵 Open Music DAW</span>
+                </Link>
+                <Link
+                  href="/3d"
+                  className="w-full py-2 rounded-xl bg-white/[0.04] hover:bg-white/10 text-white font-medium text-xs flex items-center justify-center gap-2 border border-white/10 transition-colors"
+                >
+                  <span>🧊 Open 3D Studio</span>
+                </Link>
+              </div>
             </div>
           )}
         </div>
 
-        {/* ─── Invite Friends Modal ────────────────────────────────────────── */}
         {inviteModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
             <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#18181B] p-6 shadow-2xl space-y-4 text-xs">

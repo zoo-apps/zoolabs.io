@@ -26,8 +26,8 @@ import ZooAppChrome from '../components/ZooAppChrome'
 import { getBackendBaseUrl } from '../lib/hanzo-ai-service'
 
 const PRESET_CLIPS = [
-  { id: 'c1', title: 'Beluga Echolocation Glide', dur: '4.2s', src: '/bg_video/static/relactation0.mp4', thumb: '🐬' },
-  { id: 'c2', title: 'Arctic Glacier Dive', dur: '6.0s', src: '/bg_video/static/relactation1.mp4', thumb: '🌊' },
+  { id: 'c1', title: 'Beluga Ocean Deep Dive', dur: '4.2s', src: '/bg_video/static/relactation0.mp4', thumb: '🐬' },
+  { id: 'c2', title: 'Arctic Glacier Glide', dur: '6.0s', src: '/bg_video/static/relactation1.mp4', thumb: '🌊' },
   { id: 'c3', title: 'Playful Ocean Spiral', dur: '5.5s', src: '/bg_video/emotion/Playful.mp4', thumb: '🫧' },
   { id: 'c4', title: 'Siberian Tiger Forest Prowl', dur: '8.0s', src: '/bg_video/static/relactation2.mp4', thumb: '🐅' },
 ]
@@ -138,7 +138,7 @@ export default function VideoFlowStudio() {
                   >
                     <option>Pan Up + Orbit Right</option>
                     <option>Dynamic Drone Dive</option>
-                    <option>Underwater Macro Echolocation Follow</option>
+                    <option>Underwater Macro Cinematic Follow</option>
                     <option>Static 8K Studio Lock</option>
                   </select>
                 </div>

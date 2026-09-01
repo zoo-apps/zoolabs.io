@@ -121,7 +121,7 @@ const zips = (existsSync(zipsDir) ? readdirSync(zipsDir) : [])
       summary: body ? body[1].replace(/[*_`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 420) : '',
       topic: meta.category || meta.type || '',
       status: meta.status || '',
-      url: `https://zips.zoo.ngo/${basename(file, '.md')}`,
+      url: `https://zips.zoo.ngo/docs/${basename(file, '.md')}/`,
     }]
   })
   .sort((a, b) => Number(a.id.slice(4)) - Number(b.id.slice(4)))

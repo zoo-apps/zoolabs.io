@@ -7,13 +7,20 @@ import { BRAND, Label } from './kit'
  * Blue's face. Plays the clip for whatever Blue is feeling; between questions it
  * drifts through the resting clips. The feeling is written out as well, so it
  * still reads with video blocked or paused.
+ *
+ * The speaker switch is the user gesture browsers require before any audio, so
+ * reading aloud can only ever start because someone asked for it.
  */
 export default function Companion({
   feeling,
   thinking,
+  voice,
+  onVoice,
 }: {
   feeling: Feeling | null
   thinking: boolean
+  voice: boolean
+  onVoice: (on: boolean) => void
 }) {
   const video = useRef<HTMLVideoElement>(null)
   const [rest, setRest] = useState(0)
@@ -33,10 +40,7 @@ export default function Companion({
         borderWidth={2}
         borderColor={BRAND.ink}
         bg={BRAND.blue}
-        shadowColor={BRAND.ink}
-        shadowOffset={{ width: 6, height: 6 }}
-        shadowRadius={0}
-        shadowOpacity={1}
+        boxShadow={`6px 6px 0 0 ${BRAND.ink}`}
       >
         <video
           ref={video}
@@ -63,6 +67,33 @@ export default function Companion({
             <Label color={BRAND.ink}>
               {thinking ? 'Blue is thinking' : feeling ? `Blue feels ${feeling}` : 'Blue is listening'}
             </Label>
+
+            <YStack flex={1} />
+
+            <button
+              type="button"
+              onClick={() => onVoice(!voice)}
+              aria-pressed={voice}
+              aria-label={voice ? 'Stop reading answers aloud' : 'Read answers aloud'}
+              title={voice ? 'Stop reading aloud' : 'Read aloud'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '2px 8px',
+                border: `2px solid ${BRAND.ink}`,
+                background: voice ? BRAND.ink : 'transparent',
+                color: voice ? '#fff' : BRAND.ink,
+                font: 'inherit',
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: 1.4,
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+              }}
+            >
+              {voice ? '🔊' : '🔈'} {voice ? 'On' : 'Off'}
+            </button>
           </XStack>
         </figcaption>
       </YStack>

@@ -17,7 +17,7 @@ const shadow = (n: number) => `${n}px ${n}px 0 0 ${BRAND.ink}`
 const edge = {
   borderWidth: 2,
   borderColor: BRAND.ink,
-  bxsh: shadow(6),
+  boxShadow: shadow(6),
 } as const
 
 /** A surface. */
@@ -99,6 +99,30 @@ export function Press({ onPress, disabled, label, children, ...box }: PressProps
         {children}
       </PressBox>
     </button>
+  )
+}
+
+/**
+ * The lockup, as one shape: the org at full weight, what it does at light.
+ * Big and bold, because on a page this quiet the name is the only chrome.
+ */
+export function Wordmark({ first, second }: { first: string; second: string }) {
+  return (
+    <Text
+      fontSize={30}
+      $sm={{ fontSize: 34 }}
+      lineHeight={36}
+      fontWeight="900"
+      letterSpacing={-1}
+      textTransform="uppercase"
+      color={BRAND.ink}
+      select="none"
+    >
+      {first}&nbsp;
+      <Text fontWeight="200" letterSpacing={-1} textTransform="uppercase" color={BRAND.ink}>
+        {second}
+      </Text>
+    </Text>
   )
 }
 

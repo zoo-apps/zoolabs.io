@@ -140,7 +140,10 @@ export default function ZooMcpCopilot() {
   return (
     <>
       {/* ─── Floating Bottom-Right Zoo Favicon Copilot Launcher ───────── */}
-      <div className="fixed bottom-5 right-5 z-50 select-none">
+      <div
+        className="fixed bottom-5 right-5 z-50 select-none"
+        style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 9999 }}
+      >
         {!isOpen ? (
           <button
             onClick={() => setIsOpen(true)}

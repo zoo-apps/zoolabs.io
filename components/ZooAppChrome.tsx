@@ -22,10 +22,11 @@ const NAV_LINKS = [
   { href: '/vibe', label: 'Vibe', icon: '🤝', key: '2' },
   { href: '/work', label: 'Work', icon: '💼', key: '3' },
   { href: '/animals', label: 'Animals', icon: '🐾', key: '4' },
-  { href: '/video', label: 'Video', icon: '🎬', key: '5' },
-  { href: '/music', label: 'Music', icon: '🎵', key: '6' },
-  { href: '/design', label: 'Design', icon: '🎨', key: '7' },
-  { href: '/3d', label: '3D', icon: '🧊', key: '8' },
+  { href: '/graph', label: 'Graph', icon: '🕸️', key: '5' },
+  { href: '/video', label: 'Video', icon: '🎬', key: '6' },
+  { href: '/music', label: 'Music', icon: '🎵', key: '7' },
+  { href: '/design', label: 'Design', icon: '🎨', key: '8' },
+  { href: '/3d', label: '3D', icon: '🧊', key: '9' },
 ]
 
 const INITIAL_ORGS = [

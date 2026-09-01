@@ -35,129 +35,32 @@ import {
   CircleDot,
   Trash2,
   GripVertical,
+  Network,
+  Share2,
 } from 'lucide-react'
 import ZooAppChrome from '../components/ZooAppChrome'
-
-export type Issue = {
-  id: string
-  title: string
-  status: 'backlog' | 'todo' | 'in_progress' | 'done'
-  priority: 'urgent' | 'high' | 'medium' | 'low'
-  assignee: { name: string; avatar: string; type: 'human' | 'agent' }
-  labels: string[]
-  createdAt: string
-  description?: string
-}
-
-const INITIAL_ISSUES: Issue[] = [
-  {
-    id: 'ZOO-101',
-    title: 'Compile BitDelta 1-bit quantization kernel for Zen 70B',
-    status: 'in_progress',
-    priority: 'urgent',
-    assignee: { name: 'Blue the Beluga', avatar: '🐬', type: 'agent' },
-    labels: ['cuda', 'bitdelta', 'quantization'],
-    createdAt: '2h ago',
-    description: 'Optimize low-rank parameter delta blending directly in GPU shared memory.',
-  },
-  {
-    id: 'ZOO-102',
-    title: 'Bundle Zoo Desktop macOS & Linux native Tauri binaries',
-    status: 'done',
-    priority: 'high',
-    assignee: { name: 'Siberian Tiger', avatar: '🐅', type: 'agent' },
-    labels: ['rust', 'tauri', 'desktop'],
-    createdAt: '3h ago',
-    description: 'Verify src-tauri debug and release targets with Pyodide microVM runtime.',
-  },
-  {
-    id: 'ZOO-103',
-    title: 'Implement DeltaSoup multi-expert weight merging for /vibe',
-    status: 'in_progress',
-    priority: 'high',
-    assignee: { name: 'Sarah Chen', avatar: '👩‍🔬', type: 'human' },
-    labels: ['deltasoup', 'fine-tuning', 'lora'],
-    createdAt: '4h ago',
-    description: 'Support dynamic interpolation between coding, research, and creative LoRAs.',
-  },
-  {
-    id: 'ZOO-104',
-    title: 'Wire ComfyUI 3D mesh synthesis pipelines (TripoSR + Trellis)',
-    status: 'todo',
-    priority: 'urgent',
-    assignee: { name: 'Alex Rivera', avatar: '👨‍🎨', type: 'human' },
-    labels: ['comfyui', '3d', 'trellis'],
-    createdAt: '1d ago',
-    description: 'Bridge backend GPU nodes to front-end WebGL orbit inspector.',
-  },
-  {
-    id: 'ZOO-105',
-    title: 'Deploy durable microVM task runner on Hanzo Cloud',
-    status: 'done',
-    priority: 'high',
-    assignee: { name: 'You (Host)', avatar: '🧑‍💻', type: 'human' },
-    labels: ['microvm', 'hanzo-cloud', 'infra'],
-    createdAt: '2d ago',
-    description: 'Connect live Go microVM server on port 8080 to autonomous agent loops.',
-  },
-  {
-    id: 'ZOO-106',
-    title: 'Publish Sovereign AI Foundation open-weights benchmark paper',
-    status: 'backlog',
-    priority: 'medium',
-    assignee: { name: 'Sumatran Elephant', avatar: '🐘', type: 'agent' },
-    labels: ['research', 'papers', 'benchmarks'],
-    createdAt: '3d ago',
-    description: 'Draft comprehensive evaluation on MMLU-Pro, HumanEval, and Math-500.',
-  },
-]
-
-const CHANNELS = [
-  { id: 'general', name: 'general', desc: 'Pod announcements and general collaboration' },
-  { id: 'sovereign-ai', name: 'sovereign-ai', desc: 'Zen weights, BitDelta, and DeltaSoup research' },
-  { id: 'desktop-tauri', name: 'desktop-tauri', desc: 'Zoo Desktop Rust and Pyodide runtime' },
-  { id: '3d-mesh', name: '3d-mesh', desc: 'ComfyUI 3D diffusion and Trellis rigging' },
-  { id: 'microvm-sandbox', name: 'microvm-sandbox', desc: 'Hanzo Cloud Go backend execution' },
-]
+import { useZooMissions, MissionTask } from '../lib/zoo-missions-context'
+import { zooAudio } from '../lib/audio-engine'
 
 export default function WorkWorkspace() {
-  const [activeView, setActiveView] = useState<'board' | 'issues' | 'chat'>('board')
-  const [activeChannelId, setActiveChannelId] = useState('general')
-  const [issues, setIssues] = useState<Issue[]>(INITIAL_ISSUES)
+  const { activeMission, missions, setActiveMissionId, updateTaskStatus, addTask, agents } = useZooMissions()
+
+  const [activeView, setActiveView] = useState<'board' | 'list' | 'decisions'>('board')
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(INITIAL_ISSUES[0])
-  const [draggedIssueId, setDraggedIssueId] = useState<string | null>(null)
+  const [selectedTask, setSelectedTask] = useState<MissionTask | null>(activeMission.tasks[0] || null)
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null)
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
-  const [newIssueModal, setNewIssueModal] = useState(false)
+  const [newTaskModal, setNewTaskModal] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newPriority, setNewPriority] = useState<'urgent' | 'high' | 'medium' | 'low'>('high')
+  const [newAssignee, setNewAssignee] = useState('Blue the Beluga')
+  const [searchQuery, setSearchQuery] = useState('')
 
-  // Load saved issues from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('zoo_kanban_issues')
-      if (saved) {
-        setIssues(JSON.parse(saved))
-      }
-    } catch {
-      // ignore
-    }
-  }, [])
-
-  const saveIssues = (updated: Issue[]) => {
-    setIssues(updated)
-    try {
-      localStorage.setItem('zoo_kanban_issues', JSON.stringify(updated))
-    } catch {
-      // ignore
-    }
-  }
-
-  // HTML5 Drag & Drop Handlers
+  // Drag & Drop Handlers
   const handleDragStart = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('text/plain', id)
     e.dataTransfer.effectAllowed = 'move'
-    setDraggedIssueId(id)
+    setDraggedTaskId(id)
   }
 
   const handleDragOver = (e: React.DragEvent, columnKey: string) => {
@@ -168,343 +71,433 @@ export default function WorkWorkspace() {
     }
   }
 
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent, targetStatus: MissionTask['status']) => {
     e.preventDefault()
-  }
-
-  const handleDrop = (e: React.DragEvent, targetStatus: Issue['status']) => {
-    e.preventDefault()
-    const issueId = e.dataTransfer.getData('text/plain') || draggedIssueId
-    setDraggedIssueId(null)
+    const taskId = e.dataTransfer.getData('text/plain') || draggedTaskId
+    setDraggedTaskId(null)
     setDragOverColumn(null)
 
-    if (!issueId) return
+    if (!taskId) return
 
-    const updated = issues.map((iss) => (iss.id === issueId ? { ...iss, status: targetStatus } : iss))
-    saveIssues(updated)
+    updateTaskStatus(taskId, targetStatus)
+    zooAudio.playCue('ping')
   }
 
-  const handleCreateIssue = (e: React.FormEvent) => {
+  const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTitle.trim()) return
 
-    const newIss: Issue = {
-      id: `ZOO-${100 + issues.length + 1}`,
+    const selectedAg = agents.find((a) => a.name === newAssignee) || agents[0]
+
+    addTask({
       title: newTitle.trim(),
       status: 'todo',
       priority: newPriority,
-      assignee: { name: 'Blue the Beluga', avatar: '🐬', type: 'agent' },
-      labels: ['sovereign-ai', 'agent'],
-      createdAt: 'Just now',
-      description: 'Created from Kanban board.',
-    }
+      assignee: selectedAg,
+      tags: ['sovereign-ai', activeMission.id],
+      progress: 0,
+      description: `Task created for ${activeMission.title}`,
+    })
 
-    saveIssues([newIss, ...issues])
     setNewTitle('')
-    setNewIssueModal(false)
+    setNewTaskModal(false)
+    zooAudio.playCue('ping')
   }
+
+  // Filter tasks
+  const filteredTasks = activeMission.tasks.filter((t) =>
+    t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.assignee.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   return (
     <>
       <Head>
-        <title>Zoo Labs — Work Workspace (Interactive Kanban & Tasks)</title>
+        <title>Missions & Work — Unified Living World | Zoo Labs</title>
         <meta
           name="description"
-          content="Multi-agent project management, drag-and-drop Kanban board, and task dispatcher wired to Hanzo Cloud."
+          content="Multi-agent mission dispatcher, drag-and-drop Kanban board, and Semantica causal decision lineage."
         />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
       </Head>
 
-      <div className="relative h-screen w-screen overflow-hidden bg-[#090b0e] text-zinc-100 font-sans select-none flex flex-col">
+      <div className="h-screen w-screen overflow-hidden bg-[#05070a] text-zinc-100 font-sans select-none flex flex-col">
         {/* Top App Chrome */}
-        <div className="z-50 shrink-0">
-          <ZooAppChrome />
-        </div>
+        <ZooAppChrome minimal={false} />
 
-        {/* Subheader */}
-        <header className="h-11 border-b border-white/[0.08] bg-[#0c0f14] px-4 flex items-center justify-between shrink-0 z-40 text-xs">
+        {/* ─── Subheader: Mission Switcher & View Mode ─── */}
+        <header className="h-12 border-b border-white/[0.08] bg-[#090c12] px-4 flex items-center justify-between shrink-0 z-40 text-xs">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors"
+              className="p-1 rounded text-zinc-400 hover:text-white transition-colors"
             >
               {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
             </button>
 
+            {/* Mission Selector Dropdown */}
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-white">Zoo Work Studio</span>
-              <span className="text-zinc-600">/</span>
-              <span className="text-zinc-400">Multi-Agent Kanban</span>
+              <span className="font-semibold text-white">Mission:</span>
+              <select
+                value={activeMission.id}
+                onChange={(e) => setActiveMissionId(e.target.value)}
+                className="bg-zinc-900 border border-white/15 text-cyan-300 font-semibold px-2.5 py-1 rounded-lg text-xs outline-none cursor-pointer"
+              >
+                {missions.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.emoji} {m.title}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="hidden sm:flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 text-[11px]">
+            {/* View Switcher: Board, List, Decisions */}
+            <div className="hidden sm:flex items-center bg-zinc-900 border border-white/10 rounded-lg p-0.5 text-[11px]">
               <button
                 onClick={() => setActiveView('board')}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-all cursor-pointer ${
                   activeView === 'board' ? 'bg-zinc-800 text-white shadow-sm font-semibold' : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                <Kanban className="h-3.5 w-3.5" />
+                <Kanban className="h-3.5 w-3.5 text-cyan-400" />
                 <span>Board</span>
               </button>
               <button
-                onClick={() => setActiveView('issues')}
+                onClick={() => setActiveView('list')}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-all cursor-pointer ${
-                  activeView === 'issues' ? 'bg-zinc-800 text-white shadow-sm font-semibold' : 'text-zinc-400 hover:text-white'
+                  activeView === 'list' ? 'bg-zinc-800 text-white shadow-sm font-semibold' : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                <ListTodo className="h-3.5 w-3.5" />
-                <span>List ({issues.length})</span>
+                <ListTodo className="h-3.5 w-3.5 text-blue-400" />
+                <span>List ({activeMission.tasks.length})</span>
+              </button>
+              <button
+                onClick={() => setActiveView('decisions')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-all cursor-pointer ${
+                  activeView === 'decisions' ? 'bg-zinc-800 text-white shadow-sm font-semibold' : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Network className="h-3.5 w-3.5 text-purple-400" />
+                <span>Decisions ({activeMission.decisions.length})</span>
               </button>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setNewIssueModal(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 text-xs font-semibold active:scale-95 transition-all shadow-md cursor-pointer"
+              onClick={() => setNewTaskModal(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1 text-xs font-semibold active:scale-95 transition-all shadow-md cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span>New Task</span>
+              <span>New Mission Task</span>
             </button>
             <Link
               href="/vibe"
               className="inline-flex items-center gap-1 rounded-lg bg-white/[0.06] border border-white/10 hover:bg-white/10 px-3 py-1 text-xs text-white/80 transition-all"
             >
-              <Users className="h-3.5 w-3.5 text-blue-400" />
+              <Users className="h-3.5 w-3.5 text-cyan-400" />
               <span>/vibe Studio</span>
             </Link>
           </div>
         </header>
 
-        {/* Main Workspace */}
+        {/* ─── Main Workspace ─── */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Rail */}
+          {/* Left Sidebar: Missions List & Evidence Datasets */}
           {sidebarOpen && (
-            <aside className="w-60 border-r border-white/[0.08] bg-zinc-950/90 flex flex-col justify-between p-3 space-y-4 shrink-0">
-              <div className="space-y-4 overflow-y-auto scrollbar-none">
-                {/* Channels */}
+            <aside className="w-64 border-r border-white/[0.08] bg-[#07090e] flex flex-col justify-between p-3 shrink-0 text-xs">
+              <div className="space-y-4 overflow-y-auto">
+                {/* Missions List */}
                 <div className="space-y-1">
-                  <div className="flex items-center justify-between px-2 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
-                    <span>Channels</span>
-                  </div>
-                  {CHANNELS.map((ch) => (
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold px-2">
+                    Active World Missions
+                  </span>
+                  {missions.map((m) => (
                     <button
-                      key={ch.id}
-                      onClick={() => {
-                        setActiveChannelId(ch.id)
-                        setActiveView('chat')
-                      }}
-                      className={`flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        activeChannelId === ch.id && activeView === 'chat'
-                          ? 'bg-zinc-800 text-white'
-                          : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+                      key={m.id}
+                      onClick={() => setActiveMissionId(m.id)}
+                      className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all ${
+                        activeMission.id === m.id
+                          ? 'bg-zinc-800 border border-cyan-500/40 text-white font-medium'
+                          : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
                       }`}
                     >
-                      <Hash className="h-3.5 w-3.5 text-zinc-500" />
-                      <span className="truncate">{ch.name}</span>
+                      <div className="flex items-center gap-2 truncate">
+                        <span>{m.emoji}</span>
+                        <span className="truncate">{m.title}</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-cyan-400">{m.progress}%</span>
                     </button>
                   ))}
                 </div>
 
-                {/* Agents */}
-                <div className="space-y-1 pt-2 border-t border-zinc-800/80">
-                  <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold px-2">Autonomous Agents</span>
-                  {[
-                    { name: 'Blue the Beluga', emoji: '🐬', status: 'Live LoRA' },
-                    { name: 'Siberian Tiger', emoji: '🐅', status: 'Tauri Pod' },
-                    { name: 'Sumatran Elephant', emoji: '🐘', status: 'Inference' },
-                  ].map((ag) => (
-                    <div key={ag.name} className="flex items-center justify-between px-2.5 py-1 text-xs text-zinc-300">
-                      <div className="flex items-center gap-2 truncate">
-                        <span>{ag.emoji}</span>
-                        <span className="truncate">{ag.name}</span>
+                {/* Evidence Datasets for Active Mission */}
+                <div className="space-y-1.5 pt-2 border-t border-white/5">
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold px-2">
+                    Evidence Datasets
+                  </span>
+                  {activeMission.evidence.datasets.map((ds) => (
+                    <div key={ds.name} className="p-2 rounded-lg bg-zinc-900/60 border border-white/5 space-y-0.5">
+                      <div className="flex justify-between font-semibold text-white">
+                        <span className="truncate">{ds.name}</span>
+                        <span className="text-cyan-400 font-mono text-[10px]">{ds.size}</span>
                       </div>
-                      <span className="text-[9px] text-blue-400 font-mono">● {ag.status}</span>
+                      <div className="flex justify-between text-[10px] text-zinc-400 font-mono">
+                        <span>{ds.records}</span>
+                        <span>{ds.format}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Backend Status */}
-              <div className="p-2.5 rounded-xl bg-zinc-900/80 border border-white/5 text-[11px] flex items-center justify-between text-zinc-400">
-                <span>Hanzo Cloud MicroVM</span>
-                <span className="flex items-center gap-1 text-emerald-400 font-mono text-[10px]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> 8080 Active
+              {/* Bottom Quick Status */}
+              <div className="p-2.5 rounded-xl bg-zinc-900 border border-white/10 space-y-1">
+                <span className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider">
+                  Impact Metric
                 </span>
+                <p className="text-xs font-bold text-white">{activeMission.impact.metric}</p>
+                <div className="flex justify-between text-[10px] text-zinc-400 font-mono">
+                  <span>Target: {activeMission.impact.target}</span>
+                  <span className="text-emerald-400 font-bold">{activeMission.impact.current}</span>
+                </div>
               </div>
             </aside>
           )}
 
-          {/* Center Kanban Board with Real HTML5 Drag & Drop */}
-          <main className="flex-1 flex overflow-x-auto p-4 gap-4 bg-[#07090c]">
-            {(['backlog', 'todo', 'in_progress', 'done'] as const).map((colKey) => {
-              const colIssues = issues.filter((i) => i.status === colKey)
-              const colMeta = {
-                backlog: { name: 'Backlog', color: 'text-zinc-400', border: 'border-zinc-800' },
-                todo: { name: 'Todo', color: 'text-amber-400', border: 'border-amber-500/20' },
-                in_progress: { name: 'In Progress', color: 'text-blue-400', border: 'border-blue-500/20' },
-                done: { name: 'Done', color: 'text-emerald-400', border: 'border-emerald-500/20' },
-              }[colKey]
+          {/* Center Workspace Views */}
+          <main className="flex-1 flex flex-col overflow-hidden bg-[#040609] p-4">
+            {/* SEARCH & FILTER BAR */}
+            <div className="pb-3 flex items-center justify-between gap-3">
+              <div className="relative w-72">
+                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search tasks or assignees..."
+                  className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder:text-zinc-500 outline-none"
+                />
+              </div>
 
-              const isDropActive = dragOverColumn === colKey
+              <div className="text-xs text-zinc-400">
+                <span>{filteredTasks.length} tasks in mission</span>
+              </div>
+            </div>
 
-              return (
-                <div
-                  key={colKey}
-                  onDragOver={(e) => handleDragOver(e, colKey)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, colKey)}
-                  className={`w-72 sm:w-80 rounded-2xl bg-zinc-950/80 border flex flex-col p-3 space-y-3 shrink-0 max-h-full transition-all ${
-                    isDropActive
-                      ? 'border-blue-500 bg-blue-950/20 shadow-lg shadow-blue-500/10'
-                      : 'border-white/[0.08]'
-                  }`}
-                >
-                  {/* Column Header */}
-                  <div className="flex items-center justify-between border-b border-white/[0.06] pb-2 px-1">
-                    <div className="flex items-center gap-2">
-                      <CircleDot className={`h-3.5 w-3.5 ${colMeta.color}`} />
-                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">{colMeta.name}</h3>
-                    </div>
-                    <span className="text-[10px] bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full text-zinc-400 font-mono">
-                      {colIssues.length}
-                    </span>
-                  </div>
+            {/* VIEW 1: KANBAN BOARD WITH DRAG & DROP */}
+            {activeView === 'board' && (
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 overflow-x-auto pb-4">
+                {[
+                  { key: 'backlog', title: 'Backlog', color: 'text-zinc-400', border: 'border-zinc-800' },
+                  { key: 'todo', title: 'To Do', color: 'text-blue-400', border: 'border-blue-500/30' },
+                  { key: 'in_progress', title: 'In Progress', color: 'text-amber-400', border: 'border-amber-500/30' },
+                  { key: 'done', title: 'Completed', color: 'text-emerald-400', border: 'border-emerald-500/30' },
+                ].map((col) => {
+                  const colTasks = filteredTasks.filter((t) => t.status === col.key)
 
-                  {/* Issues List with Drag & Drop Cards */}
-                  <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 scrollbar-none min-h-[150px]">
-                    {colIssues.map((iss) => (
-                      <div
-                        key={iss.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, iss.id)}
-                        onClick={() => setSelectedIssue(iss)}
-                        className={`p-3 rounded-xl bg-zinc-900/90 border transition-all cursor-grab active:cursor-grabbing space-y-2 group ${
-                          draggedIssueId === iss.id ? 'opacity-40 scale-95 border-dashed border-blue-400' : ''
-                        } ${
-                          selectedIssue?.id === iss.id
-                            ? 'border-blue-500 bg-zinc-900 shadow-md shadow-blue-900/20'
-                            : 'border-white/[0.06] hover:border-white/20'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between text-[10px]">
-                          <div className="flex items-center gap-1">
-                            <GripVertical className="h-3 w-3 text-zinc-600 group-hover:text-zinc-400" />
-                            <span className="font-mono text-zinc-400 font-semibold">{iss.id}</span>
-                          </div>
-                          <span
-                            className={`uppercase font-bold text-[9px] px-1.5 py-0.2 rounded ${
-                              iss.priority === 'urgent'
-                                ? 'bg-red-500/20 text-red-400'
-                                : iss.priority === 'high'
-                                ? 'bg-amber-500/20 text-amber-400'
-                                : 'bg-zinc-800 text-zinc-400'
-                            }`}
+                  return (
+                    <div
+                      key={col.key}
+                      onDragOver={(e) => handleDragOver(e, col.key)}
+                      onDrop={(e) => handleDrop(e, col.key as any)}
+                      className={`flex flex-col rounded-2xl bg-zinc-950/70 border ${
+                        dragOverColumn === col.key ? 'border-cyan-400 ring-2 ring-cyan-500/30 bg-zinc-900/90' : 'border-white/10'
+                      } p-3 transition-all`}
+                    >
+                      {/* Column Header */}
+                      <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/5">
+                        <span className={`text-xs font-bold ${col.color} flex items-center gap-1.5`}>
+                          <span>{col.title}</span>
+                          <span className="text-[10px] font-mono text-zinc-500">({colTasks.length})</span>
+                        </span>
+                      </div>
+
+                      {/* Task Cards */}
+                      <div className="flex-1 overflow-y-auto space-y-2.5">
+                        {colTasks.map((task) => (
+                          <div
+                            key={task.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, task.id)}
+                            onClick={() => setSelectedTask(task)}
+                            className="p-3 rounded-xl bg-zinc-900/90 border border-white/10 hover:border-cyan-500/40 transition-all space-y-2 cursor-grab active:cursor-grabbing shadow-lg group"
                           >
-                            {iss.priority}
-                          </span>
-                        </div>
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="font-semibold text-xs text-white leading-tight">
+                                {task.title}
+                              </h4>
+                              <span
+                                className={`text-[9px] font-mono px-1.5 py-0.5 rounded capitalize ${
+                                  task.priority === 'urgent'
+                                    ? 'bg-rose-950 text-rose-400 border border-rose-500/30'
+                                    : task.priority === 'high'
+                                    ? 'bg-amber-950 text-amber-400 border border-amber-500/30'
+                                    : 'bg-zinc-800 text-zinc-400'
+                                }`}
+                              >
+                                {task.priority}
+                              </span>
+                            </div>
 
-                        <h4 className="text-xs font-medium text-white leading-snug">{iss.title}</h4>
+                            {/* Progress bar */}
+                            {(task.progress ?? 0) > 0 && (
+                              <div className="w-full h-1 rounded-full bg-zinc-800 overflow-hidden">
+                                <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${task.progress}%` }} />
+                              </div>
+                            )}
 
-                        {/* Labels */}
-                        <div className="flex flex-wrap gap-1">
-                          {iss.labels.map((lbl) => (
-                            <span
-                              key={lbl}
-                              className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-800/80 text-zinc-400 border border-white/5"
-                            >
-                              {lbl}
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* Assignee & Date */}
-                        <div className="flex items-center justify-between pt-1 border-t border-zinc-800/80 text-[10px]">
-                          <div className="flex items-center gap-1.5">
-                            <span>{iss.assignee.avatar}</span>
-                            <span className="text-zinc-400 truncate max-w-[110px]">{iss.assignee.name}</span>
+                            {/* Assignee & Tags */}
+                            <div className="flex items-center justify-between pt-1 text-[10px] text-zinc-400">
+                              <div className="flex items-center gap-1.5 font-medium text-white">
+                                <span>{task.assignee.emoji}</span>
+                                <span className="truncate max-w-[100px]">{task.assignee.name.split(' ')[0]}</span>
+                              </div>
+                              <span className="font-mono text-zinc-500">{task.id}</span>
+                            </div>
                           </div>
-                          <span className="text-zinc-500">{iss.createdAt}</span>
-                        </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
 
-                    {colIssues.length === 0 && (
-                      <div className="h-24 border border-dashed border-zinc-800 rounded-xl flex items-center justify-center text-[11px] text-zinc-600">
-                        Drop tasks here
+            {/* VIEW 2: LINEAR/GITHUB-STYLE TASK LIST */}
+            {activeView === 'list' && (
+              <div className="flex-1 overflow-y-auto rounded-2xl border border-white/10 bg-zinc-950/80 p-4 space-y-2">
+                {filteredTasks.map((t) => (
+                  <div
+                    key={t.id}
+                    className="p-3 rounded-xl bg-zinc-900/70 border border-white/5 hover:border-cyan-500/40 flex items-center justify-between text-xs transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-zinc-500 text-[11px]">{t.id}</span>
+                      <span className="font-semibold text-white">{t.title}</span>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 font-mono text-[10px] capitalize">
+                        {t.status.replace('_', ' ')}
+                      </span>
+                      <div className="flex items-center gap-1 text-white">
+                        <span>{t.assignee.emoji}</span>
+                        <span>{t.assignee.name}</span>
                       </div>
-                    )}
+                      <span className="text-cyan-400 font-mono text-[11px] font-bold">{t.progress}%</span>
+                    </div>
                   </div>
+                ))}
+              </div>
+            )}
+
+            {/* VIEW 3: SEMANTICA DECISIONS & PROVENANCE */}
+            {activeView === 'decisions' && (
+              <div className="flex-1 overflow-y-auto space-y-4 p-4 rounded-2xl border border-white/10 bg-zinc-950/80">
+                <div className="border-b border-white/10 pb-3">
+                  <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                    <Network className="h-4 w-4 text-purple-400" />
+                    <span>Semantica Decision Intelligence & Provenance Lineage</span>
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Immutable bi-temporal decision log linked to W3C PROV-O agents and datasets.
+                  </p>
                 </div>
-              )
-            })}
+
+                <div className="space-y-3">
+                  {activeMission.decisions.map((dec) => (
+                    <div
+                      key={dec.id}
+                      className="p-4 rounded-2xl bg-zinc-900 border border-white/10 space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-purple-400 font-bold text-xs">{dec.id}</span>
+                          <span className="text-white font-semibold text-xs">{dec.decidedBy}</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-zinc-500">{dec.timestamp}</span>
+                      </div>
+
+                      <p className="text-xs text-zinc-300">{dec.scenario}</p>
+
+                      <div className="p-2.5 rounded-xl bg-black/50 border border-white/5 space-y-1 text-[11px]">
+                        <span className="font-semibold text-emerald-300">Outcome:</span>
+                        <p className="text-zinc-300">{dec.outcome}</p>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 pt-1">
+                        <span className="truncate max-w-[280px]">Impact: {dec.downstreamImpact}</span>
+                        <span className="text-purple-400 font-bold">{dec.causalType}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </main>
         </div>
 
-        {/* New Issue Modal */}
-        {newIssueModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
-            <form
-              onSubmit={handleCreateIssue}
-              className="w-full max-w-md rounded-3xl border border-white/15 bg-zinc-950 p-6 shadow-2xl backdrop-blur-3xl space-y-4"
-            >
+        {/* ─── Create Task Modal ─── */}
+        {newTaskModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+            <div className="w-full max-w-md rounded-3xl border border-white/15 bg-zinc-950 p-6 space-y-4 shadow-2xl">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <h3 className="text-sm font-semibold text-white">Create New Task</h3>
-                <button
-                  type="button"
-                  onClick={() => setNewIssueModal(false)}
-                  className="rounded-full p-1 text-zinc-400 hover:text-white"
-                >
-                  ✕
-                </button>
+                <h3 className="text-sm font-bold text-white">Create New Mission Task</h3>
+                <button onClick={() => setNewTaskModal(false)} className="text-zinc-400 hover:text-white">✕</button>
               </div>
 
-              <div className="space-y-3 text-xs">
-                <div>
-                  <label className="block text-zinc-400 mb-1">Task Title</label>
+              <form onSubmit={handleCreateTask} className="space-y-3.5 text-xs">
+                <div className="space-y-1">
+                  <label className="font-semibold text-zinc-300">Task Title</label>
                   <input
                     type="text"
                     required
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    placeholder="e.g. Fine-tune DeltaSoup parameter soup on GPU node"
-                    className="w-full p-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white outline-none focus:border-blue-500"
+                    placeholder="e.g. Ingest 2026 icebreaker tracking coordinates"
+                    className="w-full p-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white outline-none"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-zinc-400 mb-1">Priority</label>
-                  <select
-                    value={newPriority}
-                    onChange={(e) => setNewPriority(e.target.value as any)}
-                    className="w-full p-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white outline-none"
-                  >
-                    <option value="urgent">Urgent</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-semibold text-zinc-300">Priority</label>
+                    <select
+                      value={newPriority}
+                      onChange={(e) => setNewPriority(e.target.value as any)}
+                      className="w-full p-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white outline-none"
+                    >
+                      <option value="urgent">Urgent</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setNewIssueModal(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs"
-                >
-                  Cancel
-                </button>
+                  <div className="space-y-1">
+                    <label className="font-semibold text-zinc-300">Assignee Agent</label>
+                    <select
+                      value={newAssignee}
+                      onChange={(e) => setNewAssignee(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white outline-none"
+                    >
+                      {agents.map((a) => (
+                        <option key={a.id} value={a.name}>
+                          {a.emoji} {a.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all shadow-md"
+                  className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-white shadow-lg cursor-pointer"
                 >
                   Create Task
                 </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         )}
       </div>

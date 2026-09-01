@@ -212,7 +212,7 @@ export default function ZooMcpCopilot() {
                   )}
 
                   <div
-                    className={`p-3 rounded-2xl max-w-[82%] leading-relaxed ${
+                    className={`p-3 rounded-2xl max-w-[85%] leading-relaxed ${
                       msg.role === 'user'
                         ? 'bg-blue-600 text-white font-medium rounded-tr-sm'
                         : 'bg-[#18181B] border border-white/10 text-zinc-200 rounded-tl-sm'

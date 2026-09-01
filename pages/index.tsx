@@ -58,7 +58,7 @@ const EMOTION_MAP: Record<string, { name: string; emoji: string; desc: string }>
 
 const CLEAN_PROMPTS = [
   "Origin Eggs & 1,500+ Species",
-  "How Zoo DAO 82% Fund Works",
+  "Donate to Wildlife (zoo.ngo)",
   "Blue as Desktop Familiar / Bot",
   "Vibe with Friends Sandbox",
   "Endangered Wildlife Telemetry",
@@ -71,7 +71,7 @@ const IDLE_THOUGHTS = [
   "The ocean is calm today... What shall we build or explore together?",
   "Echolocation ping sent. Waiting for your signal...",
   "Hatching an Origin Egg with 1,500+ species is coming to the metaverse.",
-  "82% of Zoo DAO funds go directly to real wildlife on Earth.",
+  "We donate proceeds directly to real wildlife conservation on Earth.",
   "Blowing some ocean bubbles while you think...",
   "Blue the Beluga is free and open-source for everyone to vibe with.",
 ]
@@ -296,8 +296,8 @@ where <mood> is one of: happy, playful, love, curious, calm, surprise, pride.`,
     if (lower.includes('egg') || lower.includes('hatch') || lower.includes('species')) {
       reply = "Origin Eggs are the genesis for over 1,500+ unique endangered animal familiars that will enter our shared metaverse. Blue is free for everyone, with full on-chain trait verification!"
       emoKey = 'happy'
-    } else if (lower.includes('dao') || lower.includes('fund') || lower.includes('82')) {
-      reply = "Zoo DAO allocates 82% of all ecosystem funds directly to real wildlife conservation programs and bioacoustic sensor networks on Earth."
+    } else if (lower.includes('dao') || lower.includes('fund') || lower.includes('donate')) {
+      reply = "We donate proceeds directly to real wildlife conservation programs and anti-poaching sensor networks on Earth! You can also support directly at zoo.ngo."
       emoKey = 'pride'
     } else if (lower.includes('desktop') || lower.includes('bot') || lower.includes('clippy')) {
       reply = "Blue runs directly on your computer with @hanzo/bot and the Zoo Desktop App! You can pin Blue as an interactive desktop animal familiar or agentic copilot."

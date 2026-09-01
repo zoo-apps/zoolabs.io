@@ -86,7 +86,7 @@ const IDLE_THOUGHTS = [
   "The ocean is calm today... What shall we build or discover? 🌊",
   "Echolocation ping sent! Waiting for your signal... 📡",
   "Hatching an Origin Egg sounds exciting today! 🥚",
-  "82% of Zoo DAO funds go directly to real wildlife on Earth! 🌍",
+  "We donate proceeds directly to real wildlife conservation! 🌍",
   "Blowing some ocean bubbles while you think... 🫧🐬",
   "Did you know Beluga whales can express dozens of emotions? 😊",
   "Curious about our Qwen3 ZenLM neural architecture? Ask away! 🧠",
@@ -97,7 +97,7 @@ const QUICK_PROMPTS = [
   "Zoo DAO 🏛️",
   "Endangered Species 🐅",
   "ZenLM AI 🧠",
-  "82% Fund 🌍",
+  "Donate to Wildlife (zoo.ngo) 🌍",
 ]
 
 const MODELS = [
@@ -429,8 +429,8 @@ where <mood> is one of: happy, playful, love, curiosity, calm, surprise, thought
     if (lower.includes('egg') || lower.includes('hatch') || lower.includes('nft')) {
       reply = "Origin Eggs can hatch over 1,500+ endangered animal species with on-chain genetic traits!"
       emoKey = 'happy'
-    } else if (lower.includes('dao') || lower.includes('governance') || lower.includes('vote')) {
-      reply = "Zoo DAO allocates 82% of all funds to verifiable wildlife conservation programs on Earth!"
+    } else if (lower.includes('dao') || lower.includes('governance') || lower.includes('donate') || lower.includes('fund')) {
+      reply = "We donate proceeds directly to verifiable wildlife conservation programs and sanctuary sensors! You can also donate directly at zoo.ngo."
       emoKey = 'pride'
     } else if (lower.includes('tiger') || lower.includes('elephant') || lower.includes('species') || lower.includes('animal')) {
       reply = "We monitor Sumatran Tigers and Elephants using bioacoustics and decentralized AI tracking."

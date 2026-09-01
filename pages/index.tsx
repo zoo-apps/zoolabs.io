@@ -1,542 +1,621 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
-import { motion, useScroll, useTransform } from 'framer-motion'
 import {
-  Download, Github, ExternalLink, ChevronRight, Play,
-  Volume2, VolumeX, ArrowRight, Egg, Sword, Droplets,
-  Flame, ShoppingBag, Heart, Sparkles, Bird,
-  Award, Globe, Shield, Zap, Brain, DollarSign,
+  Send,
+  Bot,
+  Sparkles,
+  Volume2,
+  VolumeX,
+  RefreshCw,
+  ArrowUp,
+  ExternalLink,
+  Github,
+  ChevronRight,
+  Users,
+  Monitor,
+  Code2,
+  Layers,
+  Sparkle,
+  Share2,
+  Copy,
+  Check,
 } from 'lucide-react'
+import ZooAppChrome from '../components/ZooAppChrome'
 
-// ─── Data ────────────────────────────────────────────────────────────────────
-
-const heroSlides = [
-  { id: 0, title: 'Exotic Animals', type: '', uri: '#market' },
-  { id: 1, title: 'Siberian Tiger', type: 'tiger', uri: '#drops' },
-  { id: 2, title: 'Sumatran Elephant', type: 'elephant', uri: '#drops' },
-  { id: 3, title: 'Nubian Giraffe', type: 'giraffe', uri: '#drops' },
-  { id: 4, title: 'Leopards + More', type: 'more', uri: '#drops' },
-  { id: 5, title: 'Origin Eggs', type: 'eggs', uri: '#eggs' },
+// Local pre-cached video clips
+const STATIC_CLIPS = [
+  '/bg_video/static/relactation0.mp4',
+  '/bg_video/static/relactation1.mp4',
+  '/bg_video/static/relactation2.mp4',
+  '/bg_video/static/relactation3.mp4',
+  '/bg_video/static/relactation4.mp4',
 ]
 
-const eggs = [
-  { title: 'Endangered Egg', glb: '/models/Eggs/origin_endangered_egg_2.glb', image: '/img/egg1.png' },
-  { title: 'Sublime Egg', glb: '/models/Eggs/origin_sublime_egg.glb', image: '/img/egg2.png' },
-  { title: 'Rare Egg', glb: '/models/Eggs/origin_rare_egg.glb', image: '/img/egg.png' },
+const EMOTION_MAP: Record<string, { name: string; emoji: string; desc: string }> = {
+  happy: { name: 'Happy', emoji: '😊', desc: 'Joyful acoustic telemetry and radiant ocean bubbles.' },
+  happiness: { name: 'Happy', emoji: '😊', desc: 'Joyful acoustic telemetry and radiant ocean bubbles.' },
+  joy: { name: 'Happy', emoji: '😊', desc: 'Joyful acoustic telemetry and radiant ocean bubbles.' },
+  playful: { name: 'Playful', emoji: '🐬', desc: 'Playful spiraling swim with rhythmic echolocation pulses.' },
+  play: { name: 'Playful', emoji: '🐬', desc: 'Playful spiraling swim with rhythmic echolocation pulses.' },
+  love: { name: 'Love', emoji: '💙', desc: 'Deep empathetic resonance and social pod connection.' },
+  adoration: { name: 'Love', emoji: '🥰', desc: 'Affectionate proximity and gentle tail glide.' },
+  admiration: { name: 'Admiration', emoji: '✨', desc: 'Awe-inspired acoustic telemetry and high attention.' },
+  amusement: { name: 'Amusement', emoji: '😄', desc: 'Playful bubbles emitted in rapid succession.' },
+  awe: { name: 'Wonder', emoji: '🌟', desc: 'Wide acoustic aperture detecting novel patterns.' },
+  interest: { name: 'Curious', emoji: '🤔', desc: 'Curious sonar ping focused on analyzing data.' },
+  curious: { name: 'Curious', emoji: '🤔', desc: 'Curious sonar ping focused on analyzing data.' },
+  curiosity: { name: 'Curious', emoji: '🤔', desc: 'Curious sonar ping focused on analyzing data.' },
+  calm: { name: 'Calm', emoji: '🌊', desc: 'Tranquil resting glide through deep arctic currents.' },
+  calmness: { name: 'Calm', emoji: '🌊', desc: 'Tranquil resting glide through deep arctic currents.' },
+  satisfaction: { name: 'Content', emoji: '😌', desc: 'Content equilibrium after solving a task.' },
+  surprise: { name: 'Surprise', emoji: '😲', desc: 'Sudden frequency modulation to novel stimulus.' },
+  surprised: { name: 'Surprise', emoji: '😲', desc: 'Sudden frequency modulation to novel stimulus.' },
+  pride: { name: 'Proud', emoji: '👑', desc: 'Triumphant sonic signature representing Zoo DAO.' },
+  proud: { name: 'Proud', emoji: '👑', desc: 'Triumphant sonic signature representing Zoo DAO.' },
+  sad: { name: 'Gentle', emoji: '🥺', desc: 'Low-frequency tone reflecting on endangered species.' },
+}
+
+const CLEAN_PROMPTS = [
+  "Origin Eggs & 1,500+ Species",
+  "How Zoo DAO 82% Fund Works",
+  "Blue as Desktop Familiar / Bot",
+  "Vibe with Friends Sandbox",
+  "Endangered Wildlife Telemetry",
 ]
 
-const nftUtilities = [
-  { title: 'Play', icon: <Sword className="w-6 h-6" />, desc: 'Game mechanics with real rewards' },
-  { title: 'Hatch', icon: <Egg className="w-6 h-6" />, desc: 'Hatch eggs into unique animals' },
-  { title: 'Pools', icon: <Droplets className="w-6 h-6" />, desc: 'Liquidity-backed NFTs' },
-  { title: 'Feed', icon: <Heart className="w-6 h-6" />, desc: 'Feed to increase collateral' },
-  { title: 'Burning', icon: <Flame className="w-6 h-6" />, desc: 'Deflationary mechanics' },
-  { title: 'Buy / Sell', icon: <ShoppingBag className="w-6 h-6" />, desc: 'Marketplace trading' },
-  { title: 'Grow', icon: <Sparkles className="w-6 h-6" />, desc: 'Baby to Adult stages' },
-  { title: 'Boosts', icon: <Zap className="w-6 h-6" />, desc: 'Boost your earnings' },
-  { title: 'Make Offers', icon: <DollarSign className="w-6 h-6" />, desc: 'Bid on any NFT' },
-  { title: 'Breed', icon: <Bird className="w-6 h-6" />, desc: 'Up to 7x per generation' },
-  { title: 'Earns', icon: <Award className="w-6 h-6" />, desc: 'Passive yield from NFTs' },
-  { title: 'Metaverse', icon: <Globe className="w-6 h-6" />, desc: 'Virtual companions' },
+const IDLE_THOUGHTS = [
+  "I wonder what the Sumatran tigers are doing right now...",
+  "Did you know beluga whales use echolocation to navigate underwater caves?",
+  "Ready when you are! Ask me anything about wildlife or AI agents.",
+  "The ocean is calm today... What shall we build or explore together?",
+  "Echolocation ping sent. Waiting for your signal...",
+  "Hatching an Origin Egg with 1,500+ species is coming to the metaverse.",
+  "82% of Zoo DAO funds go directly to real wildlife on Earth.",
+  "Blowing some ocean bubbles while you think...",
+  "Blue the Beluga is free and open-source for everyone to vibe with.",
 ]
 
-const animals = [
-  { name: 'Sumatran Elephant', latin: 'Elephas Maximus Sumatranus', image: '/images/elephant.png', threat: 'Critically Endangered' },
-  { name: 'Siberian Tiger', latin: 'Panthera Tigris Altaica', image: '/images/tiger.png', threat: 'Endangered' },
-  { name: 'Amur Leopard', latin: 'Panthera Pardus Orientalis', image: '/img/amur-leopard.png', threat: 'Critically Endangered' },
-  { name: 'Javan Rhino', latin: 'Rhinoceros Sondaicus', image: '/images/giant-rhino.png', threat: 'Critically Endangered' },
-  { name: 'Pygmy Hippo', latin: 'Choeropsis Liberiensis', image: '/images/hippo.png', threat: 'Endangered' },
-]
+export type Message = {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  emotion?: string
+  timestamp?: string
+}
 
-const conservationStats = [
-  { value: '16,000+', label: 'endangered species threatened with extinction' },
-  { value: '82%', label: 'of spending dedicated to conservation' },
-  { value: '100%', label: 'controlled by members of Zoo DAO' },
-]
-
-const partners = [
-  { name: 'WWF', src: '/img/wwf.svg' },
-  { name: 'WCS', src: '/img/wcs.svg' },
-  { name: 'ZSL', src: '/img/zsl.svg' },
-  { name: 'IUCN', src: '/img/iucn.svg' },
-  { name: 'Panthera', src: '/img/panthera.svg' },
-  { name: 'IRF', src: '/img/irf.svg' },
-]
-
-// ─── Component ───────────────────────────────────────────────────────────────
+let seq = 0
+const uid = () => `msg_${Date.now()}_${++seq}`
 
 export default function Home() {
-  const [activeSlide, setActiveSlide] = useState(0)
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: uid(),
+      role: 'assistant',
+      content:
+        "Hello friend. I'm Blue, the open-source emotionally intelligent Beluga whale avatar for Zoo Labs. Watch me swim and react as we chat about wildlife, AI agents, and our decentralized sandbox.",
+      emotion: 'Happiness',
+      timestamp: 'Just now',
+    },
+  ])
+
+  const [input, setInput] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [currentEmotionKey, setCurrentEmotionKey] = useState('happy')
+  const [floatingFeelings, setFloatingFeelings] = useState<{ id: number; emoji: string }[]>([])
+  const [idleThought, setIdleThought] = useState(IDLE_THOUGHTS[0])
+  const [showIdleThought, setShowIdleThought] = useState(true)
+  const [emotionPopoverOpen, setEmotionPopoverOpen] = useState(false)
+  const [vibeModalOpen, setVibeModalOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  // Double-buffered crossfading video players
+  const [srcA, setSrcA] = useState<string>(STATIC_CLIPS[0])
+  const [srcB, setSrcB] = useState<string>('')
+  const [activePlayer, setActivePlayer] = useState<'A' | 'B'>('A')
   const [isMuted, setIsMuted] = useState(true)
-  const [scrolled, setScrolled] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
 
-  const { scrollY } = useScroll()
-  const heroOpacity = useTransform(scrollY, [0, 600], [1, 0])
-  const heroScale = useTransform(scrollY, [0, 600], [1, 1.1])
+  const idleLoopTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const idleThoughtTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scrollerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50)
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  const currentEmotionMeta = EMOTION_MAP[currentEmotionKey.toLowerCase()] || EMOTION_MAP['happy']
+  const randomSwimClip = () => STATIC_CLIPS[Math.floor(Math.random() * STATIC_CLIPS.length)]
 
-  // Sync slide titles to video timestamps (original behavior)
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-    const handleTime = () => {
-      const t = video.currentTime
-      let idx = 0
-      if (t < 9) idx = 0
-      else if (t < 17) idx = 1
-      else if (t < 21) idx = 2
-      else if (t < 29) idx = 3
-      else if (t < 38) idx = 4
-      else idx = 5
-      setActiveSlide(idx)
+  const playVideo = (url: string) => {
+    if (activePlayer === 'A') {
+      setSrcB(url)
+    } else {
+      setSrcA(url)
     }
-    video.addEventListener('timeupdate', handleTime)
-    return () => video.removeEventListener('timeupdate', handleTime)
+  }
+
+  const handleVideoLoaded = (player: 'A' | 'B') => {
+    setActivePlayer(player)
+  }
+
+  // Animate small emoji floating up gently strictly from bottom-left to denote feelings
+  const spawnBottomLeftFeeling = (emoji: string) => {
+    const id = Date.now() + Math.random()
+    setFloatingFeelings((prev) => [...prev, { id, emoji }])
+    setTimeout(() => {
+      setFloatingFeelings((prev) => prev.filter((item) => item.id !== id))
+    }, 2200)
+  }
+
+  const triggerEmotion = (emotionKey: string) => {
+    const cleanKey = emotionKey.toLowerCase()
+    const meta = EMOTION_MAP[cleanKey] || EMOTION_MAP['happy']
+    setCurrentEmotionKey(cleanKey)
+    spawnBottomLeftFeeling(meta.emoji)
+
+    const videoName = meta.name === 'Happy' ? 'Happiness' : meta.name === 'Proud' ? 'Pride' : meta.name === 'Calm' ? 'Calmness' : meta.name
+    playVideo(`/bg_video/emotion/${videoName}.mp4`)
+
+    if (idleLoopTimer.current) clearTimeout(idleLoopTimer.current)
+    idleLoopTimer.current = setTimeout(() => {
+      playVideo(randomSwimClip())
+    }, 12000)
+  }
+
+  // Idle swim loop
+  useEffect(() => {
+    const swimCycle = () => {
+      playVideo(randomSwimClip())
+      idleLoopTimer.current = setTimeout(swimCycle, 18000)
+    }
+    idleLoopTimer.current = setTimeout(swimCycle, 18000)
+    return () => {
+      if (idleLoopTimer.current) clearTimeout(idleLoopTimer.current)
+    }
   }, [])
 
-  const slide = heroSlides[activeSlide]
+  // Idle thought rotator
+  useEffect(() => {
+    const rotateThought = () => {
+      setShowIdleThought(false)
+      setTimeout(() => {
+        const next = IDLE_THOUGHTS[Math.floor(Math.random() * IDLE_THOUGHTS.length)]
+        setIdleThought(next)
+        setShowIdleThought(true)
+      }, 600)
+      idleThoughtTimer.current = setTimeout(rotateThought, 10000)
+    }
+    idleThoughtTimer.current = setTimeout(rotateThought, 10000)
+    return () => {
+      if (idleThoughtTimer.current) clearTimeout(idleThoughtTimer.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: 'smooth' })
+  }, [messages])
+
+  async function handleSend(textToSend?: string) {
+    const text = (textToSend ?? input).trim()
+    if (!text || busy) return
+
+    setInput('')
+    setShowIdleThought(false)
+
+    const userMsg: Message = { id: uid(), role: 'user', content: text, timestamp: 'Just now' }
+    const assistantMsg: Message = { id: uid(), role: 'assistant', content: '', timestamp: 'Just now' }
+
+    setMessages((prev) => [...prev, userMsg, assistantMsg])
+    setBusy(true)
+
+    const publishableKey = process.env.NEXT_PUBLIC_HANZO_PUBLISHABLE_KEY || 'pk_live_zoo_beluga'
+    const gatewayUrl = process.env.NEXT_PUBLIC_HANZO_API_URL || 'https://api.hanzo.ai'
+
+    try {
+      const res = await fetch(`${gatewayUrl}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${publishableKey}`,
+          'X-Org-Id': 'zoo',
+        },
+        body: JSON.stringify({
+          model: 'zen-nano-instruct',
+          messages: [
+            {
+              role: 'system',
+              content: `You are Blue, the empathetic, emotionally intelligent Beluga whale familiar created by Zoo Labs and Hanzo AI.
+You help users vibe with friends, protect endangered wildlife, explore Origin Eggs, and run durable agent tasks in Hanzo Cloud sandbox.
+At the very end of your response, ALWAYS append your emotional state in this exact format:
+emotion: <mood>
+where <mood> is one of: happy, playful, love, curious, calm, surprise, pride.`,
+            },
+            ...messages.map((m) => ({ role: m.role, content: m.content })),
+            { role: 'user', content: text },
+          ],
+          stream: true,
+        }),
+      })
+
+      if (!res.ok) {
+        await simulateResponse(text, assistantMsg.id)
+        return
+      }
+
+      if (!res.body) throw new Error('No stream body')
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ''
+
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+        for (const line of lines) {
+          if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              const delta = data.choices?.[0]?.delta?.content || ''
+              fullText += delta
+
+              let clean = fullText
+              let foundEmotion: string | null = null
+              const emoIdx = fullText.lastIndexOf('emotion:')
+              if (emoIdx !== -1) {
+                clean = fullText.slice(0, emoIdx).trimEnd()
+                const emoRaw = fullText.slice(emoIdx + 8).trim().split(/[\s\n\]]/)[0]
+                if (emoRaw) foundEmotion = emoRaw
+              }
+
+              if (foundEmotion && foundEmotion.toLowerCase() !== currentEmotionKey.toLowerCase()) {
+                triggerEmotion(foundEmotion)
+              }
+
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsg.id ? { ...m, content: clean, emotion: foundEmotion || undefined } : m
+                )
+              )
+            } catch {
+              // Non JSON line
+            }
+          }
+        }
+      }
+    } catch {
+      await simulateResponse(text, assistantMsg.id)
+    } finally {
+      setBusy(false)
+      if (idleLoopTimer.current) clearTimeout(idleLoopTimer.current)
+      idleLoopTimer.current = setTimeout(() => playVideo(randomSwimClip()), 14000)
+    }
+  }
+
+  async function simulateResponse(userText: string, assistantId: string) {
+    let reply = ''
+    let emoKey = 'playful'
+    const lower = userText.toLowerCase()
+
+    if (lower.includes('egg') || lower.includes('hatch') || lower.includes('species')) {
+      reply = "Origin Eggs are the genesis for over 1,500+ unique endangered animal familiars that will enter our shared metaverse. Blue is free for everyone, with full on-chain trait verification!"
+      emoKey = 'happy'
+    } else if (lower.includes('dao') || lower.includes('fund') || lower.includes('82')) {
+      reply = "Zoo DAO allocates 82% of all ecosystem funds directly to real wildlife conservation programs and bioacoustic sensor networks on Earth."
+      emoKey = 'pride'
+    } else if (lower.includes('desktop') || lower.includes('bot') || lower.includes('clippy')) {
+      reply = "Blue runs directly on your computer with @hanzo/bot and the Zoo Desktop App! You can pin Blue as an interactive desktop animal familiar or agentic copilot."
+      emoKey = 'playful'
+    } else if (lower.includes('vibe') || lower.includes('friend') || lower.includes('sandbox')) {
+      reply = "In 'Vibe with Friends' mode, you can invite your pod to chat with Blue simultaneously while executing shared agent workflows and python sandboxes via Hanzo Cloud."
+      emoKey = 'love'
+    } else {
+      reply = `You asked: "${userText}". As Blue the Beluga, I'm here to vibe with your pod, protect wildlife, and run agent tasks across the digital ocean!`
+      emoKey = 'calm'
+    }
+
+    triggerEmotion(emoKey)
+    for (let i = 0; i <= reply.length; i += 3) {
+      const partial = reply.slice(0, i)
+      setMessages((prev) =>
+        prev.map((m) => (m.id === assistantId ? { ...m, content: partial, emotion: emoKey } : m))
+      )
+      await new Promise((r) => setTimeout(r, 20))
+    }
+  }
+
+  const copyRoomLink = () => {
+    navigator.clipboard.writeText(window.location.href)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <>
       <Head>
-        <title>Zoo Labs - Exotic Animals x AI Agents</title>
-        <meta name="description" content="Zoo Labs - Collect, hatch, breed, and trade exotic animal AI agents. NFT marketplace powered by decentralized science." />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Zoo Labs — Vibe with Friends x Blue the Beluga</title>
+        <meta
+          name="description"
+          content="Vibe with friends in a shared ocean sandbox with Blue the Beluga, the open-source emotionally intelligent AI animal familiar."
+        />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="min-h-screen bg-black text-white">
-
-        {/* ─── Nav ─────────────────────────────────────────────────────────── */}
-        <nav className={`fixed top-0 w-full z-[100] transition-all duration-300 ${
-          scrolled ? 'bg-black/90 backdrop-blur-lg border-b border-white/10' : 'bg-transparent'
-        }`}>
-          <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold tracking-tight">ZOO</Link>
-            <div className="hidden md:flex items-center space-x-8 text-sm">
-              <a href="#eggs" className="text-white/70 hover:text-white transition-colors">Eggs</a>
-              <a href="#nft-utility" className="text-white/70 hover:text-white transition-colors">Game</a>
-              <a href="#animals" className="text-white/70 hover:text-white transition-colors">Animals</a>
-              <a href="#market" className="text-white/70 hover:text-white transition-colors">Marketplace</a>
-              <a href="#governance" className="text-white/70 hover:text-white transition-colors">DAO</a>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="https://github.com/zoo-labs" target="_blank" className="p-2 text-white/70 hover:text-white">
-                <Github className="w-5 h-5" />
-              </Link>
-              <a href="#eggs" className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-white text-black rounded-full text-sm font-medium hover:bg-white/90 transition-colors">
-                <Play className="w-4 h-4" />
-                Enter Zoo
-              </a>
-            </div>
-          </div>
-        </nav>
-
-        {/* ─── Hero: Fullscreen Video ──────────────────────────────────────── */}
-        <motion.section style={{ opacity: heroOpacity, scale: heroScale }} className="relative h-screen w-full overflow-hidden">
+      <div className="relative h-screen w-screen overflow-hidden bg-black text-white font-sans select-none">
+        {/* ─── Apple-Grade Liquid Glass Ocean Video Canvas (Centered Whale) ─── */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           <video
-            ref={videoRef}
-            autoPlay muted={isMuted} loop playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          >
-            <source src="/videos/videoplayback-trimmed.webm" type="video/webm" />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/10 to-black/80" />
+            autoPlay
+            loop
+            muted={isMuted}
+            playsInline
+            onLoadedData={() => handleVideoLoaded('A')}
+            onError={() => playVideo(STATIC_CLIPS[0])}
+            src={srcA}
+            className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-1000 ${
+              activePlayer === 'A' ? 'opacity-100 z-10' : 'opacity-0 z-0'
+            }`}
+          />
+          <video
+            autoPlay
+            loop
+            muted={isMuted}
+            playsInline
+            onLoadedData={() => handleVideoLoaded('B')}
+            onError={() => playVideo(STATIC_CLIPS[0])}
+            src={srcB}
+            className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-1000 ${
+              activePlayer === 'B' ? 'opacity-100 z-10' : 'opacity-0 z-0'
+            }`}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/65 backdrop-blur-[0.5px] z-20" />
+        </div>
 
-          <div className="absolute inset-0 z-50 flex items-center">
-            <div className="container mx-auto px-6">
-              <motion.div
-                key={activeSlide}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="max-w-3xl"
-              >
-                <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold mb-6 leading-none tracking-tight">
-                  {slide.title}
-                </h1>
-                <Link href={slide.uri}>
-                  <span className="inline-flex items-center gap-3 px-8 py-4 border-2 border-white/60 rounded-full text-lg font-medium hover:bg-white/10 transition-all cursor-pointer">
-                    {slide.type ? `Buy ${slide.type.charAt(0).toUpperCase() + slide.type.slice(1)}` : 'Explore the Zoo'}
-                  </span>
-                </Link>
-              </motion.div>
+        {/* ─── Apple Unified Floating Chrome ───────────────────────────────── */}
+        <div className="absolute top-0 left-0 right-0 z-50 pointer-events-auto">
+          <ZooAppChrome />
+        </div>
+
+        {/* ─── Main Viewport: Centered Whale + Sided Chat Bubbles ───────────── */}
+        <main className="relative z-30 flex h-full w-full flex-col justify-between pt-16 pb-28 px-4 sm:px-8 overflow-hidden pointer-events-none">
+          {/* Proactive Floating Thought Bubble above the Whale in Center */}
+          {showIdleThought && !busy && (
+            <div className="mx-auto mt-2 max-w-md px-4 text-center transition-all duration-700 animate-bounce pointer-events-auto">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/60 px-4 py-1.5 text-xs text-white/85 backdrop-blur-2xl shadow-2xl">
+                <span>{idleThought}</span>
+              </div>
             </div>
-          </div>
+          )}
 
-          <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="absolute bottom-8 right-8 z-50 p-3 bg-white/10 backdrop-blur-md rounded-full hover:bg-white/20 transition-colors"
+          {/* Sided Conversation Stream (Left & Right Split) */}
+          <div
+            ref={scrollerRef}
+            className="flex-1 my-auto space-y-4 overflow-y-auto max-h-[calc(100vh-250px)] px-2 scrollbar-none pointer-events-auto"
           >
-            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-          </button>
+            {messages.map((m) => {
+              const isAssistant = m.role === 'assistant'
 
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}
-            className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50"
-          >
-            <motion.div animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 2 }}
-              className="w-6 h-10 border-2 border-white/30 rounded-full flex items-start justify-center p-1"
-            >
-              <motion.div className="w-1.5 h-3 bg-white/60 rounded-full" />
-            </motion.div>
-          </motion.div>
-        </motion.section>
-
-        {/* ─── Buy Origin Eggs ─────────────────────────────────────────────── */}
-        <section id="eggs" className="py-24 px-6 bg-black">
-          <div className="container mx-auto max-w-5xl">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-              <h2 className="text-4xl md:text-5xl font-bold text-center mb-4">Buy Origin Egg NFTs.</h2>
-              <p className="text-center text-white/50 mb-16 text-lg">Each Origin Egg can mint 1,500+ unique animal NFTs.</p>
-              <div className="flex flex-col md:flex-row items-center justify-center gap-8">
-                {eggs.map((egg) => (
-                  <motion.div
-                    key={egg.title}
-                    whileHover={{ y: -8, scale: 1.02 }}
-                    className="bg-white/5 border border-white/10 rounded-2xl p-6 w-full md:w-[280px] cursor-pointer group hover:border-amber-400/30 transition-all"
+              return (
+                <div
+                  key={m.id}
+                  className={`flex w-full ${isAssistant ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
+                >
+                  <div
+                    className={`relative max-w-[85%] sm:max-w-md md:max-w-lg rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed backdrop-blur-3xl transition-all ${
+                      isAssistant
+                        ? 'border border-white/15 bg-black/60 text-white shadow-[0_8px_32px_rgba(0,0,0,0.6)]'
+                        : 'bg-blue-600/90 text-white font-medium border border-blue-400/30 shadow-[0_8px_32px_rgba(0,102,255,0.3)]'
+                    }`}
                   >
-                    <div className="w-full h-[260px] bg-black rounded-xl flex items-center justify-center mb-4 overflow-hidden">
-                      <div className="w-48 h-48 relative">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={egg.image} alt={egg.title} className="w-full h-full object-contain" />
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">{egg.title}</h3>
-                      <span className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-amber-400/20 transition-colors">
-                        <ArrowRight className="w-5 h-5" />
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* ─── Unimaginable Experiences (Trippy Video) ─────────────────────── */}
-        <section className="relative h-screen w-full overflow-hidden">
-          <div className="absolute inset-0 flex items-center justify-center z-50">
-            <motion.h2
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="text-5xl md:text-7xl lg:text-8xl font-bold text-center max-w-4xl leading-tight"
-            >
-              Unimaginable
-              <br />
-              Experiences
-            </motion.h2>
-          </div>
-          <video autoPlay muted loop playsInline className="w-full h-full object-cover">
-            <source src="/videos/trippy_animals_short.webm" type="video/webm" />
-          </video>
-          <div className="absolute inset-0 bg-black/30" />
-        </section>
-
-        {/* ─── Reliable Governance ─────────────────────────────────────────── */}
-        <section id="governance" className="py-24 px-6 bg-black">
-          <div className="container mx-auto max-w-6xl">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-              <div className="flex flex-col lg:flex-row items-center gap-16">
-                <div className="lg:w-1/2">
-                  <h2 className="text-4xl md:text-5xl font-bold mb-6">Reliable Governance</h2>
-                  <p className="text-white/50 text-lg mb-8 leading-relaxed">
-                    Our DAO leverages holographic consensus and quadratic voting.
-                    Every $ZOO holder has a voice in how the ecosystem evolves.
-                  </p>
-                  <a href="#" className="inline-flex items-center gap-3 px-6 py-3 bg-white/10 border border-white/20 rounded-full hover:bg-white/15 transition-colors">
-                    <span>Learn More</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </a>
-                </div>
-                <div className="lg:w-1/2">
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-10 text-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/img/partnership.svg" alt="Governance" className="w-48 h-48 mx-auto opacity-60" />
-                    <p className="text-white/40 mt-6 text-sm">Holographic Consensus + Quadratic Voting</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* ─── NFT Utilities Grid ──────────────────────────────────────────── */}
-        <section id="nft-utility" className="py-24 px-6 bg-zinc-950">
-          <div className="container mx-auto max-w-6xl">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-              <h2 className="text-4xl md:text-5xl font-bold text-center mb-4">What can you do with your NFT?</h2>
-              <p className="text-center text-white/50 mb-16 text-lg">
-                Zoo NFTs have real value and unique <em className="text-white/70">utility!</em>
-              </p>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {nftUtilities.map((item) => (
-                  <motion.div
-                    key={item.title}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    className="bg-white/5 border border-white/10 rounded-xl p-5 flex items-center justify-between cursor-pointer hover:border-white/20 transition-all group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="text-white/60 group-hover:text-white transition-colors">{item.icon}</span>
-                      <div>
-                        <p className="font-semibold text-lg">{item.title}</p>
-                        <p className="text-white/40 text-sm">{item.desc}</p>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-5 h-5 text-white/30 group-hover:text-white/60 transition-colors" />
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* ─── It All Starts With 1 Egg ────────────────────────────────────── */}
-        <section className="py-24 px-6 bg-black">
-          <div className="container mx-auto max-w-5xl">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-              <div className="flex flex-col lg:flex-row items-center gap-16">
-                <div className="lg:w-1/2">
-                  <div className="bg-white/5 border border-white/10 rounded-2xl h-[400px] flex items-center justify-center overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/images/egg.gif" alt="Origin Egg" className="w-72 h-72 object-contain" />
-                  </div>
-                </div>
-                <div className="lg:w-1/2 text-center lg:text-left">
-                  <h2 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-                    It all starts with 1 egg.
-                  </h2>
-                  <p className="text-white/50 text-lg mb-8 leading-relaxed">
-                    Buy an Origin Egg, hatch it to discover your unique animal. Feed it, grow it from baby to adult, then breed to create the next generation.
-                  </p>
-                  <a href="#eggs" className="inline-flex items-center gap-3 px-8 py-4 bg-white text-black rounded-full font-medium hover:bg-white/90 transition-all">
-                    Start Collecting
-                  </a>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* ─── Grab an Animal ──────────────────────────────────────────────── */}
-        <section id="animals" className="py-24 px-6 bg-zinc-950">
-          <div className="container mx-auto max-w-6xl">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-              <h2 className="text-4xl md:text-5xl font-bold text-center mb-4">Or grab an animal straightaway</h2>
-              <p className="text-center text-white/50 mb-16 text-lg">5 endangered species as AI agents you can collect, trade, and play with</p>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {animals.map((animal) => (
-                  <motion.div
-                    key={animal.name}
-                    whileHover={{ y: -6 }}
-                    className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden group cursor-pointer hover:border-white/20 transition-all"
-                  >
-                    <div className="h-[240px] bg-black flex items-center justify-center overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={animal.image} alt={animal.name} className="w-48 h-48 object-contain group-hover:scale-110 transition-transform duration-500" />
-                    </div>
-                    <div className="p-5">
-                      <p className="text-xs text-amber-400/80 font-medium mb-1">{animal.threat}</p>
-                      <h3 className="text-xl font-bold mb-1">{animal.name}</h3>
-                      <p className="text-white/40 text-sm italic">{animal.latin}</p>
-                      <div className="mt-4 flex items-center justify-between">
-                        <span className="text-white/50 text-sm">AI Agent NFT</span>
-                        <span className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                          <ArrowRight className="w-4 h-4" />
+                    {isAssistant && (
+                      <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-white/10">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-white/80">
+                          Blue the Beluga
+                        </span>
+                        <span className="text-[9px] font-mono text-white/50">
+                          ● {m.emotion || currentEmotionMeta.name}
                         </span>
                       </div>
+                    )}
+                    <div className="whitespace-pre-wrap font-normal">
+                      {m.content || (busy ? <span className="animate-pulse flex items-center gap-1.5 text-white/60"><Sparkles className="w-3.5 h-3.5 text-blue-400" /> Thinking & swimming…</span> : '')}
                     </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Breed + Piggy Bank */}
-              <div className="grid md:grid-cols-2 gap-8 mt-16">
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-8">
-                  <div className="h-[200px] flex items-center justify-center mb-6">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/images/circle_tiger.png" alt="Breed" className="w-40 h-40 object-contain" />
                   </div>
-                  <h3 className="text-2xl font-bold mb-3">Breed up to 7X</h3>
-                  <p className="text-white/50 leading-relaxed">
-                    First generation can breed up to 7x, while every latter generation will be able to breed 1 less time.
-                  </p>
                 </div>
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-8">
-                  <div className="h-[200px] flex items-center justify-center mb-6">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/images/hippo.png" alt="Piggy Bank" className="w-40 h-40 object-contain" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3">Virtual Piggy Bank</h3>
-                  <p className="text-white/50 leading-relaxed">
-                    Start earning rewards as you lock liquidity into your NFT... like a virtual piggy bank.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
+              )
+            })}
           </div>
-        </section>
+        </main>
 
-        {/* ─── Marketplace / Conservation Stats ────────────────────────────── */}
-        <section id="market" className="py-24 px-6 bg-black">
-          <div className="container mx-auto max-w-6xl">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-              <div className="flex flex-col lg:flex-row items-start gap-16">
-                <div className="lg:w-1/2">
-                  <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white/80">We love animals.</h2>
-                  <p className="text-white/50 leading-relaxed mb-8">
-                    The Zoo Labs Foundation is dedicated to saving and preserving endangered species.
-                    Our 501c3 is controlled by the Zoo DAO and allocates a portion of its liquidity
-                    to supporting animals in real life! By participating in the Zoo ecosystem you are
-                    also aiding in the efforts to save endangered species in the real world.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <a href="#" className="inline-flex items-center gap-3 px-6 py-3 bg-white/80 text-black rounded-full font-medium hover:bg-white transition-colors">
-                      <span>Donate Now</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </a>
-                    <a href="#governance" className="inline-flex items-center gap-3 px-6 py-3 border border-white/30 rounded-full font-medium hover:bg-white/5 transition-colors">
-                      <span>Join DAO</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </a>
-                  </div>
-                </div>
-                <div className="lg:w-1/2 w-full">
-                  <div className="space-y-0">
-                    {conservationStats.map((stat) => (
-                      <div key={stat.value} className="border-b border-white/10 py-6 flex items-center gap-8">
-                        <span className="text-4xl font-bold text-white/70 min-w-[140px]">{stat.value}</span>
-                        <span className="text-white/40">{stat.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+        {/* ─── Bottom Floating Apple-Grade Composer ─────────────────────────── */}
+        <div className="absolute bottom-5 left-0 right-0 z-50 px-4 sm:px-6 flex flex-col items-center pointer-events-auto">
+          {/* Clean Prompt Chips */}
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none select-none max-w-2xl w-full justify-center">
+            {CLEAN_PROMPTS.map((prompt) => (
+              <button
+                key={prompt}
+                onClick={() => handleSend(prompt)}
+                disabled={busy}
+                className="shrink-0 rounded-full border border-white/10 bg-black/50 px-3 py-1 text-xs text-white/70 hover:border-white/25 hover:bg-black/75 hover:text-white backdrop-blur-2xl active:scale-95 transition-all cursor-pointer disabled:opacity-50 shadow-lg"
+              >
+                {prompt}
+              </button>
+            ))}
           </div>
-        </section>
 
-        {/* ─── Partners ────────────────────────────────────────────────────── */}
-        <section className="py-16 px-6 bg-zinc-950 border-y border-white/5">
-          <div className="container mx-auto max-w-6xl">
-            <p className="text-center text-white/30 text-sm uppercase tracking-widest mb-10">Conservation Partners</p>
-            <div className="flex flex-wrap items-center justify-center gap-12 opacity-40">
-              {partners.map((p) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={p.name} src={p.src} alt={p.name} className="h-10 w-auto invert" />
+          {/* ChatGPT-Style Floating Liquid Glass Composer Bar */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleSend()
+            }}
+            className="flex items-center gap-2 rounded-full border border-white/15 bg-black/65 p-2 shadow-[0_16px_48px_rgba(0,0,0,0.8)] backdrop-blur-3xl max-w-2xl w-full"
+          >
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask Blue anything about Zoo, endangered species, Origin Eggs..."
+              className="flex-1 bg-transparent px-4 py-1.5 text-xs sm:text-sm text-white outline-none placeholder:text-white/40 font-normal"
+            />
+            <button
+              type="submit"
+              disabled={busy || !input.trim()}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white font-bold transition-all hover:bg-blue-500 active:scale-90 disabled:opacity-30 cursor-pointer shadow-md shadow-blue-600/30"
+              aria-label="Send message"
+            >
+              <ArrowUp className="h-4 w-4 stroke-[2.5]" />
+            </button>
+          </form>
+        </div>
+
+        {/* ─── BOTTOM-LEFT FEELINGS INDICATOR WITH GENTLE UPWARD FLOATING EMOJI ─── */}
+        <div className="absolute bottom-6 left-4 sm:left-6 z-50 pointer-events-auto">
+          <div className="relative">
+            {/* Animated Small Emoji Floating Gently Strictly Upward from Bottom-Left */}
+            <div className="absolute -top-10 left-3 pointer-events-none overflow-visible">
+              {floatingFeelings.map((item) => (
+                <div
+                  key={item.id}
+                  className="text-2xl transition-all"
+                  style={{
+                    animation: 'floatFeelingsUp 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+                  }}
+                >
+                  {item.emoji}
+                </div>
               ))}
             </div>
-          </div>
-        </section>
 
-        {/* ─── App Download / AI Section ───────────────────────────────────── */}
-        <section className="py-24 px-6 bg-black">
-          <div className="container mx-auto max-w-6xl">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
-              <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-3xl p-10 md:p-16 text-center">
-                <Brain className="w-16 h-16 mx-auto mb-6 text-purple-400" />
-                <h2 className="text-4xl md:text-5xl font-bold mb-4">Zoo AI Desktop App</h2>
-                <p className="text-white/50 text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
-                  Run local AI models privately. Powered by ZenLM (Qwen3 architecture).
-                  Your animals are AI agents that learn, evolve, and interact.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                  <a
-                    href="https://github.com/zoo-labs/zoo/releases"
-                    className="inline-flex items-center gap-3 px-8 py-4 bg-white text-black rounded-full font-medium hover:bg-white/90 transition-all"
-                  >
-                    <Download className="w-5 h-5" />
-                    Download App
-                  </a>
-                  <Link
-                    href="https://github.com/zoo-labs/zoo"
-                    target="_blank"
-                    className="inline-flex items-center gap-3 px-8 py-4 border border-white/20 rounded-full font-medium hover:bg-white/5 transition-colors"
-                  >
-                    <Github className="w-5 h-5" />
-                    View Source
-                  </Link>
+            {/* Expandable Liquid Glass Emotion Card */}
+            {emotionPopoverOpen && (
+              <div
+                onMouseEnter={() => setEmotionPopoverOpen(true)}
+                onMouseLeave={() => setEmotionPopoverOpen(false)}
+                className="absolute bottom-11 left-0 w-72 rounded-2xl border border-white/15 bg-black/85 p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.9)] backdrop-blur-3xl animate-in fade-in slide-in-from-bottom-2 duration-200 z-50 space-y-2.5"
+              >
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{currentEmotionMeta.emoji}</span>
+                    <div>
+                      <h4 className="text-xs font-semibold text-white">{currentEmotionMeta.name}</h4>
+                      <p className="text-[9px] text-white/50">Neural Vector · Qwen3</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex gap-6 justify-center mt-8 text-sm text-white/40">
-                  <span className="flex items-center gap-2"><Shield className="w-4 h-4" /> 100% Private</span>
-                  <span className="flex items-center gap-2"><Zap className="w-4 h-4" /> GPU Accelerated</span>
-                  <span className="flex items-center gap-2"><Brain className="w-4 h-4" /> ZenLM Models</span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
 
-        {/* ─── Footer ──────────────────────────────────────────────────────── */}
-        <footer className="border-t border-white/10 py-16 px-6 bg-black">
-          <div className="container mx-auto max-w-6xl">
-            <div className="grid md:grid-cols-4 gap-8">
-              <div>
-                <span className="text-2xl font-bold tracking-tight">ZOO</span>
-                <p className="text-sm text-white/40 mt-3">
-                  Exotic animals meet cutting-edge AI.
-                  Collect, hatch, breed, and trade.
+                <p className="text-[11px] leading-relaxed text-white/70">
+                  {currentEmotionMeta.desc}
                 </p>
-                <div className="flex gap-4 mt-4">
+
+                {/* Micro Emotion Buttons */}
+                <div className="flex flex-wrap gap-1 pt-1">
                   {[
-                    { icon: '/img/twitter.svg', href: '#' },
-                    { icon: '/img/discord.svg', href: '#' },
-                    { icon: '/img/telegram.svg', href: '#' },
-                    { icon: '/img/instagram.svg', href: '#' },
-                  ].map((s) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <a key={s.icon} href={s.href} className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors">
-                      <img src={s.icon} alt="" className="w-4 h-4 invert opacity-60" />
-                    </a>
+                    { k: 'happy', e: '😊' },
+                    { k: 'playful', e: '🐬' },
+                    { k: 'love', e: '💙' },
+                    { k: 'curious', e: '🤔' },
+                    { k: 'calm', e: '🌊' },
+                    { k: 'surprise', e: '😲' },
+                    { k: 'pride', e: '👑' },
+                  ].map((emo) => (
+                    <button
+                      key={emo.k}
+                      onClick={() => triggerEmotion(emo.k)}
+                      className="h-6 w-6 rounded-md bg-white/[0.06] border border-white/10 hover:border-white/30 hover:bg-white/15 flex items-center justify-center text-xs transition-all active:scale-90 cursor-pointer"
+                      title={emo.k}
+                    >
+                      {emo.e}
+                    </button>
                   ))}
                 </div>
+
+                <div className="border-t border-white/10 pt-1.5 flex items-center justify-between">
+                  <Link
+                    href="https://docs.zoolabs.io"
+                    target="_blank"
+                    className="text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1 font-medium transition-colors"
+                  >
+                    <span>docs.zoolabs.io</span>
+                    <ExternalLink className="h-2.5 w-2.5" />
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Clean, Small Feelings Capsule Button */}
+            <button
+              onMouseEnter={() => setEmotionPopoverOpen(true)}
+              onClick={() => setEmotionPopoverOpen(!emotionPopoverOpen)}
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-3 py-1.5 backdrop-blur-2xl shadow-lg hover:border-white/20 hover:bg-black/60 active:scale-95 transition-all cursor-pointer group"
+            >
+              <span className="text-sm group-hover:scale-110 transition-transform">{currentEmotionMeta.emoji}</span>
+              <span className="text-[11px] font-medium text-white/70 group-hover:text-white capitalize">
+                {currentEmotionMeta.name}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* ─── VIBE WITH FRIENDS MODAL ─────────────────────────────────────── */}
+        {vibeModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
+            <div className="relative w-full max-w-md rounded-3xl border border-white/15 bg-zinc-950/90 p-6 shadow-2xl backdrop-blur-3xl space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-400" />
+                  <h3 className="text-sm font-semibold text-white">Vibe with Friends Sandbox</h3>
+                </div>
+                <button
+                  onClick={() => setVibeModalOpen(false)}
+                  className="rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white transition-all"
+                >
+                  ✕
+                </button>
               </div>
 
-              <div>
-                <h3 className="font-semibold mb-4 text-white/80">Ecosystem</h3>
-                <ul className="space-y-2 text-sm">
-                  <li><a href="#eggs" className="text-white/40 hover:text-white/80 transition-colors">Buy Eggs</a></li>
-                  <li><a href="#animals" className="text-white/40 hover:text-white/80 transition-colors">Animals</a></li>
-                  <li><a href="#market" className="text-white/40 hover:text-white/80 transition-colors">Marketplace</a></li>
-                  <li><a href="#governance" className="text-white/40 hover:text-white/80 transition-colors">DAO</a></li>
-                </ul>
+              <p className="text-xs leading-relaxed text-white/70">
+                Invite friends or teammates into your shared ocean sandbox. Everyone can chat with Blue simultaneously, run Python commands in the microVM, and trigger animal animations!
+              </p>
+
+              <div className="flex items-center gap-2 rounded-xl bg-white/[0.04] border border-white/10 p-2 text-xs">
+                <input
+                  type="text"
+                  readOnly
+                  value="https://zoolabs.io/#room=ocean_genesis_pod"
+                  className="flex-1 bg-transparent text-white/80 outline-none font-mono text-[11px]"
+                />
+                <button
+                  onClick={copyRoomLink}
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-500 active:scale-95 transition-all text-xs"
+                >
+                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  <span>{copied ? 'Copied' : 'Copy'}</span>
+                </button>
               </div>
 
-              <div>
-                <h3 className="font-semibold mb-4 text-white/80">Research</h3>
-                <ul className="space-y-2 text-sm">
-                  <li><Link href="https://papers.zoo.ngo" className="text-white/40 hover:text-white/80 transition-colors">Papers</Link></li>
-                  <li><Link href="https://zenlm.org" className="text-white/40 hover:text-white/80 transition-colors">ZenLM Models</Link></li>
-                  <li><Link href="https://github.com/zoo-labs" className="text-white/40 hover:text-white/80 transition-colors">Open Source</Link></li>
-                </ul>
+              <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-white/50">
+                <span>Free open-source familiar</span>
+                <span>Powered by Hanzo Cloud</span>
               </div>
-
-              <div>
-                <h3 className="font-semibold mb-4 text-white/80">Company</h3>
-                <ul className="space-y-2 text-sm">
-                  <li><Link href="https://hanzo.ai" className="text-white/40 hover:text-white/80 transition-colors">Hanzo AI</Link></li>
-                  <li><Link href="https://zoo.ngo" className="text-white/40 hover:text-white/80 transition-colors">Zoo Foundation</Link></li>
-                  <li><a href="mailto:info@zoolabs.io" className="text-white/40 hover:text-white/80 transition-colors">Contact</a></li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="border-t border-white/10 mt-12 pt-8 text-center text-sm text-white/30">
-              <p>&copy; {new Date().getFullYear()} Zoo Labs Foundation. All rights reserved. | NVIDIA Inception Partner | Techstars &apos;17</p>
             </div>
           </div>
-        </footer>
+        )}
       </div>
+
+      <style jsx global>{`
+        @keyframes floatFeelingsUp {
+          0% {
+            opacity: 1;
+            transform: translateY(0) scale(0.9);
+          }
+          50% {
+            opacity: 0.9;
+            transform: translateY(-24px) scale(1.1);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-48px) scale(0.8);
+          }
+        }
+      `}</style>
     </>
   )
 }

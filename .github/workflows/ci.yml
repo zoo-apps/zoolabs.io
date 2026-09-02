@@ -1,0 +1,38 @@
+name: CI
+
+# Cloudflare Pages builds and deploys this site from its own GitHub
+# integration, so nothing here publishes. What this does is check that the
+# commit Cloudflare is about to build actually builds — twice now a @hanzo
+# bump has moved package.json without the lockfile, which `--frozen-lockfile`
+# refuses and which would have failed that build with no warning here.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: zoo-build-linux-amd64
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm, not npm: the gui runtime is ~60 packages pinned by the overrides
+      # block in pnpm-workspace.yaml, and only pnpm reads it.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # Not `pnpm install`: the point is to fail when the lockfile and the
+      # manifest disagree, which is the failure this exists to catch.
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm build
+        env:
+          NODE_ENV: production

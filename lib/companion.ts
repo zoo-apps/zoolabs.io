@@ -72,17 +72,32 @@ export const systemPrompt = () =>
     CONTRACT,
   ].join('\n\n')
 
-const TAG = /\[\s*feeling\s*:\s*([a-z]+)\s*\]\s*$/i
+// A trailing bracket that names a feeling. The contract asks for
+// `[feeling: Name]`, and a large model obliges; a 3B one writes
+// `[Calmness: Blue]` or `[Interest]` and means the same thing. Reading only
+// the strict form leaves those in the prose, which is worse than a missed
+// feeling — so match any trailing bracket and look inside it for a name.
+const TAG = /\[([^\]]{0,60})\]\s*$/
+
+const named = (inside: string): Feeling | null => {
+  const words = inside.toLowerCase()
+  return FEELINGS.find((f) => words.includes(f.toLowerCase())) ?? null
+}
 
 /** Splits a finished reply into what Blue said and how Blue feels about it. */
 export function read(reply: string): { text: string; feeling: Feeling | null } {
-  const m = reply.trimEnd().match(TAG)
-  if (!m) return { text: reply.trim(), feeling: null }
-  const named = FEELINGS.find((f) => f.toLowerCase() === m[1].toLowerCase()) ?? null
-  return { text: reply.trimEnd().slice(0, m.index).trim(), feeling: named }
+  const body = reply.trimEnd()
+  const m = body.match(TAG)
+  if (!m) return { text: body.trim(), feeling: null }
+
+  const felt = named(m[1])
+  // A bracket with no feeling in it is the model's own prose, so keep it.
+  if (!felt) return { text: body.trim(), feeling: null }
+
+  return { text: body.slice(0, m.index).trim(), feeling: felt }
 }
 
-/** Mid-stream text, with a half-arrived feeling tag held back. */
+/** Mid-stream text, with a half-arrived tag held back. */
 export const visible = (buffer: string) => read(buffer).text.replace(/\[[^\]]*$/, '').trimEnd()
 
 /** Openers on the home screen. Each is a real question with a real answer. */

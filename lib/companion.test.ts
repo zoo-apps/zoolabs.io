@@ -48,3 +48,25 @@ test('what gets read aloud drops the scaffolding, not the sentence', async () =>
   assert.equal(sayable('Try this:\n```js\nconst a = 1\n```\nDone.'), 'Try this: Done.')
   assert.equal(sayable('   '), '')
 })
+
+// A 3B model writes the tag its own way. The feeling still lands, and the
+// bracket never survives into what a child reads.
+test('a tag the model spelled its own way still lands', () => {
+  assert.deepEqual(read('Calves start grey.\n[Calmness: Blue]'), {
+    text: 'Calves start grey.',
+    feeling: 'Calmness',
+  })
+  assert.deepEqual(read('Sound carries.\n[Interest]'), {
+    text: 'Sound carries.',
+    feeling: 'Interest',
+  })
+  assert.deepEqual(read('Ice is thinning.\n[ feeling = Sadness ]'), {
+    text: 'Ice is thinning.',
+    feeling: 'Sadness',
+  })
+})
+
+test('a bracket that is the reply own prose is left alone', () => {
+  const cite = 'Belugas use echolocation [see the 2019 survey]'
+  assert.deepEqual(read(cite), { text: cite, feeling: null })
+})

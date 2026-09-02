@@ -117,8 +117,12 @@ export default function Blue() {
             <Link href="/research">
               <Label color="rgba(255,255,255,0.62)">Research</Label>
             </Link>
-            <Anchor href="https://zoolabs.id" textDecorationLine="none">
-              <Label color="rgba(255,255,255,0.62)">Sign in</Label>
+            {/* No sign-in link while there is nowhere to sign in: zoolabs.id
+                and zoo.id both went down with the DigitalOcean account, so the
+                link pointed at a host that does not answer. It comes back with
+                IAM, not before. */}
+            <Anchor href="https://papers.zoo.ngo" textDecorationLine="none">
+              <Label color="rgba(255,255,255,0.62)">Papers</Label>
             </Anchor>
           </XStack>
 

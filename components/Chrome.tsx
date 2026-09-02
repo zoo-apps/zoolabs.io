@@ -67,11 +67,11 @@ export default function Chrome({ children }: { children: ReactNode }) {
       <footer>
         <XStack justify="center" mt="$8" borderTopWidth={2} borderColor={BRAND.ink} bg="rgba(255,255,255,0.7)">
           <XStack width="100%" maxW={MEASURE} flexWrap="wrap" gap="$6" px="$4" py="$6">
-            <Paragraph maxW={380} fontSize={14}>
+            <Paragraph maxW="min(380px, 100%)" fontSize={14}>
               <Strong>Zoo Labs Foundation Inc.</Strong> — a 501(c)(3) non-profit research
               organisation. EIN 88-3538992. Everything we publish is open.
             </Paragraph>
-            <XStack flexWrap="wrap" gap="$5">
+            <XStack flexWrap="wrap" gap="$5" minW={0} flex={1}>
               {LINKS.map(([label, href]) => (
                 <Anchor key={label} href={href} fontSize={14} fontWeight="700" color={BRAND.ink}>
                   {label}

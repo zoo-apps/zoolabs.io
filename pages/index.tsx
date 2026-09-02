@@ -1,32 +1,27 @@
 import Head from 'next/head'
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { H1, Paragraph, Strong, XStack, YStack } from '@hanzo/ui'
-import Chrome from '../components/Chrome'
-import Companion from '../components/Companion'
-import { BRAND, Label, Panel, Press } from '../components/kit'
+import { Anchor, H1, Paragraph, XStack, YStack } from '@hanzo/ui'
+import { Label } from '../components/kit'
+import ZooLogo from '../components/ZooLogo'
 import { reply, type Message } from '../lib/chat'
-import { OPENERS, read, systemPrompt, visible, type Feeling } from '../lib/companion'
+import { clipFor, OPENERS, RESTING, read, systemPrompt, visible, type Feeling } from '../lib/companion'
 import { hush, say } from '../lib/voice'
+
+/**
+ * The logged-out door: Blue, full bleed, and one thing to do.
+ *
+ * This screen is deliberately not the lab. It is dark because it is underwater
+ * — the clip IS the page, not an illustration on it — and it holds a single
+ * question box, because someone arriving for the first time should not have to
+ * choose between eleven surfaces. The lab behind the sign-in is the light,
+ * hard-edged system every other Zoo surface uses; the two are different rooms
+ * and are meant to look it.
+ */
 
 type Turn = { role: 'user' | 'assistant'; text: string }
 
-const SPINES = [BRAND.magenta, BRAND.cyan, BRAND.green, BRAND.yellow]
-
-const field: React.CSSProperties = {
-  flex: 1,
-  minWidth: 0,
-  height: 50,
-  padding: '0 14px',
-  font: 'inherit',
-  color: BRAND.ink,
-  background: 'white',
-  border: `2px solid ${BRAND.ink}`,
-  borderRadius: 0,
-  boxShadow: `6px 6px 0 0 ${BRAND.ink}`,
-  outlineColor: BRAND.cyan,
-}
-
-export default function Ask() {
+export default function Blue() {
   const [turns, setTurns] = useState<Turn[]>([])
   const [draft, setDraft] = useState('')
   const [streaming, setStreaming] = useState('')
@@ -34,13 +29,18 @@ export default function Ask() {
   const [feeling, setFeeling] = useState<Feeling | null>(null)
   const [problem, setProblem] = useState('')
   const [voice, setVoice] = useState(false)
+  const [rest, setRest] = useState(0)
+  const video = useRef<HTMLVideoElement>(null)
   const tail = useRef<HTMLDivElement>(null)
 
-  // Follow the conversation as it grows — but not on first paint, or the page
-  // opens already scrolled past the whale.
+  const src = feeling ? clipFor(feeling) : RESTING[rest]
+
   useEffect(() => {
-    if (!turns.length && !streaming) return
-    tail.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    video.current?.load()
+  }, [src])
+
+  useEffect(() => {
+    if (turns.length || streaming) tail.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [turns, streaming])
 
   async function ask(question: string) {
@@ -77,129 +77,128 @@ export default function Ask() {
     }
   }
 
+  const spoken = turns.length > 0 || Boolean(streaming) || Boolean(problem)
+
   return (
-    <Chrome>
+    <>
       <Head>
-        <title>Ask Blue — Zoo Labs</title>
+        <title>Blue — Zoo Labs</title>
         <meta
           name="description"
-          content="Ask Blue, a beluga whale and marine scientist at Zoo Labs Foundation, about ocean science, wildlife and how research gets done."
+          content="Blue is a beluga whale and a marine scientist at Zoo Labs Foundation. Ask about the ocean, endangered species, or how research actually gets done."
         />
+        {/* This page paints its own dark ground rather than the site's paper. */}
+        <meta name="theme-color" content="#06202c" />
       </Head>
 
-      <XStack flexWrap="wrap" gap="$6" maxW={1120} width="100%" mx="auto" px="$4" py="$5" items="flex-start">
-        <YStack width="100%" $sm={{ width: 300 }} gap="$3">
-          <Companion
-            feeling={feeling}
-            thinking={thinking}
-            voice={voice}
-            onVoice={(on) => {
-              setVoice(on)
-              if (!on) hush()
-              else if (turns.length) say(turns[turns.length - 1].text)
-            }}
-          />
-          <Paragraph fontSize={14}>
-            <Strong>Blue</Strong> is a beluga whale and a marine
-            scientist. Blue answers in plain words, says when something is uncertain, and
-            never makes up a number.
-          </Paragraph>
-        </YStack>
+      <div className="deep">
+        <video
+          ref={video}
+          className="deep-film"
+          src={src}
+          autoPlay
+          muted
+          playsInline
+          loop={Boolean(feeling)}
+          onEnded={() => !feeling && setRest((n) => (n + 1) % RESTING.length)}
+        />
+        <div className="deep-veil" />
 
-        <YStack flex={1} minW={300} gap="$4">
-          {turns.length === 0 && !thinking && (
-            <Panel gap="$4" p="$5">
-              <H1 fontSize={36} lineHeight={40} fontWeight="800">
-                Ask a whale a real question.
-              </H1>
-              <Paragraph>
-                Blue works at Zoo Labs Foundation, an open research non-profit. Ask about
-                oceans, animals, or how scientists actually find things out.
-              </Paragraph>
-              <YStack gap="$2">
-                {OPENERS.map((opener, i) => (
-                  <Press
-                    key={opener}
-                    onPress={() => ask(opener)}
-                    justify="flex-start"
-                    borderLeftWidth={10}
-                    borderLeftColor={SPINES[i % SPINES.length]}
-                  >
-                    <Paragraph fontSize={14} fontWeight="700" text="left">
+        <div className="deep-stage">
+          <XStack items="center" gap="$3" px="$4" py="$3">
+            <XStack items="center" gap="$2">
+              <ZooLogo size={22} />
+              <Label color="rgba(255,255,255,0.92)">Blue · Zoo</Label>
+            </XStack>
+
+            <YStack flex={1} />
+
+            <Link href="/research">
+              <Label color="rgba(255,255,255,0.62)">Research</Label>
+            </Link>
+            <Anchor href="https://zoolabs.id" textDecorationLine="none">
+              <Label color="rgba(255,255,255,0.62)">Sign in</Label>
+            </Anchor>
+          </XStack>
+
+          <YStack flex={1} justify="center" items="center" px="$4" gap="$4">
+            {!spoken && (
+              <YStack items="center" gap="$3" maxW={560} style={{ textAlign: 'center' }}>
+                <H1 fontSize={34} lineHeight={40} fontWeight="800" color="white">
+                  Hi, I&rsquo;m Blue the beluga.
+                </H1>
+                <Paragraph color="rgba(255,255,255,0.72)">
+                  Ask me about the ocean, endangered species, or how scientists actually find
+                  things out. Watch how I feel as we talk.
+                </Paragraph>
+                <XStack flexWrap="wrap" justify="center" gap="$2" mt="$2">
+                  {OPENERS.slice(0, 3).map((opener) => (
+                    <button key={opener} className="deep-chip" onClick={() => ask(opener)}>
                       {opener}
-                    </Paragraph>
-                  </Press>
-                ))}
+                    </button>
+                  ))}
+                </XStack>
               </YStack>
-            </Panel>
-          )}
+            )}
 
-          {turns.map((turn, i) => (
-            <article key={i}>
-              <Panel
-                self={turn.role === 'user' ? 'flex-end' : 'stretch'}
-                maxW={turn.role === 'user' ? '85%' : undefined}
-                bg={turn.role === 'user' ? BRAND.blue : 'rgba(255,255,255,0.82)'}
-                gap="$2"
+            {spoken && (
+              <div className="deep-thread">
+                {turns.map((turn, i) => (
+                  <div key={i} className={turn.role === 'user' ? 'deep-said deep-mine' : 'deep-said'}>
+                    {turn.text}
+                  </div>
+                ))}
+                {streaming ? <div className="deep-said">{streaming}</div> : null}
+                {problem ? (
+                  <div className="deep-said deep-wrong" role="alert">
+                    Blue could not answer — {problem}. Nothing was made up in its place.
+                  </div>
+                ) : null}
+                <div ref={tail} />
+              </div>
+            )}
+          </YStack>
+
+          <YStack items="center" px="$4" pb="$5" gap="$2">
+            <form
+              className="deep-ask"
+              onSubmit={(e) => {
+                e.preventDefault()
+                ask(draft)
+              }}
+            >
+              <input
+                id="question"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Talk to Blue…"
+                aria-label="Talk to Blue"
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const on = !voice
+                  setVoice(on)
+                  if (!on) hush()
+                  else if (turns.length) say(turns[turns.length - 1].text)
+                }}
+                aria-pressed={voice}
+                aria-label={voice ? 'Stop reading answers aloud' : 'Read answers aloud'}
+                className="deep-voice"
               >
-                <Label color={turn.role === 'user' ? BRAND.yellow : BRAND.magenta}>
-                  {turn.role === 'user' ? 'You' : 'Blue'}
-                </Label>
-                <Paragraph
-                  color={turn.role === 'user' ? 'white' : BRAND.ink}
-                  whiteSpace="pre-wrap"
-                >
-                  {turn.text}
-                </Paragraph>
-              </Panel>
-            </article>
-          ))}
-
-          {streaming ? (
-            <article>
-              <Panel gap="$2">
-                <Label color={BRAND.magenta}>Blue</Label>
-                <Paragraph whiteSpace="pre-wrap">{streaming}</Paragraph>
-              </Panel>
-            </article>
-          ) : null}
-
-          {problem ? (
-            <div role="alert">
-              <Panel borderColor={BRAND.red} gap="$2">
-                <Label color={BRAND.red}>Blue could not answer</Label>
-                <Paragraph>{problem}</Paragraph>
-                <Paragraph fontSize={14}>
-                  Nothing was made up in place of an answer. Try again in a moment.
-                </Paragraph>
-              </Panel>
-            </div>
-          ) : null}
-
-          <div ref={tail} />
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              ask(draft)
-            }}
-            style={{ display: 'flex', gap: 8 }}
-          >
-            <input
-              id="question"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Ask Blue anything about the ocean…"
-              aria-label="Ask Blue a question"
-              autoComplete="off"
-              style={field}
-            />
-            <Press onPress={() => ask(draft)} tone={BRAND.magenta} disabled={thinking || !draft.trim()}>
-              <Label color="white">{thinking ? 'Asking…' : 'Ask'}</Label>
-            </Press>
-          </form>
-        </YStack>
-      </XStack>
-    </Chrome>
+                {voice ? '🔊' : '🔈'}
+              </button>
+              <button type="submit" disabled={thinking || !draft.trim()} aria-label="Ask Blue">
+                {thinking ? '…' : '↑'}
+              </button>
+            </form>
+            <Label color="rgba(255,255,255,0.45)">
+              {thinking ? 'Blue is thinking' : feeling ? `Blue feels ${feeling}` : 'Open source · 501(c)(3)'}
+            </Label>
+          </YStack>
+        </div>
+      </div>
+    </>
   )
 }

@@ -177,6 +177,9 @@ body {
 }
 
 .deep-ask button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   width: 38px;
   height: 38px;
@@ -186,6 +189,7 @@ body {
   color: #04202c;
   font-size: 1rem;
   font-weight: 700;
+  line-height: 1;
   cursor: pointer;
 }
 
@@ -194,8 +198,21 @@ body {
   cursor: default;
 }
 
+/* The speaker sits quieter than the send button: it is a setting, not the
+   action. It brightens when it is on, so the state reads at a glance and not
+   only from the icon. */
 .deep-ask .deep-voice {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.65);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.deep-ask .deep-voice:hover {
+  background: rgba(255, 255, 255, 0.18);
   color: #fff;
-  font-size: 0.9rem;
+}
+
+.deep-ask .deep-voice[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.92);
+  color: #04202c;
 }

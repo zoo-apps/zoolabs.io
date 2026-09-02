@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { Anchor, H1, Paragraph, XStack, YStack } from '@hanzo/ui'
 import { Label } from '../components/kit'
+import Speaker from '../components/Speaker'
 import ZooLogo from '../components/ZooLogo'
 import { reply, type Message } from '../lib/chat'
 import { clipFor, OPENERS, RESTING, read, systemPrompt, visible, type Feeling } from '../lib/companion'
@@ -187,7 +188,7 @@ export default function Blue() {
                 aria-label={voice ? 'Stop reading answers aloud' : 'Read answers aloud'}
                 className="deep-voice"
               >
-                {voice ? '🔊' : '🔈'}
+                <Speaker on={voice} size={17} />
               </button>
               <button type="submit" disabled={thinking || !draft.trim()} aria-label="Ask Blue">
                 {thinking ? '…' : '↑'}

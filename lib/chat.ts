@@ -7,7 +7,12 @@ export type Message = { role: 'system' | 'user' | 'assistant'; content: string }
 // refuses anonymous callers, so a browser cannot reach it from a static site.
 // The proxy holds the tenant credential and allows this origin.
 const API = process.env.NEXT_PUBLIC_ZOO_API ?? 'https://api.zoo.cloud'
-const MODEL = process.env.NEXT_PUBLIC_ZOO_MODEL ?? 'zen'
+// zen-free, not zen. Both are real and the gateway serves both, but `zen`
+// bills through to an upstream that answers "Insufficient credits" — a 402 the
+// visitor can do nothing about. zen-free answers, and answers well: asked why
+// beluga calves are born grey it gives the camouflage in murky Arctic water,
+// the predators, and the years-long moult to white.
+const MODEL = process.env.NEXT_PUBLIC_ZOO_MODEL ?? 'zen-free'
 
 /** Whatever the endpoint said went wrong, in its own words. */
 async function refusal(res: Response): Promise<string> {

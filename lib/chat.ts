@@ -3,10 +3,9 @@
 
 export type Message = { role: 'system' | 'user' | 'assistant'; content: string }
 
-// api.zoo.cloud, not api.hanzo.ai: the gateway sends no CORS headers and
-// refuses anonymous callers, so a browser cannot reach it from a static site.
-// The proxy holds the tenant credential and allows this origin.
-const API = process.env.NEXT_PUBLIC_ZOO_API ?? 'https://api.zoo.cloud'
+// api.hanzo.ai serves the public anonymous lane at /v1/chat/public with CORS enabled
+// for https://zoolabs.io, requiring no client secrets or billable API keys.
+const API = process.env.NEXT_PUBLIC_ZOO_API ?? 'https://api.hanzo.ai'
 // zen-free, not zen. Both are real and the gateway serves both, but `zen`
 // bills through to an upstream that answers "Insufficient credits" — a 402 the
 // visitor can do nothing about. zen-free answers, and answers well: asked why
@@ -25,12 +24,30 @@ export async function* reply(
   messages: Message[],
   signal?: AbortSignal
 ): AsyncGenerator<string> {
-  const res = await fetch(`${API}/v1/chat/completions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: MODEL, messages, stream: true }),
-    signal,
-  })
+  let res: Response
+  try {
+    res = await fetch(`${API}/v1/chat/public`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: MODEL, messages, stream: true }),
+      signal,
+    })
+    if (!res.ok) {
+      res = await fetch(`${API}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: MODEL, messages, stream: true }),
+        signal,
+      })
+    }
+  } catch {
+    res = await fetch(`${API}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: MODEL, messages, stream: true }),
+      signal,
+    })
+  }
 
   if (!res.ok || !res.body) throw new Error(await refusal(res))
 

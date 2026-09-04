@@ -109,20 +109,30 @@ export default function Blue() {
           <XStack items="center" gap="$3" px="$4" py="$3">
             <XStack items="center" gap="$2">
               <ZooLogo size={22} />
-              <Label color="rgba(255,255,255,0.92)">Blue · Zoo</Label>
+              <Label color="rgba(255,255,255,0.92)" fontSize={14} fontWeight="600">
+                Blue · Zoo
+              </Label>
             </XStack>
 
             <YStack flex={1} />
 
             <Link href="/research">
-              <Label color="rgba(255,255,255,0.62)">Research</Label>
+              <Label color="rgba(255,255,255,0.72)" fontSize={13} fontWeight="500">
+                Research
+              </Label>
             </Link>
-            {/* No sign-in link while there is nowhere to sign in: zoolabs.id
-                and zoo.id both went down with the DigitalOcean account, so the
-                link pointed at a host that does not answer. It comes back with
-                IAM, not before. */}
             <Anchor href="https://papers.zoo.ngo" textDecorationLine="none">
-              <Label color="rgba(255,255,255,0.62)">Papers</Label>
+              <Label color="rgba(255,255,255,0.72)" fontSize={13} fontWeight="500">
+                Papers
+              </Label>
+            </Anchor>
+            <Anchor
+              href="https://zoolabs.id?client_id=zoo-app&redirect_uri=https://zoolabs.io"
+              textDecorationLine="none"
+            >
+              <Label color="rgba(255,255,255,0.92)" fontSize={13} fontWeight="600">
+                Sign in
+              </Label>
             </Anchor>
           </XStack>
 
@@ -198,8 +208,8 @@ export default function Blue() {
                 {thinking ? '…' : '↑'}
               </button>
             </form>
-            <Label color="rgba(255,255,255,0.45)">
-              {thinking ? 'Blue is thinking' : feeling ? `Blue feels ${feeling}` : 'Open source · 501(c)(3)'}
+            <Label color="rgba(255,255,255,0.55)" fontSize={12} fontWeight="400">
+              {thinking ? 'Blue is thinking…' : feeling ? `Blue feels ${feeling}` : 'Open source · 501(c)(3)'}
             </Label>
           </YStack>
         </div>

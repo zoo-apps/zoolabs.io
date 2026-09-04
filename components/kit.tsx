@@ -59,13 +59,12 @@ const PressBox = styled(XStack, {
   } as const,
 })
 
-/** Small caps. Every label on the site is one of these. */
+/** Clean, legible label following native @hanzo/gui styling without forced uppercase. */
 export const Label = styled(Text, {
   name: 'Label',
-  fontSize: 12,
-  fontWeight: '800',
-  letterSpacing: 1.8,
-  textTransform: 'uppercase',
+  fontSize: 13,
+  fontWeight: '500',
+  letterSpacing: -0.1,
 })
 
 type PressProps = ComponentProps<typeof PressBox> & {
@@ -109,17 +108,16 @@ export function Press({ onPress, disabled, label, children, ...box }: PressProps
 export function Wordmark({ first, second }: { first: string; second: string }) {
   return (
     <Text
-      fontSize={30}
-      $sm={{ fontSize: 34 }}
-      lineHeight={36}
-      fontWeight="900"
-      letterSpacing={-1}
-      textTransform="uppercase"
+      fontSize={24}
+      $sm={{ fontSize: 28 }}
+      lineHeight={32}
+      fontWeight="700"
+      letterSpacing={-0.5}
       color={BRAND.ink}
       select="none"
     >
       {first}&nbsp;
-      <Text fontWeight="200" letterSpacing={-1} textTransform="uppercase" color={BRAND.ink}>
+      <Text fontWeight="300" letterSpacing={-0.5} color={BRAND.ink}>
         {second}
       </Text>
     </Text>

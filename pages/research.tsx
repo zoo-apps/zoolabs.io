@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import { useEffect, useMemo, useState } from 'react'
-import { Anchor, H1, H2, Paragraph, XStack, YStack } from '@hanzo/ui'
-import Chrome from '../components/Chrome'
+import { Paragraph, XStack, YStack } from '@hanzo/ui'
+import Chrome, { MEASURE } from '../components/Chrome'
 import { BRAND, Label, Panel, Press } from '../components/kit'
 import type { Colour } from '../lib/brand'
 import { load, search, type Corpus, type Work } from '../lib/research'
@@ -18,6 +18,10 @@ const field: React.CSSProperties = {
   height: 46,
   padding: '0 14px',
   font: 'inherit',
+  /* After the shorthand, which resets size. A field you type into sits a rung
+     above the page, here and on the door, and it is the rung that clears iOS
+     Safari's zoom-on-focus. */
+  fontSize: 'var(--text-xl)',
   color: BRAND.ink,
   background: 'white',
   border: `2px solid ${BRAND.ink}`,
@@ -53,10 +57,8 @@ export default function Research() {
         />
       </Head>
 
-      <YStack maxW={1120} width="100%" mx="auto" px="$4" py="$5" gap="$4">
-        <H1 fontSize={36} lineHeight={40} fontWeight="800">
-          Everything we have published.
-        </H1>
+      <YStack maxW={MEASURE} width="100%" mx="auto" px="$4" py="$5" gap="$4">
+        <h1>Everything we have published.</h1>
         <Paragraph maxW={640}>
           Zoo Labs Foundation publishes its research in the open. This page is built straight
           from those documents — titles and abstracts are the authors&rsquo; own.
@@ -124,16 +126,13 @@ function Card({ work, hue }: { work: Work; hue: Colour }) {
         {work.kind === 'zip' ? work.id : 'Paper'}
         {work.status ? ` · ${work.status}` : ''}
       </Label>
-      <H2 fontSize={17} lineHeight={22} fontWeight="800">
-        <Anchor href={work.url} color={BRAND.ink}>
-          {work.title}
-        </Anchor>
-      </H2>
-      {work.summary ? (
-        <Paragraph fontSize={14} opacity={0.8}>
-          {work.summary}
-        </Paragraph>
-      ) : null}
+      {/* A plain anchor, because a gui one carries the body weight and the body
+          size as classes of its own and the title would render at neither its
+          own weight nor its own size. */}
+      <h2>
+        <a href={work.url}>{work.title}</a>
+      </h2>
+      {work.summary ? <Paragraph opacity={0.8}>{work.summary}</Paragraph> : null}
     </Panel>
   )
 }

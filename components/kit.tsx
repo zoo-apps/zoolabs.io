@@ -59,12 +59,18 @@ const PressBox = styled(XStack, {
   } as const,
 })
 
-/** Clean, legible label following native @hanzo/gui styling without forced uppercase. */
+/**
+ * A label: what a control is called, in sentence case, never shouted.
+ *
+ * `$2` is the ramp's nav rung rather than the number 13, so the reader's own type
+ * setting moves it. The old −0.1px of tracking was noise at this size — a
+ * hundredth of an em — and tightening is a DISPLAY move; on a label it only costs
+ * legibility.
+ */
 export const Label = styled(Text, {
   name: 'Label',
-  fontSize: 13,
+  fontSize: '$2',
   fontWeight: '500',
-  letterSpacing: -0.1,
 })
 
 type PressProps = ComponentProps<typeof PressBox> & {
@@ -102,25 +108,18 @@ export function Press({ onPress, disabled, label, children, ...box }: PressProps
 }
 
 /**
- * The lockup, as one shape: the org at full weight, what it does at light.
- * Big and bold, because on a page this quiet the name is the only chrome.
+ * The lockup: the org at full weight, what it does at light.
+ *
+ * Says what it IS and nothing about how it looks — the size, the weight and the
+ * display tracking are `.wordmark` in styles/globals.css, beside the headings it
+ * belongs with. Drawn by gui it would carry the fleet's tracking instead, since
+ * gui writes a letterSpacing of its own onto every display rung.
  */
 export function Wordmark({ first, second }: { first: string; second: string }) {
   return (
-    <Text
-      fontSize={24}
-      $sm={{ fontSize: 28 }}
-      lineHeight={32}
-      fontWeight="700"
-      letterSpacing={-0.5}
-      color={BRAND.ink}
-      select="none"
-    >
-      {first}&nbsp;
-      <Text fontWeight="300" letterSpacing={-0.5} color={BRAND.ink}>
-        {second}
-      </Text>
-    </Text>
+    <span className="wordmark">
+      {first}&nbsp;<span>{second}</span>
+    </span>
   )
 }
 

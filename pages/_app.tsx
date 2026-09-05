@@ -1,6 +1,7 @@
 import type { AppProps } from 'next/app'
 import { GuiProvider } from '@hanzo/gui'
 import config from '../lib/gui'
+import Look from '../components/Look'
 
 import '../styles/globals.css'
 import '../styles/gui.css'
@@ -17,6 +18,9 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <GuiProvider config={config} defaultTheme="light" disableInjectCSS>
       <Component {...pageProps} />
+      {/* Site chrome, so it is here and not on each page: every route gets the
+          one control over how it reads. */}
+      <Look />
     </GuiProvider>
   )
 }

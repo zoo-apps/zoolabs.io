@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hanzo/appearance": "^0.2.2",
     "@hanzo/design": "^0.5.25",
     "@hanzo/font": "^1.9.3",
     "@hanzo/gui": "^8.3.1",

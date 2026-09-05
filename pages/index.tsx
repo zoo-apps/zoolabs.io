@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { Anchor, H1, Paragraph, XStack, YStack } from '@hanzo/ui'
+import { Anchor, Paragraph, XStack, YStack } from '@hanzo/ui'
 import { Label } from '../components/kit'
 import Speaker from '../components/Speaker'
 import ZooLogo from '../components/ZooLogo'
@@ -109,7 +109,7 @@ export default function Blue() {
           <XStack items="center" gap="$3" px="$4" py="$3">
             <XStack items="center" gap="$2">
               <ZooLogo size={22} />
-              <Label color="rgba(255,255,255,0.92)" fontSize={14} fontWeight="600">
+              <Label color="rgba(255,255,255,0.92)" fontSize="$3" fontWeight="600">
                 Blue · Zoo
               </Label>
             </XStack>
@@ -117,12 +117,12 @@ export default function Blue() {
             <YStack flex={1} />
 
             <Link href="/research">
-              <Label color="rgba(255,255,255,0.72)" fontSize={13} fontWeight="500">
+              <Label color="rgba(255,255,255,0.72)" fontWeight="500">
                 Research
               </Label>
             </Link>
             <Anchor href="https://papers.zoo.ngo" textDecorationLine="none">
-              <Label color="rgba(255,255,255,0.72)" fontSize={13} fontWeight="500">
+              <Label color="rgba(255,255,255,0.72)" fontWeight="500">
                 Papers
               </Label>
             </Anchor>
@@ -130,7 +130,7 @@ export default function Blue() {
               href="https://zoolabs.id?client_id=zoo-app&redirect_uri=https://zoolabs.io"
               textDecorationLine="none"
             >
-              <Label color="rgba(255,255,255,0.92)" fontSize={13} fontWeight="600">
+              <Label color="rgba(255,255,255,0.92)" fontWeight="600">
                 Sign in
               </Label>
             </Anchor>
@@ -139,9 +139,7 @@ export default function Blue() {
           <YStack flex={1} justify="center" items="center" px="$4" gap="$4">
             {!spoken && (
               <YStack items="center" gap="$3" maxW={560} style={{ textAlign: 'center' }}>
-                <H1 fontSize={34} lineHeight={40} fontWeight="800" color="white">
-                  Hi, I&rsquo;m Blue the beluga.
-                </H1>
+                <h1>Hi, I&rsquo;m Blue the beluga.</h1>
                 <Paragraph color="rgba(255,255,255,0.72)">
                   Ask me about the ocean, endangered species, or how scientists actually find
                   things out. Watch how I feel as we talk.
@@ -208,7 +206,7 @@ export default function Blue() {
                 {thinking ? '…' : '↑'}
               </button>
             </form>
-            <Label color="rgba(255,255,255,0.55)" fontSize={12} fontWeight="400">
+            <Label color="rgba(255,255,255,0.55)" fontSize="$1" fontWeight="400">
               {thinking ? 'Blue is thinking…' : feeling ? `Blue feels ${feeling}` : 'Open source · 501(c)(3)'}
             </Label>
           </YStack>

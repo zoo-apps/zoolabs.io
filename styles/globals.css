@@ -17,11 +17,16 @@
 @import '@hanzo/design/tokens/motion.css';
 @import '@hanzo/design/tokens/z.css';
 
-/* base.css is the only group with ELEMENT selectors (`a`, `h1`, `body`, …). An
-   unlayered rule beats every layered one regardless of specificity, so importing
-   it bare would put `a{color:…}` above everything. Into the base layer it goes,
-   where element defaults belong. */
-@import '@hanzo/design/tokens/base.css' layer(base);
+/* base.css is the only group with ELEMENT selectors (`a`, `h1`, `body`, …), and
+   they belong in a layer so that every app rule here outranks them whatever its
+   specificity. The file already opens `@layer base { … }` itself, so it arrives
+   layered and this import must NOT restate it: webpack renders
+   `@import … layer(base)` as `@media layer(base){…}`, which is not a media query
+   any browser can match, so the whole file was dead in the built site. Measured:
+   `body` inherited the UA's Times New Roman at 16px, `a` kept the UA underline
+   on all 95 research links, and CSS.getMatchedStylesForNode returned nothing
+   from base for <body>. */
+@import '@hanzo/design/tokens/base.css';
 
 /* border-box must be UNLAYERED: gui's primitives state box-sizing on their own
    elements unlayered, so a layered reset loses to them and every gui View falls
@@ -31,10 +36,132 @@
   box-sizing: border-box;
 }
 
+/* The one place a typeface is named on this site, and it is named by REFERENCE.
+   @hanzo/design reads `--font-sans` and multiplies it into every ramp and into
+   gui's `--f-family`; @hanzo/font publishes the family under its own name. Bind
+   one to the other and nothing in any component has to spell a face. Undeclared,
+   `var(--font-sans, …)` fell through to the generic tail — the faces loaded and
+   nothing asked for them.
+
+   Left as a default rather than forced: `--font-sans` is one of the knobs
+   @hanzo/appearance writes INLINE on <html>, so a reader who asks for the system
+   face, a serif or mono outranks this, and asking for the default again removes
+   the property and lands back here. */
+:root {
+  --font-sans: var(--font-zen-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-sans);
+  --font-mono: var(--font-zen-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+/* ─── the register ───
+   @hanzo/design's published ramp is the compact app register — 14px base — for
+   chat and console surfaces. This is a public site a child reads, so it runs at
+   zoo.ngo's register instead, and takes it the way zoo.ngo derives it rather
+   than by restating a ramp: `--type-scale` is how big every rung is and
+   `--type-ratio` is how far apart they sit, and both are knobs the scale
+   publishes. Scale 8/7 puts the anchor rung at exactly 16px and ratio 0.84 puts
+   --text-7xl at exactly 64px, so the whole ramp follows — 13 / 15 / 16 / 17 /
+   19 / 23 / 27 / 33 / 41 / 52 / 64 — and no rung can drift out of relation with
+   the others, because none of them is written down.
+
+   Stated at `:root`, which is where a brand's own register belongs: the knobs
+   @hanzo/appearance writes land INLINE on <html> and outrank this, and clearing
+   an axis removes the property rather than neutralising it, so a reader's
+   setting composes with the site's instead of replacing it. */
+:root {
+  /* The five hues of the Zoo mark, and the ink and paper they sit on. They live
+     here rather than in TypeScript because a colour a stylesheet cannot see is a
+     colour @hanzo/appearance cannot reach: `lib/brand.ts` now names them by
+     reference for the gui props that need a value. One home, two readers.
+
+     The mark's cyan also fills the design system's accent roles, so a reader who
+     picks an accent moves the send key rather than nothing. The other six are
+     the foundation's identity and are passed where they are meant — the active
+     tab, a card's spine — never as "the accent". */
+  --ink: #000000;
+  --paper: #f5e8c8;
+  --magenta: #ea018e;
+  --green: #00a652;
+  --blue: #2e3192;
+  --cyan: #01acf1;
+  --yellow: #fcf006;
+  --red: #ed1c24;
+  --primary: var(--cyan);
+  --accent: var(--primary);
+
+  --type-scale: 1.142857;
+  --type-ratio: 0.84;
+
+  /* Display tracking, under the name zoo.ngo already gives it. --tracking-tight
+     (−0.025em) is right down the middle of the ramp and too loose at the top of
+     it: at 64px it leaves 1.6px of air between letterforms that should be
+     touching. −0.035em is −2.24px there. */
+  --tracking-display: -0.035em;
+}
+
+/* ─── type roles ───
+   Stated on the ELEMENT, so a page says what a thing IS and this file says what
+   it looks like. It is also the only place that can say it: gui carries a
+   letterSpacing of its own on every display rung, as an atomic class in a sheet
+   it injects at render, so a heading drawn by gui answers to the fleet's tracking
+   and never to this site's.
+
+   Colour is inherited rather than named, because this site has two rooms: the
+   heading is ink on the paper page and white over the video. */
+h1,
+h2 {
+  color: inherit;
+  font-weight: var(--weight-bold);
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--text-4xl);
+  line-height: var(--leading-4xl);
+  letter-spacing: var(--tracking-display);
+}
+
+/* A page head has room from `md` that a phone does not, and on the door the
+   greeting shares the fold with the composer. */
+@media (min-width: 48rem) {
+  h1 {
+    font-size: var(--text-5xl);
+    line-height: var(--leading-5xl);
+  }
+}
+
+/* No leading of its own: the ramp pairs --leading-xl with this rung for a
+   paragraph, and on a two-line card title it opens a gap you can drive through.
+   Inherited from the page it lands at 1.3, which is what a title wants. */
+h2 {
+  font-size: var(--text-xl);
+}
+
+/* A link inside a heading IS the heading; it is a link only because you can
+   press it. Said here because base.css colours every `a`, and a rule beats
+   inheritance however specific the rule is not. */
+h1 a,
+h2 a {
+  color: inherit;
+}
+
+/* The lockup, as one shape: the org at full weight, what it does at light.
+   Display type, so it takes the display tracking with the headings. */
+.wordmark {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-display);
+  user-select: none;
+}
+
+.wordmark span {
+  font-weight: 300;
+}
+
 body {
   margin: 0;
-  color: #000;
-  background-color: #f5e8c8;
+  color: var(--ink);
+  background-color: var(--paper);
   /* Iridescent wash: the Zoo mark's five hues dialled down to a pastel tint, so
      the page shares the logo's family without competing with the buttons. */
   background-image:
@@ -97,15 +224,21 @@ body {
   text-shadow: 0 1px 14px rgba(0, 20, 30, 0.75), 0 0 3px rgba(0, 20, 30, 0.5);
 }
 
+/* Sizes here are RUNGS, never numbers. Every one is a `--text-*` step, so the
+   reader's own type setting reaches the door as surely as it reaches a heading;
+   a literal rem would be the one place the knob could not move. The door reads
+   a rung apart from the page because it is a conversation and not a dense
+   screen: the field at `xl`, an answer at `lg`, a chip at `sm`, the line under
+   the field at `xs`. */
 .deep-chip {
   padding: 0.5rem 0.9rem;
   border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(8px);
   color: #fff;
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: var(--text-sm);
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
@@ -115,9 +248,12 @@ body {
   border-color: rgba(255, 255, 255, 0.45);
 }
 
+/* The measure is the design system's, not a number: `--container-prose` is the
+   width prose reads at across the estate, and it is what @hanzo/appearance moves
+   when a reader asks for a narrower or wider page. */
 .deep-thread {
   width: 100%;
-  max-width: 720px;
+  max-width: var(--container-prose);
   max-height: 58vh;
   overflow-y: auto;
   display: flex;
@@ -132,6 +268,7 @@ body {
   border-radius: 14px;
   background: rgba(4, 22, 32, 0.62);
   backdrop-filter: blur(10px);
+  font-size: var(--text-lg);
   line-height: 1.55;
   white-space: pre-wrap;
 }
@@ -153,10 +290,10 @@ body {
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  max-width: 720px;
+  max-width: var(--container-prose);
   padding: 0.45rem 0.45rem 0.45rem 1rem;
   border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: rgba(4, 22, 32, 0.7);
   backdrop-filter: blur(14px);
 }
@@ -169,6 +306,10 @@ body {
   background: none;
   color: #fff;
   font: inherit;
+  /* After the shorthand, which resets size along with everything else. The field
+     is the page's one action and it is the rung that clears iOS Safari's
+     zoom-on-focus (anything under 16px buys it). */
+  font-size: var(--text-xl);
   padding: 0.55rem 0;
 }
 
@@ -184,10 +325,10 @@ body {
   width: 38px;
   height: 38px;
   border: 0;
-  border-radius: 999px;
-  background: var(--cyan, #01acf1);
+  border-radius: var(--radius-full);
+  background: var(--primary);
   color: #04202c;
-  font-size: 1rem;
+  font-size: var(--text-xl);
   font-weight: 700;
   line-height: 1;
   cursor: pointer;

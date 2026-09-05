@@ -2,6 +2,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { Anchor, Paragraph, XStack, YStack } from '@hanzo/ui'
+import Film from '../components/Film'
 import { Label } from '../components/kit'
 import Speaker from '../components/Speaker'
 import ZooLogo from '../components/ZooLogo'
@@ -31,14 +32,9 @@ export default function Blue() {
   const [problem, setProblem] = useState('')
   const [voice, setVoice] = useState(false)
   const [rest, setRest] = useState(0)
-  const video = useRef<HTMLVideoElement>(null)
   const tail = useRef<HTMLDivElement>(null)
 
   const src = feeling ? clipFor(feeling) : RESTING[rest]
-
-  useEffect(() => {
-    video.current?.load()
-  }, [src])
 
   useEffect(() => {
     if (turns.length || streaming) tail.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -93,13 +89,8 @@ export default function Blue() {
       </Head>
 
       <div className="deep">
-        <video
-          ref={video}
-          className="deep-film"
+        <Film
           src={src}
-          autoPlay
-          muted
-          playsInline
           loop={Boolean(feeling)}
           onEnded={() => !feeling && setRest((n) => (n + 1) % RESTING.length)}
         />

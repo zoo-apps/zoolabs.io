@@ -7,15 +7,15 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "dev": "node scripts/gui-css.mjs && next dev --webpack",
-    "build": "node scripts/gui-css.mjs && next build --webpack",
+    "dev": "node scripts/clips.mjs && node scripts/gui-css.mjs && next dev --webpack",
+    "build": "node scripts/clips.mjs && node scripts/gui-css.mjs && next build --webpack",
     "start": "next start",
     "test": "node --test lib/*.test.ts",
     "research": "node scripts/research.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@hanzo/appearance": "^0.2.2",
+    "@hanzo/appearance": "^0.2.4",
     "@hanzo/design": "^0.5.25",
     "@hanzo/font": "^1.9.3",
     "@hanzo/gui": "^8.3.1",
@@ -24,7 +24,7 @@
     "@hanzogui/config": "8.3.1",
     "@hanzogui/lucide-icons-2": "catalog:",
     "@hanzogui/next-theme": "catalog:",
-    "@hanzogui/telemetry": "8.3.1",
+    "@hanzogui/telemetry": "8.3.2",
     "@hanzogui/toast": "8.3.1",
     "@hanzogui/web": "8.3.1",
     "@react-native/assets-registry": "^0.86.2",

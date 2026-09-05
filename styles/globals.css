@@ -53,21 +53,6 @@
   --font-mono: var(--font-zen-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
-/* ─── the register ───
-   @hanzo/design's published ramp is the compact app register — 14px base — for
-   chat and console surfaces. This is a public site a child reads, so it runs at
-   zoo.ngo's register instead, and takes it the way zoo.ngo derives it rather
-   than by restating a ramp: `--type-scale` is how big every rung is and
-   `--type-ratio` is how far apart they sit, and both are knobs the scale
-   publishes. Scale 8/7 puts the anchor rung at exactly 16px and ratio 0.84 puts
-   --text-7xl at exactly 64px, so the whole ramp follows — 13 / 15 / 16 / 17 /
-   19 / 23 / 27 / 33 / 41 / 52 / 64 — and no rung can drift out of relation with
-   the others, because none of them is written down.
-
-   Stated at `:root`, which is where a brand's own register belongs: the knobs
-   @hanzo/appearance writes land INLINE on <html> and outrank this, and clearing
-   an axis removes the property rather than neutralising it, so a reader's
-   setting composes with the site's instead of replacing it. */
 :root {
   /* The five hues of the Zoo mark, and the ink and paper they sit on. They live
      here rather than in TypeScript because a colour a stylesheet cannot see is a
@@ -80,6 +65,12 @@
      tab, a card's spine — never as "the accent". */
   --ink: #000000;
   --paper: #f5e8c8;
+  /* The deep. The third ground, and the one the door is painted in — the lab is
+     ink on paper, the door is light on this. It was a literal inside `.deep`,
+     which made it a colour only that one class could reach; floating chrome
+     needs it too, and a second copy of a ground is how two dark rooms end up a
+     shade apart. */
+  --night: #06202c;
   --magenta: #ea018e;
   --green: #00a652;
   --blue: #2e3192;
@@ -89,8 +80,18 @@
   --primary: var(--cyan);
   --accent: var(--primary);
 
-  --type-scale: 1.142857;
-  --type-ratio: 0.84;
+  /* The ramp knobs are NOT here. `--type-scale` and `--type-ratio` are the
+     READER's dial, and this site's own register is the install layer that dial
+     turns from — `lib/look.ts`, applied before first paint. There is one
+     `--type-scale` and the panel writes it absolutely, so a stylesheet that
+     sets it has spent the reader's setting on the brand's size: the panel then
+     shows "M / Default" selected while the page is at 8/7, and pressing the step
+     that is already lit drops the anchor rung from 16px to 14px.
+
+     `--font-sans` below stays, and the difference is not a preference. The face
+     has a real absent state — the panel's "Default" writes nothing and the
+     stylesheet answers — so a default there means THIS SITE's face. The type
+     steps are absolute numbers with no such state. */
 
   /* Display tracking, under the name zoo.ngo already gives it. --tracking-tight
      (−0.025em) is right down the middle of the ramp and too loose at the top of
@@ -185,23 +186,72 @@ body {
   }
 }
 
+/* ─── the night ───
+   The dark room, as a set of ROLES rather than a place. @hanzo/design names
+   every job a colour can hold and scopes the light half of them to `.light`,
+   which this site wears on <html>; anything drawn on the deep is drawn on the
+   wrong half of that. It showed: @hanzo/appearance's panel sets its labels in
+   --foreground, resolved #0a0a0a here, so the shared control that explains the
+   design system was the one thing on the door that could not be read on it.
+
+   Stated once and worn by whatever is in the room — the door below, and the
+   floating chrome in components/Look, which is over the door as often as not.
+   Custom properties inherit, so a class on the element beats the `.light` on
+   <html> for its whole subtree without out-specifying anything. Every value is
+   a rung of the design system's own opacity ladder, so the surfaces inside lift
+   by the steps the fleet lifts by instead of by numbers chosen here.
+
+   The GROUND is not here, and that is the one thing this class does not decide.
+   gui paints a component's own background as an atomic class it injects at
+   render, which a rule in this file cannot outrank — so each wearer lays its
+   own: the door below as a full-bleed fixed layer, the panel as a 320px card.
+   `--night` is the value both of them ask for, so there is still one dark.
+
+   --ink is deliberately absent for the same reason from the other direction:
+   @hanzo/gui publishes one at `:root.t_light` and a class cannot outrank that
+   on <html>. It stays the hard edge this site draws every panel with, which is
+   what it is for. */
+.night,
+.deep {
+  color: #ffffff;
+
+  --foreground: #ffffff;
+  --muted-foreground: var(--white-78);
+  --secondary: var(--white-08);
+  --surface-card: var(--white-14);
+  /* A filled accent carries the night as its ink — which is what the door's own
+     send key already does by hand. */
+  --primary-foreground: var(--night);
+}
+
 /* The deep — the logged-out door at /.
    A different room from the lab: the clip is the page rather than a picture on
    it, so everything here sits over video and the type is light on dark. The
-   lab, and every other Zoo surface, stays on the paper ground above. */
+   lab, and every other Zoo surface, stays on the paper ground above. It IS the
+   night, so it is listed with it above rather than repeating the ground. */
 .deep {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: #06202c;
 }
 
+/* Two of these are stacked, and they trade places rather than one of them
+   changing what it plays — see components/Film.tsx. The dissolve is here
+   because it is how the page looks; which of the pair is in front is state,
+   and stays in the component. */
 .deep-film {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: opacity 700ms ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deep-film {
+    transition: none;
+  }
 }
 
 /* Darkened toward the bottom, where the question box and the type sit. */

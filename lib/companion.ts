@@ -35,10 +35,20 @@ export const FEELINGS = [
 
 export type Feeling = (typeof FEELINGS)[number]
 
-/** Clips Blue rests on between questions. */
-export const RESTING = [0, 1, 2, 3, 4].map((n) => `/bg_video/static/relactation${n}.mp4`)
+// Every clip's URL carries a hash of its own bytes, written by
+// `scripts/clips.mjs` before each build. A CDN caches by URL, so without it new
+// bytes keep the old URL and the edge goes on serving what it already has —
+// which is exactly how these clips shipped for weeks as Git LFS pointers and
+// stayed pointers at the edge long after the real files reached the origin.
+// A path with no stamp is a path this site does not have.
+import stamped from './clips.json'
 
-export const clipFor = (f: Feeling) => `/bg_video/emotion/${f}.mp4`
+const at = (path: string): string => (stamped as Record<string, string>)[path] ?? path
+
+/** Clips Blue rests on between questions. */
+export const RESTING = [0, 1, 2, 3, 4].map((n) => at(`/bg_video/static/relactation${n}.mp4`))
+
+export const clipFor = (f: Feeling) => at(`/bg_video/emotion/${f}.mp4`)
 
 /** Chip colour. Bright feelings run yellow, settled ones green, open ones cyan,
  *  fond ones magenta; everything else takes the deep blue. */

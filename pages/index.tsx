@@ -25,7 +25,7 @@ import { hush, say } from '../lib/voice'
 type Turn = { role: 'user' | 'assistant'; text: string }
 
 export default function Blue() {
-  const { embedded, seed } = useArrival()
+  const { embedded, seed, corpus } = useArrival()
   const [turns, setTurns] = useState<Turn[]>([])
   const [draft, setDraft] = useState('')
   const [streaming, setStreaming] = useState('')
@@ -47,7 +47,7 @@ export default function Blue() {
 
     const asked: Turn = { role: 'user', text: question.trim() }
     const history: Message[] = [
-      { role: 'system', content: systemPrompt() },
+      { role: 'system', content: systemPrompt(corpus) },
       ...turns.map((t) => ({ role: t.role, content: t.text })),
       { role: 'user', content: asked.text },
     ]
@@ -102,7 +102,7 @@ export default function Blue() {
         />
         <div className="deep-veil" />
 
-        <div className="deep-stage">
+        <div className={spoken ? 'deep-stage talking' : 'deep-stage'}>
           {embedded ? (
             /* Inside someone else's hero their page already carries a header,
                and the one thing worth offering here is the whole room this is a
@@ -182,7 +182,7 @@ export default function Blue() {
             )}
           </YStack>
 
-          <YStack items="center" px="$4" pb="$5" gap="$2">
+          <YStack className="deep-ask-row" items="center" px="$4" pb="$5" gap="$2">
             <form
               className="deep-ask"
               onSubmit={(e) => {

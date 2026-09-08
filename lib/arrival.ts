@@ -11,13 +11,28 @@ import { useEffect, useRef, useState } from 'react'
  * Read after mount, from location — the site is a static export, so the query
  * is not known at build time and reading it during render would hydrate wrong.
  */
-export type Arrival = { embedded: boolean; seed: string }
+/** What the foundation has published, as its own site counts it. */
+export type Corpus = { papers: number; proposals: number; models: number }
+
+export type Arrival = { embedded: boolean; seed: string; corpus: Corpus | null }
+
+// A count arrives as a number or it does not arrive. Anything a URL can carry
+// reaches a prompt, so nothing here is passed through as text: three integers in
+// a plausible range, or nothing.
+const counted = (q: URLSearchParams): Corpus | null => {
+  const n = (k: string) => {
+    const v = Number(q.get(k))
+    return Number.isInteger(v) && v > 0 && v < 100_000 ? v : null
+  }
+  const papers = n('papers'), proposals = n('proposals'), models = n('models')
+  return papers && proposals && models ? { papers, proposals, models } : null
+}
 
 export function useArrival(): Arrival {
-  const [it, set] = useState<Arrival>({ embedded: false, seed: '' })
+  const [it, set] = useState<Arrival>({ embedded: false, seed: '', corpus: null })
   useEffect(() => {
     const q = new URLSearchParams(location.search)
-    set({ embedded: q.has('embed'), seed: (q.get('q') ?? '').slice(0, 400) })
+    set({ embedded: q.has('embed'), seed: (q.get('q') ?? '').slice(0, 400), corpus: counted(q) })
   }, [])
   return it
 }

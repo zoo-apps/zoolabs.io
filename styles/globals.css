@@ -301,6 +301,47 @@ body {
 /* The measure is the design system's, not a number: `--container-prose` is the
    width prose reads at across the estate, and it is what @hanzo/appearance moves
    when a reader asks for a narrower or wider page. */
+/* THE WHALE KEEPS THE LEFT. On a wide screen the conversation is a column on
+   the right and the clip is not covered: Blue swims in the two thirds nobody is
+   typing over, which is the whole reason the clip is the page. A phone has no
+   two thirds to spare, so below 60rem the column is the width of the screen and
+   this rule does not apply.
+
+   The column also MOVES once. Before anyone speaks it sits wider and further in,
+   because the greeting is the page's only content and a narrow ribbon at the
+   edge is not an opening. On the first question it settles to its talking width
+   at the edge — one transition on two concrete lengths, so it animates rather
+   than jumping, and the whale is clear from the first frame either way. */
+@media (min-width: 60rem) {
+  .deep-stage {
+    --talk: min(38vw, 30rem);
+    --sit: min(52vw, 40rem);
+    --edge: clamp(1.5rem, 4vw, 4rem);
+  }
+
+  .deep-middle,
+  .deep-ask-row {
+    width: var(--sit);
+    margin-left: auto;
+    margin-right: calc((100vw - var(--sit)) / 2);
+    transition: width 520ms cubic-bezier(0.22, 1, 0.36, 1),
+      margin-right 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .talking .deep-middle,
+  .talking .deep-ask-row {
+    width: var(--talk);
+    margin-right: var(--edge);
+  }
+
+  /* The thread and the field are the column, so they stop asking for a measure
+     of their own — the column is the measure. */
+  .deep-thread,
+  .deep-ask {
+    max-width: none;
+  }
+}
+
 /* Between the bar and the ask, and it SHRINKS. A flex child sizes to its
    content by default, so on a short window — a phone in landscape, or this page
    in the height someone else's hero gives it — the greeting and the openers

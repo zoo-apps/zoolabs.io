@@ -312,7 +312,14 @@ body {
   padding-right: 0.25rem;
 }
 
+/* A turn takes ITS OWN SIDE. Blue's had neither an align-self nor a width, so
+   in a column flexbox it stretched the full thread while the reader's hugged
+   the right — one voice as a wall of text, the other as a bubble, which does
+   not read as two people talking. Both are pinned now, and both stop short of
+   the far edge so the shape of the exchange is visible at a glance. */
 .deep-said {
+  align-self: flex-start;
+  max-width: 85%;
   padding: 0.75rem 1rem;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 14px;
@@ -325,7 +332,6 @@ body {
 
 .deep-mine {
   align-self: flex-end;
-  max-width: 85%;
   background: rgba(1, 172, 241, 0.28);
   border-color: rgba(1, 172, 241, 0.5);
 }

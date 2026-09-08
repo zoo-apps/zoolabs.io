@@ -8,6 +8,7 @@ import Speaker from '../components/Speaker'
 import ZooLogo from '../components/ZooLogo'
 import { reply, type Message } from '../lib/chat'
 import { clipFor, OPENERS, RESTING, read, systemPrompt, visible, type Feeling } from '../lib/companion'
+import { full, useArrival, useSeed } from '../lib/arrival'
 import { hush, say } from '../lib/voice'
 
 /**
@@ -24,6 +25,7 @@ import { hush, say } from '../lib/voice'
 type Turn = { role: 'user' | 'assistant'; text: string }
 
 export default function Blue() {
+  const { embedded, seed } = useArrival()
   const [turns, setTurns] = useState<Turn[]>([])
   const [draft, setDraft] = useState('')
   const [streaming, setStreaming] = useState('')
@@ -74,7 +76,11 @@ export default function Blue() {
     }
   }
 
+  useSeed(seed, ask)
+
   const spoken = turns.length > 0 || Boolean(streaming) || Boolean(problem)
+  // What a reader carries with them when they open the full room.
+  const last = [...turns].reverse().find((t) => t.role === 'user')?.text ?? ''
 
   return (
     <>
@@ -97,35 +103,48 @@ export default function Blue() {
         <div className="deep-veil" />
 
         <div className="deep-stage">
-          <XStack items="center" gap="$3" px="$4" py="$3">
-            <XStack items="center" gap="$2">
-              <ZooLogo size={22} />
-              <Label color="rgba(255,255,255,0.92)" fontSize="$3" fontWeight="600">
-                Blue · Zoo
-              </Label>
+          {embedded ? (
+            /* Inside someone else's hero their page already carries a header,
+               and the one thing worth offering here is the whole room this is a
+               window into — with the question already asked. */
+            <XStack items="center" justify="flex-end" px="$4" py="$3">
+              <Anchor href={full(last)} target="_top" textDecorationLine="none">
+                <Label color="rgba(255,255,255,0.92)" fontWeight="600">
+                  Open Blue&nbsp;↗
+                </Label>
+              </Anchor>
             </XStack>
+          ) : (
+            <XStack items="center" gap="$3" px="$4" py="$3">
+              <XStack items="center" gap="$2">
+                <ZooLogo size={22} />
+                <Label color="rgba(255,255,255,0.92)" fontSize="$3" fontWeight="600">
+                  Blue · Zoo
+                </Label>
+              </XStack>
 
-            <YStack flex={1} />
+              <YStack flex={1} />
 
-            <Link href="/research">
-              <Label color="rgba(255,255,255,0.72)" fontWeight="500">
-                Research
-              </Label>
-            </Link>
-            <Anchor href="https://papers.zoo.ngo" textDecorationLine="none">
-              <Label color="rgba(255,255,255,0.72)" fontWeight="500">
-                Papers
-              </Label>
-            </Anchor>
-            <Anchor
-              href="https://zoolabs.id?client_id=zoo-app&redirect_uri=https://zoolabs.io"
-              textDecorationLine="none"
-            >
-              <Label color="rgba(255,255,255,0.92)" fontWeight="600">
-                Sign in
-              </Label>
-            </Anchor>
-          </XStack>
+              <Link href="/research">
+                <Label color="rgba(255,255,255,0.72)" fontWeight="500">
+                  Research
+                </Label>
+              </Link>
+              <Anchor href="https://papers.zoo.ngo" textDecorationLine="none">
+                <Label color="rgba(255,255,255,0.72)" fontWeight="500">
+                  Papers
+                </Label>
+              </Anchor>
+              <Anchor
+                href="https://zoolabs.id?client_id=zoo-app&redirect_uri=https://zoolabs.io"
+                textDecorationLine="none"
+              >
+                <Label color="rgba(255,255,255,0.92)" fontWeight="600">
+                  Sign in
+                </Label>
+              </Anchor>
+            </XStack>
+          )}
 
           <YStack flex={1} justify="center" items="center" px="$4" gap="$4">
             {!spoken && (

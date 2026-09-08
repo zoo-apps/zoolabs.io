@@ -1,6 +1,7 @@
 import type { AppProps } from 'next/app'
 import { GuiProvider } from '@hanzo/gui'
 import config from '../lib/gui'
+import { useArrival } from '../lib/arrival'
 import Look from '../components/Look'
 
 import '../styles/globals.css'
@@ -15,12 +16,15 @@ import '../styles/gui.css'
  * to resolve at run time.
  */
 export default function App({ Component, pageProps }: AppProps) {
+  const { embedded } = useArrival()
   return (
     <GuiProvider config={config} defaultTheme="light" disableInjectCSS>
       <Component {...pageProps} />
       {/* Site chrome, so it is here and not on each page: every route gets the
-          one control over how it reads. */}
-      <Look />
+          one control over how it reads — except in someone else's hero, where
+          the reader is reading THEIR page and this control is not ours to
+          offer. */}
+      {!embedded && <Look />}
     </GuiProvider>
   )
 }

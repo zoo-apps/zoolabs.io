@@ -102,8 +102,8 @@ importers:
   .:
     dependencies:
       '@hanzo/appearance':
-        specifier: ^0.2.2
-        version: 0.2.2(react@19.2.8)
+        specifier: ^0.2.4
+        version: 0.2.5(react@19.2.8)
       '@hanzo/design':
         specifier: ^0.5.25
         version: 0.5.25
@@ -698,6 +698,11 @@ packages:
     resolution: {integrity: sha512-HsH2wT82EbjHF1zY/TWubUQv7N5tBolVyBtXuQD8I+3E7xQ+Qoy7u79Xz1lw0EVkBESM2dr6VMaPWWThnytzZg==}
     peerDependencies:
       react: '>=19'
+
+  '@hanzo/appearance@0.2.5':
+    resolution: {integrity: sha512-2DxnX+qOck1cYQNlR+R/lcJjfvc0+6oE8+a0eV1VOTDmUas9OX7GexInjJi3FUQio2LClAsaFVOR+EK+s9DXfQ==}
+    peerDependencies:
+      react: '>=19.2.8'
 
   '@hanzo/brand@1.4.8':
     resolution: {integrity: sha512-ezz3JEC+5QO4LywK02o24i0CuHZ+askwT4Dmvd+BrXZsJs/Eyw3Xu/EPEZLpZY0cZ5+8sIYO07jUOaWTU3nfAw==}
@@ -3298,6 +3303,11 @@ snapshots:
   '@hanzo/appearance@0.2.2(react@19.2.8)':
     dependencies:
       '@hanzo/design': 0.5.25
+      react: 19.2.8
+
+  '@hanzo/appearance@0.2.5(react@19.2.8)':
+    dependencies:
+      '@hanzo/design': 0.5.24
       react: 19.2.8
 
   '@hanzo/brand@1.4.8(react@19.2.8)':

@@ -1,0 +1,81 @@
+name: Deploy
+
+# THIS IS WHAT PUBLISHES. The site is served by GitHub Pages — `build_type:
+# workflow`, `cname: zoolabs.io` — with Cloudflare in front of it for DNS and
+# caching, which is why the response says `server: cloudflare` and why a
+# workflow that published to Pages was mistaken for one publishing into the
+# void. Deleting it on that reading froze the live site on 1 September: the
+# dozen commits after it, Blue on screen and the feelings among them, built
+# green and reached nobody.
+#
+# One workflow, because a build that publishes already checks the build. The
+# check that used to live beside this could not run at all — it asked for
+# `zoo-build-linux-amd64`, and every run since 2 September sat in the queue
+# until GitHub cancelled it at 24 hours. A check that cannot run reads as a
+# check that passed.
+#
+# `ubuntu-latest` because Pages takes its artifact from a GitHub-hosted job and
+# the org's own runner is not answering. When it is, this is one line.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # `lfs: true` IS THE CLIPS. `*.mp4` is in LFS, so a plain checkout writes
+      # 132-byte pointer files and the build ships them — which is exactly how
+      # these clips reached the edge as pointers once already and stayed there
+      # long after the real bytes were in the repository. `pnpm test` asserts
+      # every feeling has a clip on disk, so it fails here rather than there.
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      # pnpm, not bun and not npm: the gui runtime is ~60 packages pinned by the
+      # overrides block in pnpm-workspace.yaml, and only pnpm reads it.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # Not `pnpm install`: a @hanzo bump that moves package.json without the
+      # lockfile is the failure this catches, and it has happened twice.
+      - run: pnpm install --frozen-lockfile
+
+      # Build BEFORE test, because `scripts/clips.mjs` runs on build and writes
+      # `lib/clips.json` — the stamped clip paths that `lib/companion.ts` imports
+      # and that the tests read. It is generated, so it is not in the repo, and
+      # a test run on a clean checkout cannot resolve it.
+      - run: pnpm build
+        env:
+          NODE_ENV: production
+      - run: pnpm test
+
+      # `public/CNAME` carries the domain into `out/`, so the artifact already
+      # has it and nothing here writes one.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.publish.outputs.page_url }}
+    steps:
+      - id: publish
+        uses: actions/deploy-pages@v4

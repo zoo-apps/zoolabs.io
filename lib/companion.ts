@@ -41,7 +41,7 @@ export type Feeling = (typeof FEELINGS)[number]
 // which is exactly how these clips shipped for weeks as Git LFS pointers and
 // stayed pointers at the edge long after the real files reached the origin.
 // A path with no stamp is a path this site does not have.
-import stamped from './clips.json'
+import stamped from './clips.json' with { type: 'json' }
 
 const at = (path: string): string => (stamped as Record<string, string>)[path] ?? path
 

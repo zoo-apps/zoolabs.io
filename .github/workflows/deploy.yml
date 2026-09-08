@@ -10,7 +10,7 @@ name: Deploy
 #
 # One workflow, because a build that publishes already checks the build. The
 # check that used to live beside this could not run at all — it asked for
-# `zoo-build-linux-amd64`, and every run since 2 September sat in the queue
+# `linux-amd64`, and every run since 2 September sat in the queue
 # until GitHub cancelled it at 24 hours. A check that cannot run reads as a
 # check that passed.
 #

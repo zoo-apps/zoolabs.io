@@ -1,13 +1,24 @@
 import assert from 'node:assert/strict'
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, statSync } from 'node:fs'
 import { test } from 'node:test'
 import { clipFor, FEELINGS, read, RESTING, visible } from './companion.ts'
 
-const asset = (url: string) => `public${url}`
+// A clip's URL carries a stamp (`?v=<hash>`); a clip's FILE does not. The two
+// were the same string before the stamps landed, and this dropped the query the
+// moment they differed — checking `public/…/Admiration.mp4?v=b8c659df` on disk
+// is a check that can only fail.
+const asset = (url: string) => `public${url.split('?')[0]}`
+
+// An LFS pointer is a 132-byte text file that exists, is named right, and plays
+// nothing. These clips reached the edge as pointers once already, so presence is
+// not the question — size is.
+const POINTER = 1024
 
 test('every feeling Blue can show has a clip on disk', () => {
   for (const feeling of FEELINGS) {
-    assert.ok(existsSync(asset(clipFor(feeling))), `missing clip for ${feeling}`)
+    const file = asset(clipFor(feeling))
+    assert.ok(existsSync(file), `missing clip for ${feeling}`)
+    assert.ok(statSync(file).size > POINTER, `${feeling} is an LFS pointer, not a clip`)
   }
 })
 
@@ -19,7 +30,11 @@ test('every clip on disk is a feeling Blue can show', () => {
 })
 
 test('resting clips exist', () => {
-  for (const url of RESTING) assert.ok(existsSync(asset(url)), `missing ${url}`)
+  for (const url of RESTING) {
+    const file = asset(url)
+    assert.ok(existsSync(file), `missing ${url}`)
+    assert.ok(statSync(file).size > POINTER, `${url} is an LFS pointer, not a clip`)
+  }
 })
 
 test('reads the feeling off a reply and keeps the prose', () => {

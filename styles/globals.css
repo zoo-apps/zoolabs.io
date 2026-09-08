@@ -301,6 +301,36 @@ body {
 /* The measure is the design system's, not a number: `--container-prose` is the
    width prose reads at across the estate, and it is what @hanzo/appearance moves
    when a reader asks for a narrower or wider page. */
+/* Between the bar and the ask, and it SHRINKS. A flex child sizes to its
+   content by default, so on a short window — a phone in landscape, or this page
+   in the height someone else's hero gives it — the greeting and the openers
+   spilled out of both ends and printed over the bar and over the composer.
+   Scrolling inside is what a room does when it is smaller than what is in it. */
+.deep-middle {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* A SHORT ROOM. The door is normally a whole viewport; it is also a phone in
+   landscape, and the height someone else's hero gives it. Under about 34rem the
+   greeting has to give way to the thing a reader came to do — so the type comes
+   down, the spacing closes, and the third opener stands aside rather than
+   sitting behind the ask. Two questions are still an invitation. */
+@media (max-height: 34rem) {
+  .deep-middle h1 {
+    font-size: var(--text-2xl);
+    line-height: 1.15;
+  }
+
+  .deep-middle {
+    gap: 0.5rem;
+  }
+
+  .deep-chip:nth-of-type(n + 3) {
+    display: none;
+  }
+}
+
 .deep-thread {
   width: 100%;
   max-width: var(--container-prose);

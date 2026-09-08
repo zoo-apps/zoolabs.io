@@ -146,7 +146,7 @@ export default function Blue() {
             </XStack>
           )}
 
-          <YStack flex={1} justify="center" items="center" px="$4" gap="$4">
+          <YStack className="deep-middle" flex={1} justify="center" items="center" px="$4" gap="$4">
             {!spoken && (
               <YStack items="center" gap="$3" maxW={560} style={{ textAlign: 'center' }}>
                 <h1>Hi, I&rsquo;m Blue the beluga.</h1>

@@ -17,3 +17,8 @@ out
 # Written by scripts/clips.mjs before every build — one hash per clip, from the
 # clip. Generated, so it is not a source file; committed nowhere, derived always.
 lib/clips.json
+
+# Local symlinks to LLM.md
+CLAUDE.md
+AGENTS.md
+GEMINI.md
